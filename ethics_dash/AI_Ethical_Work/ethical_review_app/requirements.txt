@@ -1,0 +1,17 @@
+# Base Requirements for Ethical Review App
+# It is strongly recommended to freeze the exact versions used in development/testing
+# using 'pip freeze > requirements.txt' within the project's virtual environment or container.
+
+Flask>=2.3.0,<3.1.0 # Web framework
+google-generativeai==0.5.3 # Gemini API - fixed version for compatibility
+anthropic>=0.20.0,<0.26.0 # Anthropic (Claude) API
+gunicorn>=21.0.0,<23.0.0 # WSGI server for production
+
+# --- Transitive Dependencies (Example - update with pip freeze) ---
+# Add dependencies found via pip freeze below, for example:
+# Werkzeug>=3.0.0,<3.1.0
+# Jinja2>=3.1.0,<3.2.0
+# itsdangerous>=2.1.0,<2.2.0
+# click>=8.1.0,<8.2.0
+# httpx>=0.26.0,<0.28.0
+# ... etc.

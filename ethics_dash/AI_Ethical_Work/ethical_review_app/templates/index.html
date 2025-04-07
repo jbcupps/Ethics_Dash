@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ethical Review App</title>
+    {# Link the external stylesheet #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Ethical Review Tool</h1>
+
+        {# Display flashed messages #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {%- if messages -%}
+            <ul class="flash-messages">
+            {%- for category, message in messages -%}
+              {# Ensure category is safe for class name (basic check) #}
+              <li class="flash-{{ category|replace(' ', '-')|lower }}">{{ message }}</li>
+            {%- endfor -%}
+            </ul>
+          {%- endif -%}
+        {% endwith %}
+
+        {# Display general error messages passed from render_template #}
+        {# Use context variable directly - updated in main.py #}
+        {% if context.error and not get_flashed_messages() %} {# Avoid showing duplicate errors #}
+          <p class="error-message">{{ context.error }}</p>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('index') }}"> {# Added action for clarity #}
+            <div>
+                {# Use the context variable for prompt text #}
+                <label for="prompt">Enter Prompt (P1):</label>
+                <textarea id="prompt" name="prompt" required>{{ context.prompt_text or '' }}</textarea>
+            </div>
+
+            <div>
+                <label for="model_select">Select Model:</label>
+                <select id="model_select" name="model_select">
+                    {# Use context variable for models #}
+                    {% for model in context.models %}
+                        <option value="{{ model }}" {% if model == context.selected_model %}selected{% endif %}>{{ model }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="api_key_input">API Key (Optional - uses environment variable if blank):</label>
+                {# Removed inline style, let CSS file handle it. Use context variable for value if needed, though usually blanked. #}
+                <input type="password" id="api_key_input" name="api_key_input" value="{{ context.form_api_key or '' }}">
+            </div>
+
+            <button type="submit">Generate & Analyze</button>
+        </form>
+
+        {# Use context variable for prompt text #}
+        {% if context.prompt_text %}
+        <div class="results">
+            <h2>Results</h2>
+
+            <div>
+                <h3>Initial Prompt (P1)</h3>
+                <div class="result-box">{{ context.prompt_text }}</div>
+            </div>
+
+            {# Use context variable for initial response #}
+            {% if context.initial_response %}
+            <div>
+                <h3>Generated Response (R1)</h3>
+                 <div class="result-box">{{ context.initial_response }}</div>
+            </div>
+            {% endif %}
+
+            {# Use context variable for analysis response #}
+            {% if context.ethical_analysis_response %}
+            <div>
+                <h3>Ethical Analysis (R2)</h3>
+                 <div class="result-box">{{ context.ethical_analysis_response }}</div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+    </div>
+</body>
+</html>

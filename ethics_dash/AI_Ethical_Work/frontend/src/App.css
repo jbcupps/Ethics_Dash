@@ -1,0 +1,393 @@
+:root {
+  --color-primary: #3498db;
+  --color-primary-hover: #2980b9;
+  --color-background-main: #ffffff;
+  --color-background-subtle: #f8f9fa;
+  --color-background-info: #eef2f7;
+  --color-border-standard: #e0e0e0;
+  --color-border-input: #cccccc;
+  --color-border-info: #d6e0ea;
+  --color-text-primary: #212529;
+  --color-text-secondary: #6c757d;
+  --color-error-background: #f8d7da;
+  --color-error-border: #f5c6cb;
+  --color-error-text: #721c24;
+  --color-disabled-background: #95a5a6;
+  
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  --font-family-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  --font-size-base: 16px;
+  --font-size-small: 0.875em; /* 14px if base is 16px */
+}
+
+body {
+  font-family: var(--font-family-sans);
+  color: var(--color-text-primary);
+  background-color: var(--color-background-subtle); /* Light grey background for the whole page */
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Container */
+.container {
+  max-width: 960px;
+  margin: var(--spacing-lg) auto; /* Center container with space top/bottom */
+  padding: 0 var(--spacing-md); /* Add horizontal padding */
+}
+
+/* Global Heading Styles (Optional - can rely on defaults) */
+h1, h2, h3, h4, h5, h6 {
+  margin-top: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+  font-weight: 600;
+  line-height: 1.2;
+}
+h1 { font-size: 2em; }
+h2 { font-size: 1.75em; }
+h3 { font-size: 1.5em; }
+h4 { font-size: 1.25em; }
+
+/* App Component Styling */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Form Container */
+.form-container {
+  background-color: var(--color-background-main);
+  border-radius: var(--spacing-sm);
+  padding: var(--spacing-lg);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin-bottom: var(--spacing-lg);
+  border: 1px solid var(--color-border-standard);
+}
+
+.form-group {
+  margin-bottom: var(--spacing-md);
+}
+
+label {
+  display: block;
+  margin-bottom: var(--spacing-sm);
+  font-weight: 600;
+}
+
+/* Inputs, Textarea, Select */
+textarea, input, select {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--spacing-xs);
+  font-size: 1em; /* Inherit base font size */
+  font-family: inherit; /* Inherit font family */
+  line-height: inherit;
+  margin-top: var(--spacing-xs);
+  box-sizing: border-box; /* Include padding and border in the element's total width and height */
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+textarea:focus, input:focus, select:focus {
+  border-color: var(--color-primary);
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25); /* Primary color focus ring */
+}
+
+textarea {
+  min-height: 150px;
+  resize: vertical;
+  word-wrap: break-word; 
+  overflow-wrap: break-word; 
+  white-space: pre-wrap; 
+}
+
+/* Button Styling */
+button {
+  background-color: var(--color-primary);
+  color: var(--color-background-main);
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--spacing-xs);
+  cursor: pointer;
+  font-size: 1em;
+  font-weight: 600;
+  transition: background-color 0.2s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+button:hover {
+  background-color: var(--color-primary-hover);
+}
+
+button:focus {
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.5); /* Slightly darker focus ring for button */
+}
+
+button:disabled {
+  background-color: var(--color-disabled-background);
+  cursor: not-allowed;
+}
+
+/* Optional Settings Section */
+.optional-settings {
+  border: 1px solid var(--color-border-standard);
+  border-radius: var(--spacing-xs);
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.optional-settings summary {
+  font-weight: 600;
+  cursor: pointer;
+  padding-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-md); 
+  border-bottom: 1px solid var(--color-border-standard);
+  list-style: none; /* Remove default marker */
+  position: relative;
+}
+
+.optional-settings summary::-webkit-details-marker { /* Hide default marker (Chrome/Safari) */
+  display: none;
+}
+
+.optional-settings summary::after { /* Custom marker */
+  content: '+'; /* Collapsed state */
+  position: absolute;
+  right: var(--spacing-sm);
+  top: 0;
+  font-weight: bold;
+}
+
+.optional-settings[open] summary::after {
+  content: '−'; /* Expanded state */
+}
+
+.optional-settings .form-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.optional-settings label {
+  font-weight: normal; 
+}
+
+.optional-settings small {
+  display: block;
+  margin-top: var(--spacing-xs);
+  font-size: var(--font-size-small);
+  color: var(--color-text-secondary);
+}
+
+/* Results Container */
+.results-container {
+  background-color: var(--color-background-main);
+  border-radius: var(--spacing-sm);
+  padding: var(--spacing-lg);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--color-border-standard);
+  margin-top: var(--spacing-lg);
+}
+
+.results-container h2 {
+   margin-top: 0; /* Remove top margin for first heading in container */
+   margin-bottom: var(--spacing-md); 
+   padding-bottom: var(--spacing-md);
+   border-bottom: 1px solid var(--color-border-standard);
+}
+
+.results-container h3 {
+  margin-top: var(--spacing-lg);
+  margin-bottom: var(--spacing-sm);
+}
+
+/* Model Info Box */
+.model-info-box {
+  background-color: var(--color-background-info);
+  border: 1px solid var(--color-border-info);
+  border-radius: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  font-size: 0.9em;
+}
+
+.model-info-box p {
+  margin: var(--spacing-xs) 0;
+  color: var(--color-text-primary);
+}
+
+/* Result Box (for prompt, response, analysis text) */
+.result-box {
+  background-color: var(--color-background-subtle);
+  border: 1px solid var(--color-border-standard);
+  border-radius: var(--spacing-xs);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.result-box pre, .scores-section pre {
+  background-color: transparent; /* Inherit from parent */
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin: 0; /* Remove default pre margins */
+  white-space: pre-wrap;     
+  word-wrap: break-word;     
+  overflow-wrap: break-word; 
+  font-family: inherit; /* Use app font for consistency */
+  font-size: 1em;
+}
+
+/* Scores Section */
+.scores-section {
+  margin-top: var(--spacing-lg);
+}
+
+.dimension-score-box {
+  border: 1px solid var(--color-border-standard);
+  border-radius: var(--spacing-xs);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.dimension-score-box h4 {
+  margin-top: 0;
+  margin-bottom: var(--spacing-sm);
+  font-size: 1.1em;
+}
+
+.dimension-score-box p {
+  margin: var(--spacing-xs) 0;
+  font-size: 0.95em;
+}
+
+.dimension-score-box p strong {
+  color: var(--color-text-primary);
+}
+
+.dimension-score-box pre {
+   margin-top: var(--spacing-sm);
+   padding: var(--spacing-sm) var(--spacing-md);
+   background-color: var(--color-background-subtle);
+   border-radius: var(--spacing-xs);
+   border: 1px solid var(--color-border-standard);
+}
+
+/* Loading indicator */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--spacing-xl) 0;
+}
+
+.spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top: 4px solid var(--color-primary);
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Flash Messages */
+.flash-error {
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  border-radius: var(--spacing-xs);
+  background-color: var(--color-error-background);
+  color: var(--color-error-text);
+  border: 1px solid var(--color-error-border);
+}
+
+.flash-warning {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeeba;
+}
+
+.flash-success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.flash-info {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+.flash-messages {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 20px;
+}
+
+/* Add styles for side-by-side form groups */
+.form-row {
+  display: flex;
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
+  gap: var(--spacing-md); /* Space between columns */
+  margin-bottom: var(--spacing-md);
+}
+
+.form-group-half {
+  flex: 1; /* Each takes up half the space */
+  min-width: 200px; /* Prevent excessive squishing */
+  margin-bottom: 0; /* Remove bottom margin as gap handles spacing */
+}
+
+/* Ensure labels in rows align nicely */
+.form-row label {
+  /* Adjust styles if needed, e.g., min-height */
+}
+
+/* Styles for form sections within details */
+.form-section {
+  border-top: 1px dashed var(--color-border-standard);
+  padding-top: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+.optional-settings .form-section:first-of-type {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.form-section h4 {
+  margin-top: 0;
+  margin-bottom: var(--spacing-md);
+  font-size: 1.1em;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+/* Styles for 3-column form groups */
+.form-group-third {
+  flex: 1; /* Each takes up a third of the space */
+  min-width: 150px; /* Adjust min-width as needed */
+  margin-bottom: 0; 
+}
+
+/* Adjust label styles within sections if needed */
+.form-section label {
+   font-weight: normal; /* Keep labels less prominent */
+   margin-bottom: var(--spacing-xs); /* Reduce space below label */
+}
+
+/* Remove bottom margin from last form row in a section */
+.form-section .form-row:last-of-type {
+  margin-bottom: 0;
+} 

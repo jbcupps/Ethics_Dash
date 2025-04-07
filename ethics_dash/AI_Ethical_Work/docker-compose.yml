@@ -1,0 +1,48 @@
+version: '3.8' # Specify docker-compose version
+
+services:
+  # Backend API service
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: ethical-review-backend
+    env_file:
+      - .env # Loads environment variables. For production, consider using Docker secrets or other secure methods.
+    ports:
+      - "5000:5000" # Map host port 5000 to container port 5000
+    volumes:
+      # Mount the local context directory into the container for log persistence
+      # This ensures prompts.txt survives container restarts/removals
+      - ./context:/app/context
+    # Automatically restart the container unless it is manually stopped
+    restart: unless-stopped
+    # Basic healthcheck to see if the web server is responding
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:5000/api/models"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s # Give the container time to start before checking
+    # Optional: Add restart policy if needed
+    # restart: unless-stopped 
+
+  # Frontend service
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: ethical-review-frontend
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s 

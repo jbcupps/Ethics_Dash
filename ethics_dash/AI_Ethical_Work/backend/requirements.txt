@@ -1,0 +1,8 @@
+# Backend API Requirements
+Flask>=2.3.0,<3.1.0 # Web framework
+Flask-CORS # Update: Remove version pin to get latest stable version (addresses CVE-2024-6221)
+google-generativeai==0.5.3 # Gemini API - fixed version for compatibility
+anthropic>=0.20.0,<0.26.0 # Anthropic (Claude) API
+gunicorn>=23.0.0,<24.0.0 # Update: WSGI server for production (addresses CVE-2024-6827)
+httpx>=0.25.0,<0.28.0 # HTTP client used by Anthropic, explicitly added 
+openai # Added OpenAI library 
