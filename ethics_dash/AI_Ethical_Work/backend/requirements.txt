@@ -6,3 +6,5 @@ anthropic>=0.20.0,<0.26.0 # Anthropic (Claude) API
 gunicorn>=23.0.0,<24.0.0 # Update: WSGI server for production (addresses CVE-2024-6827)
 httpx>=0.25.0,<0.28.0 # HTTP client used by Anthropic, explicitly added 
 openai # Added OpenAI library 
+pymongo[srv]>=4.0,<5.0 # Added MongoDB driver (with SRV support)
+pydantic>=2.0 # Added Pydantic for data validation 

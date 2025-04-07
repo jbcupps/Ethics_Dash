@@ -20,9 +20,8 @@ COPY --chown=app:app backend/requirements.txt requirements.txt
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy the application code and context directory into the container
+# Copy the application code into the container
 COPY --chown=app:app backend/ /app/backend/
-COPY --chown=app:app Context/ /app/context/
 
 # Switch to the non-root user
 USER app

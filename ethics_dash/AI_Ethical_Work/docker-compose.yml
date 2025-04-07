@@ -14,7 +14,7 @@ services:
     volumes:
       # Mount the local context directory into the container for log persistence
       # This ensures prompts.txt survives container restarts/removals
-      - ./context:/app/context
+      - ../../Context:/app/context
     # Automatically restart the container unless it is manually stopped
     restart: unless-stopped
     # Basic healthcheck to see if the web server is responding
@@ -26,6 +26,8 @@ services:
       start_period: 30s # Give the container time to start before checking
     # Optional: Add restart policy if needed
     # restart: unless-stopped 
+    depends_on:
+      - mongo # Add dependency on mongo service
 
   # Frontend service
   frontend:
@@ -46,3 +48,21 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s 
+
+  # MongoDB Service (for ethical memes library)
+  mongo:
+    image: mongo:latest # Use the official MongoDB image
+    container_name: ethical-review-mongodb
+    ports:
+      - "27017:27017" # Expose default MongoDB port to host (optional, for external tools)
+    volumes:
+      - mongo_data:/data/db # Persist database data using a named volume
+    environment: {} # Provide an empty mapping to satisfy the schema
+      # Optional: Set root user/password if needed, but often not required for local dev
+      # MONGO_INITDB_ROOT_USERNAME: root
+      # MONGO_INITDB_ROOT_PASSWORD: example
+    restart: unless-stopped
+
+# Named volume for MongoDB data persistence
+volumes:
+  mongo_data: null # Keep this as null (or {} - both should be valid here) 

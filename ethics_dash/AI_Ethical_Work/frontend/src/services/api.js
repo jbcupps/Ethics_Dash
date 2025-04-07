@@ -70,7 +70,23 @@ export const ethicalReviewApi = {
       }
       throw new Error('An unknown error occurred while analyzing the prompt.');
     }
-  }
+  },
+
+  // --- NEW: Functions for Ethical Memes API ---
+  getMemes: async () => {
+    try {
+      const response = await apiClient.get('/memes'); // Use the correct endpoint /api/memes
+      return Array.isArray(response.data) ? response.data : [];
+    } catch (error) {
+      console.error('Error fetching memes:', error);
+      // Handle specific errors if needed (e.g., 404, 500)
+      // For now, return empty array to prevent UI breaks
+      return [];
+    }
+  },
+
+  // Add createMeme, getMemeById, updateMeme, deleteMeme functions here later
+  // if frontend needs to perform these actions directly.
 };
 
 export default ethicalReviewApi; 

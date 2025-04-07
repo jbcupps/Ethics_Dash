@@ -317,11 +317,9 @@ def _parse_ethical_analysis(analysis_text: str) -> Tuple[str, Optional[Dict[str,
              textual_summary = analysis_text[summary_start_index + len(summary_marker):].strip()
         else: # Fallback if markers are missing or out of order
             textual_summary = analysis_text # Assign full text if structure isn't as expected
-            # Use logger instead of print
             logger.warning("Could not reliably find summary/scoring markers in analysis text.")
 
         # Attempt to find and parse the JSON block for scores
-        # Regex to find ```json ... ``` block
         json_match = re.search(r"```json\s*(\{.*?\})\s*```", analysis_text, re.DOTALL)
         
         if json_match:
@@ -332,12 +330,29 @@ def _parse_ethical_analysis(analysis_text: str) -> Tuple[str, Optional[Dict[str,
                 # Validation block starts here
                 try: # Inner try for validation accessing parsed_json content
                      # Basic validation of the parsed JSON structure
-                     if isinstance(parsed_json, dict) and \
-                        all(dim in parsed_json for dim in ["deontology", "teleology", "virtue_ethics"]) and \
-                        all(isinstance(parsed_json[dim], dict) and \
-                            "adherence_score" in parsed_json[dim] and \
-                            "confidence_score" in parsed_json[dim] and \
-                            "justification" in parsed_json[dim] for dim in parsed_json):
+                     required_standard_dims = ["deontology", "teleology", "virtue_ethics"]
+                     required_memetic_dim = "memetics"
+                     required_memetic_keys = ["transmissibility_score", "persistence_score", "adaptability_score", "confidence_score", "justification"]
+                     
+                     is_valid = False
+                     if isinstance(parsed_json, dict): 
+                         # Check standard dimensions
+                         standard_dims_present = all(dim in parsed_json for dim in required_standard_dims)
+                         standard_dims_valid = all(isinstance(parsed_json[dim], dict) and 
+                                                 all(key in parsed_json[dim] for key in ["adherence_score", "confidence_score", "justification"]) 
+                                                 for dim in required_standard_dims if dim in parsed_json) # Check structure only if present
+                         
+                         # Check memetics dimension
+                         memetics_present = required_memetic_dim in parsed_json
+                         memetics_valid = False
+                         if memetics_present and isinstance(parsed_json[required_memetic_dim], dict):
+                             memetics_valid = all(key in parsed_json[required_memetic_dim] for key in required_memetic_keys)
+                             
+                         # Final validation check (all standard dims + memetics must be present and validly structured)
+                         if standard_dims_present and standard_dims_valid and memetics_present and memetics_valid:
+                            is_valid = True
+                     
+                     if is_valid:
                         json_scores = parsed_json
                         # Trim summary if needed (same logic as before)
                         if scoring_start_index != -1 and summary_start_index != -1:
@@ -345,8 +360,8 @@ def _parse_ethical_analysis(analysis_text: str) -> Tuple[str, Optional[Dict[str,
                         elif scoring_start_index == -1 and textual_summary.endswith(json_match.group(0)):
                              textual_summary = textual_summary[:-len(json_match.group(0))].strip()
                      else:
-                         # Validation failed (structure mismatch)
-                         logger.warning(f"Parsed JSON does not have the expected structure. JSON: {json_string[:200]}...")
+                         # Validation failed
+                         logger.warning(f"Parsed JSON does not have the expected 4-dimension structure (including memetics). JSON: {json_string[:200]}...")
                          json_scores = None # Ensure it's None if validation fails
                 except (TypeError, KeyError) as key_err: # Handles errors during validation access
                      logger.error(f"Error accessing keys in parsed JSON structure: {key_err}. JSON: {json_string[:200]}...", exc_info=True)
@@ -354,18 +369,14 @@ def _parse_ethical_analysis(analysis_text: str) -> Tuple[str, Optional[Dict[str,
                 # End of inner try-except block for validation
 
             except json.JSONDecodeError as json_err: # Handles errors during json.loads
-                # Use logger instead of print
                 logger.error(f"Error decoding JSON from analysis: {json_err}. Raw JSON string: {raw_json_string[:200]}...", exc_info=True)
                 json_scores = None # Explicitly set to None on JSON decode error
         else: # if json_match failed
-            # Use logger instead of print
             logger.warning("Could not find JSON block for ethical scores in analysis text.")
             json_scores = None # Ensure it's None if JSON block not found
 
     except Exception as e:
-        # Use logger instead of print
         logger.error(f"Error parsing ethical analysis structure: {e}", exc_info=True)
-        # Fallback to return the original full text as summary if parsing fails badly
         textual_summary = analysis_text
         json_scores = None # Ensure scores are None on major parsing failure
 

@@ -1,103 +1,134 @@
 :root {
-  --color-primary: #3498db;
-  --color-primary-hover: #2980b9;
-  --color-background-main: #ffffff;
-  --color-background-subtle: #f8f9fa;
-  --color-background-info: #eef2f7;
-  --color-border-standard: #e0e0e0;
-  --color-border-input: #cccccc;
-  --color-border-info: #d6e0ea;
-  --color-text-primary: #212529;
-  --color-text-secondary: #6c757d;
-  --color-error-background: #f8d7da;
-  --color-error-border: #f5c6cb;
-  --color-error-text: #721c24;
-  --color-disabled-background: #95a5a6;
+  /* Color Palette */
+  --color-primary: #4A90E2; /* Richer blue */
+  --color-primary-hover: #357ABD;
+  --color-secondary: #50E3C2; /* Teal/mint accent */
+  --color-secondary-hover: #3CBBA0;
+  --color-background-main: #FFFFFF;
+  --color-background-subtle: #F9FAFB; /* Cooler light grey */
+  --color-background-info: #EBF8FF; /* Lighter blue */
+  --color-border-standard: #DFE1E6;
+  --color-border-input: #CED4DA;
+  --color-text-primary: #172B4D; /* Dark blue/grey */
+  --color-text-secondary: #6B778C;
+  --color-error-background: #FFEBE6;
+  --color-error-border: #FFBDAD;
+  --color-error-text: #BF2600;
+  --color-success-background: #E3FCEF;
+  --color-success-border: #ABF5D1;
+  --color-success-text: #006644;
+  --color-disabled-background: #B3BAC5;
   
+  /* Typography */
+  --font-family-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  --font-size-base: 16px;
+  --font-size-small: 0.875rem; /* 14px */
+  --font-size-large: 1.125rem; /* 18px */
+  --line-height-base: 1.6;
+
+  /* Spacing */
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 16px;
   --spacing-lg: 24px;
   --spacing-xl: 32px;
-  
-  --font-family-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-  --font-size-base: 16px;
-  --font-size-small: 0.875em; /* 14px if base is 16px */
+
+  /* Borders & Shadows */
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --box-shadow-standard: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --box-shadow-focus: 0 0 0 3px rgba(74, 144, 226, 0.25);
 }
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
 
 body {
   font-family: var(--font-family-sans);
   color: var(--color-text-primary);
-  background-color: var(--color-background-subtle); /* Light grey background for the whole page */
+  background-color: var(--color-background-subtle); 
   font-size: var(--font-size-base);
-  line-height: 1.6;
+  line-height: var(--line-height-base);
   margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Container */
+/* Layout Container */
 .container {
-  max-width: 960px;
-  margin: var(--spacing-lg) auto; /* Center container with space top/bottom */
-  padding: 0 var(--spacing-md); /* Add horizontal padding */
+  max-width: 1100px; /* Slightly wider */
+  margin: var(--spacing-lg) auto;
+  padding: 0 var(--spacing-lg); /* Increased padding */
 }
 
-/* Global Heading Styles (Optional - can rely on defaults) */
+/* Headings */
 h1, h2, h3, h4, h5, h6 {
   margin-top: var(--spacing-lg);
   margin-bottom: var(--spacing-md);
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.3;
+  color: var(--color-text-primary);
 }
-h1 { font-size: 2em; }
-h2 { font-size: 1.75em; }
-h3 { font-size: 1.5em; }
-h4 { font-size: 1.25em; }
+h1 { font-size: 2.25rem; }
+ h2 { font-size: 1.75rem; }
+ h3 { font-size: 1.5rem; }
+ h4 { font-size: 1.125rem; }
 
-/* App Component Styling */
+/* App Wrapper */
 .app {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
 }
 
-/* Form Container */
-.form-container {
+/* Card Styling */
+.card {
   background-color: var(--color-background-main);
-  border-radius: var(--spacing-sm);
+  border-radius: var(--border-radius-md);
   padding: var(--spacing-lg);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--box-shadow-standard);
   border: 1px solid var(--color-border-standard);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Form specific adjustments */
+.form-container { /* Use card styles */
+  background-color: var(--color-background-main);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-lg);
+  box-shadow: var(--box-shadow-standard);
+  border: 1px solid var(--color-border-standard);
+  margin-bottom: var(--spacing-lg);
 }
 
 .form-group {
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-lg); /* Increased spacing */
 }
 
 label {
   display: block;
   margin-bottom: var(--spacing-sm);
   font-weight: 600;
+  font-size: var(--font-size-base); /* Ensure consistent label size */
 }
 
 /* Inputs, Textarea, Select */
-textarea, input, select {
+textarea, input[type="text"], input[type="password"], select {
   width: 100%;
   padding: var(--spacing-sm) var(--spacing-md);
   border: 1px solid var(--color-border-input);
-  border-radius: var(--spacing-xs);
-  font-size: 1em; /* Inherit base font size */
-  font-family: inherit; /* Inherit font family */
-  line-height: inherit;
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  line-height: var(--line-height-base);
   margin-top: var(--spacing-xs);
-  box-sizing: border-box; /* Include padding and border in the element's total width and height */
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  box-sizing: border-box; 
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 
-textarea:focus, input:focus, select:focus {
+textarea:focus, input[type="text"]:focus, input[type="password"]:focus, select:focus {
   border-color: var(--color-primary);
   outline: 0;
-  box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25); /* Primary color focus ring */
+  box-shadow: var(--box-shadow-focus);
 }
 
 textarea {
@@ -108,66 +139,147 @@ textarea {
   white-space: pre-wrap; 
 }
 
+select {
+  /* Add specific styling for select dropdown arrow if needed */
+  appearance: none; /* Basic reset */
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236B778C%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+  background-repeat: no-repeat;
+  background-position: right var(--spacing-md) center;
+  background-size: .65em auto;
+  padding-right: calc(var(--spacing-md) * 2.5); /* Ensure space for arrow */
+}
+
 /* Button Styling */
-button {
+.button {
+  display: inline-block; /* Allows margin/padding */
   background-color: var(--color-primary);
   color: var(--color-background-main);
-  border: none;
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--spacing-xs);
+  border: 1px solid transparent;
+  padding: calc(var(--spacing-sm) + 2px) var(--spacing-lg); /* Slightly taller */
+  border-radius: var(--border-radius-md); /* Softer corners */
   cursor: pointer;
-  font-size: 1em;
+  font-size: var(--font-size-base);
   font-weight: 600;
-  transition: background-color 0.2s ease-in-out, box-shadow 0.15s ease-in-out;
+  text-align: center;
+  text-decoration: none;
+  transition: all 0.2s ease-in-out;
+  line-height: var(--line-height-base);
+}
+
+.button:hover {
+  background-color: var(--color-primary-hover);
+  color: var(--color-background-main);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.button:focus {
+  outline: 0;
+  box-shadow: var(--box-shadow-focus);
+}
+
+.button:disabled {
+  background-color: var(--color-disabled-background);
+  color: var(--color-text-secondary);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.button-secondary {
+  background-color: var(--color-background-main);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.button-secondary:hover {
+  background-color: rgba(74, 144, 226, 0.05); /* Light primary background */
+  color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+/* Apply button styles to default button element */
+button {
+  display: inline-block;
+  background-color: var(--color-primary);
+  color: var(--color-background-main);
+  border: 1px solid transparent;
+  padding: calc(var(--spacing-sm) + 2px) var(--spacing-lg);
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.2s ease-in-out;
+  line-height: var(--line-height-base);
+  font-family: inherit; /* Ensure font is inherited */
 }
 
 button:hover {
   background-color: var(--color-primary-hover);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 button:focus {
   outline: 0;
-  box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.5); /* Slightly darker focus ring for button */
+  box-shadow: var(--box-shadow-focus);
 }
 
 button:disabled {
   background-color: var(--color-disabled-background);
+  color: var(--color-text-secondary);
   cursor: not-allowed;
+  opacity: 0.7;
+  box-shadow: none;
 }
 
-/* Optional Settings Section */
+
+/* Optional Settings Section (Accordion Style) */
 .optional-settings {
   border: 1px solid var(--color-border-standard);
-  border-radius: var(--spacing-xs);
-  padding: var(--spacing-md);
+  border-radius: var(--border-radius-md);
   margin-top: var(--spacing-lg);
   margin-bottom: var(--spacing-lg);
+  background-color: var(--color-background-main);
+  overflow: hidden; /* Ensures children stay within rounded corners */
 }
 
 .optional-settings summary {
   font-weight: 600;
   cursor: pointer;
-  padding-bottom: var(--spacing-sm);
-  margin-bottom: var(--spacing-md); 
+  padding: var(--spacing-md) var(--spacing-lg);
+  display: flex; /* Use flex for alignment */
+  justify-content: space-between; /* Push icon to the right */
+  align-items: center;
+  list-style: none; 
   border-bottom: 1px solid var(--color-border-standard);
-  list-style: none; /* Remove default marker */
-  position: relative;
+  transition: background-color 0.2s ease-in-out;
 }
 
-.optional-settings summary::-webkit-details-marker { /* Hide default marker (Chrome/Safari) */
+.optional-settings summary:hover {
+  background-color: var(--color-background-subtle);
+}
+
+.optional-settings[open] summary {
+  border-bottom-color: transparent; /* Remove border when open */
+}
+
+.optional-settings summary::-webkit-details-marker { 
   display: none;
 }
 
-.optional-settings summary::after { /* Custom marker */
-  content: '+'; /* Collapsed state */
-  position: absolute;
-  right: var(--spacing-sm);
-  top: 0;
+.optional-settings summary::after { 
+  content: '+'; 
   font-weight: bold;
+  transition: transform 0.2s ease-in-out;
 }
 
 .optional-settings[open] summary::after {
-  content: '−'; /* Expanded state */
+  content: '−';
+  transform: rotate(180deg);
+}
+
+.optional-settings-content {
+  padding: var(--spacing-lg);
+  border-top: 1px solid var(--color-border-standard); /* Add border for open state */
 }
 
 .optional-settings .form-group {
@@ -175,7 +287,7 @@ button:disabled {
 }
 
 .optional-settings label {
-  font-weight: normal; 
+  font-weight: normal; /* Less emphasis for optional labels */
 }
 
 .optional-settings small {
@@ -186,18 +298,17 @@ button:disabled {
 }
 
 /* Results Container */
-.results-container {
+.results-container { /* Use card styles */
   background-color: var(--color-background-main);
-  border-radius: var(--spacing-sm);
+  border-radius: var(--border-radius-md);
   padding: var(--spacing-lg);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--box-shadow-standard);
   border: 1px solid var(--color-border-standard);
   margin-top: var(--spacing-lg);
 }
 
 .results-container h2 {
-   margin-top: 0; /* Remove top margin for first heading in container */
-   margin-bottom: var(--spacing-md); 
+   margin-top: 0; 
    padding-bottom: var(--spacing-md);
    border-bottom: 1px solid var(--color-border-standard);
 }
@@ -210,11 +321,12 @@ button:disabled {
 /* Model Info Box */
 .model-info-box {
   background-color: var(--color-background-info);
-  border: 1px solid var(--color-border-info);
-  border-radius: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-primary);
+  border-left-width: 4px; /* Accent border */
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-md);
   margin-bottom: var(--spacing-lg);
-  font-size: 0.9em;
+  font-size: var(--font-size-base);
 }
 
 .model-info-box p {
@@ -226,22 +338,25 @@ button:disabled {
 .result-box {
   background-color: var(--color-background-subtle);
   border: 1px solid var(--color-border-standard);
-  border-radius: var(--spacing-xs);
+  border-radius: var(--border-radius-md);
   padding: var(--spacing-md);
   margin-bottom: var(--spacing-md);
+  line-height: var(--line-height-base);
 }
 
 .result-box pre, .scores-section pre {
-  background-color: transparent; /* Inherit from parent */
+  background-color: transparent; 
   border: none;
   border-radius: 0;
   padding: 0;
-  margin: 0; /* Remove default pre margins */
+  margin: 0; 
   white-space: pre-wrap;     
   word-wrap: break-word;     
   overflow-wrap: break-word; 
-  font-family: inherit; /* Use app font for consistency */
-  font-size: 1em;
+  font-family: inherit; 
+  font-size: inherit;
+  line-height: inherit;
+  color: var(--color-text-primary);
 }
 
 /* Scores Section */
@@ -251,35 +366,38 @@ button:disabled {
 
 .dimension-score-box {
   border: 1px solid var(--color-border-standard);
-  border-radius: var(--spacing-xs);
+  border-radius: var(--border-radius-md);
   padding: var(--spacing-md);
   margin-bottom: var(--spacing-md);
+  background-color: var(--color-background-main);
 }
 
 .dimension-score-box h4 {
   margin-top: 0;
-  margin-bottom: var(--spacing-sm);
-  font-size: 1.1em;
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-large);
+  color: var(--color-primary);
 }
 
 .dimension-score-box p {
-  margin: var(--spacing-xs) 0;
-  font-size: 0.95em;
+  margin: var(--spacing-sm) 0;
+  font-size: var(--font-size-base);
 }
 
 .dimension-score-box p strong {
-  color: var(--color-text-primary);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-right: var(--spacing-sm);
 }
 
 .dimension-score-box pre {
-   margin-top: var(--spacing-sm);
-   padding: var(--spacing-sm) var(--spacing-md);
-   background-color: var(--color-background-subtle);
-   border-radius: var(--spacing-xs);
-   border: 1px solid var(--color-border-standard);
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background-color: var(--color-background-subtle);
+  border-radius: var(--border-radius-sm);
 }
 
-/* Loading indicator */
+/* Loading Spinner */
 .loading {
   display: flex;
   justify-content: center;
@@ -288,9 +406,9 @@ button:disabled {
 }
 
 .spinner {
-  border: 4px solid rgba(0, 0, 0, 0.1);
-  border-radius: 50%;
+  border: 4px solid var(--color-background-subtle);
   border-top: 4px solid var(--color-primary);
+  border-radius: 50%;
   width: 40px;
   height: 40px;
   animation: spin 1s linear infinite;
@@ -301,93 +419,272 @@ button:disabled {
   100% { transform: rotate(360deg); }
 }
 
-/* Flash Messages */
-.flash-error {
-  padding: var(--spacing-sm) var(--spacing-md);
-  margin-bottom: var(--spacing-md);
-  border-radius: var(--spacing-xs);
-  background-color: var(--color-error-background);
-  color: var(--color-error-text);
-  border: 1px solid var(--color-error-border);
-}
-
-.flash-warning {
-  background-color: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffeeba;
-}
-
-.flash-success {
-  background-color: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
-}
-
-.flash-info {
-  background-color: #d1ecf1;
-  color: #0c5460;
-  border: 1px solid #bee5eb;
-}
-
+/* Flash Messages / Alerts */
 .flash-messages {
-  list-style: none;
-  padding: 0;
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
 }
 
-/* Add styles for side-by-side form groups */
+.alert {
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-md);
+  position: relative;
+  /* Add icon support later if needed */
+}
+
+.alert-error {
+  color: var(--color-error-text);
+  background-color: var(--color-error-background);
+  border-color: var(--color-error-border);
+}
+
+.alert-success {
+  color: var(--color-success-text);
+  background-color: var(--color-success-background);
+  border-color: var(--color-success-border);
+}
+
+/* Deprecate .flash-error in favor of .alert .alert-error */
+.flash-error {
+  color: var(--color-error-text);
+  background-color: var(--color-error-background);
+  border: 1px solid var(--color-error-border);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  border-radius: var(--border-radius-md);
+}
+
+/* Form Layout Helpers */
 .form-row {
   display: flex;
-  flex-wrap: wrap; /* Allow wrapping on smaller screens */
-  gap: var(--spacing-md); /* Space between columns */
-  margin-bottom: var(--spacing-md);
+  flex-wrap: wrap;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
 }
 
 .form-group-half {
-  flex: 1; /* Each takes up half the space */
-  min-width: 200px; /* Prevent excessive squishing */
-  margin-bottom: 0; /* Remove bottom margin as gap handles spacing */
+  flex: 1 1 calc(50% - var(--spacing-lg) / 2);
 }
 
-/* Ensure labels in rows align nicely */
-.form-row label {
-  /* Adjust styles if needed, e.g., min-height */
+.form-group-third {
+  flex: 1 1 calc(33.333% - var(--spacing-lg) * 2 / 3);
 }
 
-/* Styles for form sections within details */
-.form-section {
-  border-top: 1px dashed var(--color-border-standard);
-  padding-top: var(--spacing-md);
-  margin-top: var(--spacing-md);
+/* Adjustments within optional settings */
+.optional-settings .form-section {
+  margin-bottom: var(--spacing-lg);
 }
-.optional-settings .form-section:first-of-type {
-  border-top: none;
-  padding-top: 0;
-  margin-top: 0;
+.optional-settings .form-section:last-of-type {
+  margin-bottom: 0;
 }
 
-.form-section h4 {
+.optional-settings .form-section h4 {
   margin-top: 0;
   margin-bottom: var(--spacing-md);
-  font-size: 1.1em;
+  font-size: var(--font-size-large);
+  border-bottom: 1px solid var(--color-border-standard);
+  padding-bottom: var(--spacing-sm);
+}
+
+.optional-settings .form-row:last-child {
+    margin-bottom: 0;
+}
+
+/* Utility Classes */
+.text-center {
+  text-align: center;
+}
+
+.mt-0 { margin-top: 0 !important; }
+.mb-0 { margin-bottom: 0 !important; }
+
+/* Landing Page Specific Styles */
+.landing-page {
+  padding: var(--spacing-lg) 0; /* Remove top/bottom padding here */
+}
+
+.hero {
+  padding: calc(var(--spacing-xl) * 2) 0; /* More vertical padding */
+  text-align: center;
+  background-color: var(--color-background-main); /* Optional: Give hero a background */
+  border-bottom: 1px solid var(--color-border-standard); /* Optional separator */
+}
+
+.hero h1 {
+  font-size: 2.75rem; /* Larger heading */
+  margin-bottom: var(--spacing-md);
+}
+
+.lead {
+  font-size: var(--font-size-large);
+  color: var(--color-text-secondary);
+}
+
+.button-large {
+  padding: var(--spacing-md) var(--spacing-xl);
+  font-size: var(--font-size-large);
+}
+
+.features-overview {
+  padding: var(--spacing-xl) 0;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--spacing-lg);
+}
+
+.feature-item {
+  text-align: left; /* Align text left within cards */
+  /* Inherits card styles */
+}
+
+.feature-item h3 {
+  margin-top: 0;
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-primary);
+}
+
+/* Utility: Margin Bottom XL */
+.mb-xl {
+  margin-bottom: var(--spacing-xl) !important;
+}
+
+/* Footer */
+.footer {
+  margin-top: auto; /* Push footer to bottom */
+  padding: var(--spacing-lg) 0;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-small);
+  border-top: 1px solid var(--color-border-standard);
+  background-color: var(--color-background-main);
+}
+
+/* Meme Dashboard Specific Styles */
+.memes-dashboard h2 {
+  margin-top: 0; 
+  border-bottom: 1px solid var(--color-border-standard);
+  padding-bottom: var(--spacing-md);
+}
+
+.meme-card {
+  /* Add specific styles if needed, defaults to card */
+}
+
+.meme-card h3 {
+  margin-top: 0;
+}
+
+.meme-dimensions .badge {
+  margin-right: var(--spacing-sm);
+}
+
+/* Dimension Badges */
+.badge {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-size-small);
   font-weight: 600;
-  color: var(--color-text-primary);
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  border-radius: var(--border-radius-sm);
+  color: var(--color-background-main);
 }
 
-/* Styles for 3-column form groups */
-.form-group-third {
-  flex: 1; /* Each takes up a third of the space */
-  min-width: 150px; /* Adjust min-width as needed */
-  margin-bottom: 0; 
+.badge-deontology {
+  background-color: #8e44ad; /* Purple */
 }
 
-/* Adjust label styles within sections if needed */
-.form-section label {
-   font-weight: normal; /* Keep labels less prominent */
-   margin-bottom: var(--spacing-xs); /* Reduce space below label */
+.badge-teleology {
+  background-color: #e67e22; /* Orange */
 }
 
-/* Remove bottom margin from last form row in a section */
-.form-section .form-row:last-of-type {
-  margin-bottom: 0;
+.badge-virtue {
+  background-color: #27ae60; /* Green */
+}
+
+.badge-memetics {
+  background-color: #2980b9; /* Blue (different from primary) */
+}
+
+/* Utility: Margin Bottom Large */
+.mb-lg {
+  margin-bottom: var(--spacing-lg) !important;
+}
+/* Utility: Margin Bottom small */
+.mb-sm {
+  margin-bottom: var(--spacing-sm) !important;
+}
+
+/* Header Navigation */
+.app-header {
+  background-color: var(--color-background-main);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border-standard);
+  margin-bottom: var(--spacing-lg);
+}
+
+.app-header nav {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: center; /* Or flex-start */
+}
+
+.nav-button {
+  background: none;
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  border-radius: var(--border-radius-sm);
+  transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out;
+}
+
+.nav-button:hover {
+  color: var(--color-primary);
+  background-color: var(--color-background-subtle);
+}
+
+.nav-button.active {
+  color: var(--color-primary);
+  font-weight: bold; 
+}
+
+/* Documentation Page Specific Styles */
+.documentation-page h1 {
+  margin-top: 0;
+  border-bottom: 1px solid var(--color-border-standard);
+  padding-bottom: var(--spacing-md);
+}
+
+.documentation-page h2 {
+  margin-top: 0;
+  color: var(--color-primary);
+}
+
+.documentation-page section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.documentation-page ul, .documentation-page ol {
+  padding-left: var(--spacing-lg);
+}
+
+.documentation-page li {
+  margin-bottom: var(--spacing-sm);
+}
+
+.documentation-page code {
+  background-color: var(--color-background-subtle);
+  padding: 2px 6px;
+  border-radius: var(--border-radius-sm);
+  font-size: 0.9em;
+  border: 1px solid var(--color-border-standard);
+  font-family: monospace;
 } 
