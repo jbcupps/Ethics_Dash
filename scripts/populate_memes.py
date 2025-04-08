@@ -1,46 +1,21 @@
-"""
-API routes for Ethical Memes CRUD operations
-"""
-
-import logging
-from datetime import datetime, timezone
-from flask import Blueprint, request, jsonify, current_app
-from bson import ObjectId
-from bson.errors import InvalidId
-from pydantic import ValidationError
 import os
 import json
+from datetime import datetime
+from pymongo import MongoClient
+from dotenv import load_dotenv
+from bson import ObjectId, json_util
 
-# Import Pydantic models
-from .models import EthicalMemeCreate, EthicalMemeUpdate, EthicalMemeInDB
+# Load environment variables from .env file
+load_dotenv()
 
-# Setup logger for this module
-logger = logging.getLogger(__name__)
+# MongoDB connection details
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://ai-mongo:27017/")
+DB_NAME = os.getenv("MONGO_DB_NAME", "ethics_db")
+COLLECTION_NAME = "ethical_memes"
 
-# --- Blueprint Definition ---
-memes_bp = Blueprint('memes_api', __name__, url_prefix='/api/memes')
-
-# --- Helper Function for ObjectId Conversion ---
-def _convert_objectid(doc):
-    """Converts MongoDB ObjectId to string for JSON serialization."""
-    if doc and '_id' in doc and isinstance(doc['_id'], ObjectId):
-        doc['_id'] = str(doc['_id'])
-    return doc
-
-# --- Helper Function for parsing datetime from ISODate string ---
-def parse_datetime(iso_str):
-    """Parses ISO 8601 string (with Z) to datetime object."""
-    if iso_str.endswith('Z'):
-        iso_str = iso_str[:-1] + '+00:00'
-    try:
-        return datetime.fromisoformat(iso_str)
-    except ValueError:
-        logger.warning(f"Could not parse datetime string: {iso_str}")
-        return datetime.now(timezone.utc) # Fallback or raise error
-
-# --- Predefined Meme Data ---
-# This data is moved here from the populate script
-# Consider loading this from a file in a real application
+# --- Paste the generated JSON data here ---
+# Ensure each JSON object is a valid Python dictionary within the list
+# Replace ISODate strings with datetime objects
 MEMES_DATA_TEXT = """
 [
   {
@@ -640,223 +615,63 @@ MEMES_DATA_TEXT = """
 ]
 """
 
-# --- CRUD Routes ---
+def parse_datetime(iso_str):
+    """Parses ISO 8601 string (with Z) to datetime object."""
+    # Remove 'Z' and parse, assuming UTC
+    if iso_str.endswith('Z'):
+        iso_str = iso_str[:-1] + '+00:00'
+    return datetime.fromisoformat(iso_str)
 
-@memes_bp.route('/', methods=['POST'])
-def create_meme():
-    """Create a new ethical meme."""
-    if not current_app.db:
-        return jsonify({"error": "Database connection not available"}), 503
-
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "No JSON data received"}), 400
-
+def deserialize_data(text):
+    """Parses the JSON string and converts ISODate strings to datetime objects."""
     try:
-        # Validate input data using Pydantic
-        meme_data = EthicalMemeCreate(**data)
-    except ValidationError as e:
-        logger.warning(f"Meme creation validation failed: {e.errors()}")
-        return jsonify({"error": "Invalid input data", "details": e.errors()}), 422 # Unprocessable Entity
-
-    try:
-        # Add metadata
-        now = datetime.now(timezone.utc)
-        # Use Pydantic model to structure the document to be inserted
-        meme_to_insert = meme_data.model_dump(by_alias=True)
-        meme_to_insert['metadata'] = {
-            'created_at': now,
-            'updated_at': now,
-            'version': 1
-        }
-        
-        result = current_app.db.ethical_memes.insert_one(meme_to_insert)
-        
-        # Fetch the newly created meme to return it
-        new_meme_doc = current_app.db.ethical_memes.find_one({"_id": result.inserted_id})
-        
-        # Validate and structure the response using Pydantic
-        response_meme = EthicalMemeInDB(**new_meme_doc)
-        # Pydantic v2 uses model_dump_json for direct JSON string output
-        return response_meme.model_dump_json(by_alias=True), 201, {'Content-Type': 'application/json'}
-    
-    except Exception as e:
-        logger.error(f"Error creating meme: {e}", exc_info=True)
-        return jsonify({"error": "Internal server error creating meme"}), 500
-
-@memes_bp.route('/', methods=['GET'])
-def get_memes():
-    """Get all ethical memes."""
-    if not current_app.db:
-        return jsonify({"error": "Database connection not available"}), 503
-
-    try:
-        memes_cursor = current_app.db.ethical_memes.find()
-        # Validate and serialize each meme using the Pydantic model
-        memes_list = [EthicalMemeInDB(**meme).model_dump(by_alias=True) for meme in memes_cursor]
-        return jsonify(memes_list), 200
-    except ValidationError as e:
-        # This might happen if DB data doesn't match the model
-        logger.error(f"Error validating memes from DB: {e.errors()}")
-        return jsonify({"error": "Internal server error validating meme data"}), 500
-    except Exception as e:
-        logger.error(f"Error retrieving memes: {e}", exc_info=True)
-        return jsonify({"error": "Internal server error retrieving memes"}), 500
-
-@memes_bp.route('/<meme_id>', methods=['GET'])
-def get_meme(meme_id):
-    """Get a single ethical meme by its ID."""
-    if not current_app.db:
-        return jsonify({"error": "Database connection not available"}), 503
-
-    try:
-        obj_id = ObjectId(meme_id)
-    except InvalidId:
-        return jsonify({"error": "Invalid meme ID format"}), 400
-
-    try:
-        meme_doc = current_app.db.ethical_memes.find_one({"_id": obj_id})
-        if meme_doc:
-            # Validate and structure the response using Pydantic
-            response_meme = EthicalMemeInDB(**meme_doc)
-            return response_meme.model_dump_json(by_alias=True), 200, {'Content-Type': 'application/json'}
-        else:
-            return jsonify({"error": "Meme not found"}), 404
-    except ValidationError as e:
-        logger.error(f"Error validating meme {meme_id} from DB: {e.errors()}")
-        return jsonify({"error": f"Internal server error validating meme data for {meme_id}"}), 500
-    except Exception as e:
-        logger.error(f"Error retrieving meme {meme_id}: {e}", exc_info=True)
-        return jsonify({"error": f"Internal server error retrieving meme {meme_id}"}), 500
-
-@memes_bp.route('/<meme_id>', methods=['PUT'])
-def update_meme(meme_id):
-    """Update an existing ethical meme."""
-    if not current_app.db:
-        return jsonify({"error": "Database connection not available"}), 503
-
-    try:
-        obj_id = ObjectId(meme_id)
-    except InvalidId:
-        return jsonify({"error": "Invalid meme ID format"}), 400
-
-    update_data = request.get_json()
-    if not update_data:
-        return jsonify({"error": "No JSON data received for update"}), 400
-
-    try:
-        # Validate the incoming update data (all fields optional)
-        meme_update = EthicalMemeUpdate(**update_data)
-        # Get validated data, excluding unset fields to avoid overwriting with None
-        update_payload_set = meme_update.model_dump(exclude_unset=True)
-    except ValidationError as e:
-        logger.warning(f"Meme update validation failed for ID {meme_id}: {e.errors()}")
-        return jsonify({"error": "Invalid update data", "details": e.errors()}), 422
-
-    if not update_payload_set:
-         return jsonify({"error": "No valid fields provided for update"}), 400
-
-    # Prepare the full MongoDB update operation
-    mongo_update = {
-        "$set": update_payload_set,
-        "$currentDate": {"metadata.updated_at": True}, # Use $currentDate for atomic server-side update
-        "$inc": {"metadata.version": 1}
-    }
-
-    try:
-        result = current_app.db.ethical_memes.update_one(
-            {"_id": obj_id},
-            mongo_update
-        )
-
-        if result.matched_count == 0:
-            return jsonify({"error": "Meme not found"}), 404
-        
-        # Fetch and return the updated document, validated by Pydantic
-        updated_meme_doc = current_app.db.ethical_memes.find_one({"_id": obj_id})
-        response_meme = EthicalMemeInDB(**updated_meme_doc)
-        return response_meme.model_dump_json(by_alias=True), 200, {'Content-Type': 'application/json'}
-
-    except ValidationError as e: # Catch validation error on returning the updated doc
-        logger.error(f"Error validating updated meme {meme_id} from DB: {e.errors()}")
-        return jsonify({"error": f"Internal server error validating updated meme data for {meme_id}"}), 500
-    except Exception as e:
-        logger.error(f"Error updating meme {meme_id}: {e}", exc_info=True)
-        return jsonify({"error": f"Internal server error updating meme {meme_id}"}), 500
-
-@memes_bp.route('/<meme_id>', methods=['DELETE'])
-def delete_meme(meme_id):
-    """Delete an ethical meme."""
-    if not current_app.db:
-        return jsonify({"error": "Database connection not available"}), 503
-
-    try:
-        obj_id = ObjectId(meme_id)
-    except InvalidId:
-        return jsonify({"error": "Invalid meme ID format"}), 400
-
-    try:
-        result = current_app.db.ethical_memes.delete_one({"_id": obj_id})
-
-        if result.deleted_count == 0:
-            return jsonify({"error": "Meme not found"}), 404
-        else:
-            return '', 204 # No content, successful deletion
-
-    except Exception as e:
-        logger.error(f"Error deleting meme {meme_id}: {e}", exc_info=True)
-        return jsonify({"error": f"Internal server error deleting meme {meme_id}"}), 500
-
-# --- New Route for Mass Population ---
-
-@memes_bp.route('/populate', methods=['POST'])
-def populate_memes():
-    """Populate the ethical_memes collection with predefined data.
-       WARNING: This will clear the existing collection first.
-    """
-    if not current_app.db:
-        return jsonify({"error": "Database connection not available"}), 503
-
-    collection = current_app.db.ethical_memes # Use collection name from models or config
-
-    try:
-        # Deserialize the predefined JSON data
-        memes_raw_data = json.loads(MEMES_DATA_TEXT)
-        memes_to_insert = []
-        for item in memes_raw_data:
-            # Convert ISODate strings to datetime objects for MongoDB
+        data = json.loads(text)
+        for item in data:
             if 'metadata' in item:
                 if 'created_at' in item['metadata'] and isinstance(item['metadata']['created_at'], dict) and '$date' in item['metadata']['created_at']:
                     item['metadata']['created_at'] = parse_datetime(item['metadata']['created_at']['$date'])
                 if 'updated_at' in item['metadata'] and isinstance(item['metadata']['updated_at'], dict) and '$date' in item['metadata']['updated_at']:
                     item['metadata']['updated_at'] = parse_datetime(item['metadata']['updated_at']['$date'])
-            memes_to_insert.append(item)
-
-        if not memes_to_insert:
-            return jsonify({"error": "No valid meme data found to insert"}), 400
-
-        # --- Clear existing data --- (Use with caution!)
-        logger.warning(f"Clearing existing documents from {collection.name} collection...")
-        delete_result = collection.delete_many({})
-        logger.info(f"Deleted {delete_result.deleted_count} documents.")
-        # --- Alternative: Consider using update_one with upsert=True based on 'name' to avoid duplicates without clearing --- 
-        # Example (requires loop and checking each item):
-        # for meme_data in memes_to_insert:
-        #     collection.update_one({'name': meme_data['name']}, {'$set': meme_data}, upsert=True)
-
-        # --- Insert new data ---
-        logger.info(f"Inserting {len(memes_to_insert)} predefined documents...")
-        insert_result = collection.insert_many(memes_to_insert)
-
-        return jsonify({
-            "message": "Successfully populated ethical memes collection.",
-            "deleted_count": delete_result.deleted_count,
-            "inserted_count": len(insert_result.inserted_ids)
-        }), 200
-
+        return data
     except json.JSONDecodeError as e:
-        logger.error(f"Error decoding predefined JSON data: {e}", exc_info=True)
-        return jsonify({"error": "Internal server error: Invalid predefined JSON data"}), 500
+        print(f"Error decoding JSON: {e}")
+        return []
+
+def populate_db():
+    """Connects to MongoDB and inserts the meme data."""
+    try:
+        client = MongoClient(MONGO_URI)
+        db = client[DB_NAME]
+        collection = db[COLLECTION_NAME]
+
+        # Deserialize the JSON data with datetime conversion
+        memes_data = deserialize_data(MEMES_DATA_TEXT)
+
+        if not memes_data:
+            print("No valid meme data to insert.")
+            return
+
+        # Optional: Clear existing data before inserting (use with caution)
+        # print(f"Deleting existing documents from {DB_NAME}.{COLLECTION_NAME}...")
+        # delete_result = collection.delete_many({})
+        # print(f"Deleted {delete_result.deleted_count} documents.")
+
+        print(f"Inserting {len(memes_data)} documents into {DB_NAME}.{COLLECTION_NAME}...")
+
+        # Insert the data
+        # Use insert_many for efficiency
+        insert_result = collection.insert_many(memes_data)
+
+        print(f"Successfully inserted {len(insert_result.inserted_ids)} documents.")
+
     except Exception as e:
-        logger.error(f"Error populating memes collection: {e}", exc_info=True)
-        return jsonify({"error": "Internal server error populating memes"}), 500 
+        print(f"An error occurred: {e}")
+    finally:
+        if 'client' in locals() and client:
+            client.close()
+            print("MongoDB connection closed.")
+
+if __name__ == "__main__":
+    print("Starting MongoDB population script...")
+    populate_db()
+    print("Script finished.") 

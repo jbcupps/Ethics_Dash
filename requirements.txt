@@ -13,4 +13,8 @@ gunicorn
 # e.g.:
 # requests
 # scikit-learn
-# numpy 
+# numpy
+Flask-Cors
+python-dotenv
+pymongo
+requests 
