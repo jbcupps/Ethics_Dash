@@ -1,0 +1,16 @@
+# Core Dash dependencies
+dash
+dash-bootstrap-components
+plotly
+
+# Data manipulation
+pandas
+
+# WSGI Server for production/container
+gunicorn
+
+# Add other dependencies needed by your main Dash app below
+# e.g.:
+# requests
+# scikit-learn
+# numpy 
