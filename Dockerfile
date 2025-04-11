@@ -36,6 +36,7 @@ RUN if [ ! -f requirements.txt ]; then echo 'requirements.txt not found, install
 # Copy necessary Python code first
 COPY app.py ./app.py
 COPY assets/ ./assets/
+RUN mkdir -p context # Ensure target directory exists
 COPY context/ ./context/
 COPY ethics_dash/ ./ethics_dash/
 # Avoid copying the large frontend source again if possible, adjust if needed
