@@ -1,4 +1,15 @@
-# Use an official Python runtime as a parent image
+# Stage 1: Build React Frontend
+FROM node:18-slim AS builder
+WORKDIR /frontend-build
+
+# Copy frontend source code relative to the root context
+COPY ethics_dash/AI_Ethical_Work/frontend/package.json ethics_dash/AI_Ethical_Work/frontend/package-lock.json* ./
+RUN npm install
+
+COPY ethics_dash/AI_Ethical_Work/frontend/ ./
+RUN npm run build
+
+# Stage 2: Build Python Application
 FROM python:3.11-slim
 
 # Set environment variables
@@ -17,11 +28,23 @@ RUN addgroup --system app && adduser --system --group app
 # Install Python dependencies
 # Copy only the requirements file first to leverage Docker cache
 COPY requirements.txt requirements.txt
-RUN if [ ! -f requirements.txt ]; then echo 'requirements.txt not found, installing defaults' && pip install dash gunicorn; else pip install --no-cache-dir -r requirements.txt; fi
+RUN if [ ! -f requirements.txt ]; then echo 'requirements.txt not found, installing defaults' && pip install dash gunicorn flask flask-cors; else pip install --no-cache-dir -r requirements.txt; fi
+# Ensure Flask-Cors is installed if needed for serving static files across origins/ports during dev
 
-# Copy project code
+# Copy project code (excluding frontend source)
 # Ensure permissions are set for the non-root user
-COPY --chown=app:app . /app
+# Copy necessary Python code first
+COPY app.py ./app.py
+COPY assets/ ./assets/
+COPY context/ ./context/
+COPY ethics_dash/ ./ethics_dash/
+# Avoid copying the large frontend source again if possible, adjust if needed
+
+# Copy built frontend static files from the builder stage
+COPY --from=builder /frontend-build/build /app/static/react
+
+# Set ownership for the app directory
+RUN chown -R app:app /app
 
 # Switch to the non-root user
 USER app

@@ -4,17 +4,54 @@ from dash import html, dcc, Input, Output, State, callback
 import requests # To call backend API
 import json     # To handle JSON data
 import os       # To read backend URL from env
+from flask import Flask, send_from_directory # Import Flask and send_from_directory
 
-# Initialize the Dash app
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
-server = app.server # Expose server for Gunicorn
+# Initialize Flask server explicitly for route handling
+server = Flask(__name__, static_folder='static') # Define static folder explicitly
+
+# Initialize the Dash app, linking it to the Flask server
+# Set assets_folder to the 'assets' directory relative to app.py
+# Set requests_pathname_prefix to avoid conflicts with Flask routes if needed
+# Use the Flask server instance
+app = dash.Dash(
+    __name__,
+    server=server, # Use the explicit Flask server
+    external_stylesheets=[dbc.themes.BOOTSTRAP],
+    suppress_callback_exceptions=True,
+    assets_folder='assets', # Default, but explicit
+    # If Dash needs to handle its own callbacks under a prefix:
+    # requests_pathname_prefix='/dash/' 
+)
+
+# Path for the React build artifacts
+REACT_BUILD_DIR = os.path.join(server.static_folder, 'react')
+
+# Serve React App
+@server.route('/react_app')
+@server.route('/react_app/<path:path>')
+def serve_react(path=None):
+    if path is None or path == "":
+        # Serve index.html for the root route of the React app
+        return send_from_directory(REACT_BUILD_DIR, 'index.html')
+    elif os.path.exists(os.path.join(REACT_BUILD_DIR, path)):
+        # Serve static files like JS, CSS, images
+        return send_from_directory(REACT_BUILD_DIR, path)
+    else:
+        # Handle client-side routing: serve index.html for unknown paths
+        return send_from_directory(REACT_BUILD_DIR, 'index.html')
+
+# Serve React static assets (ensure paths match those in index.html)
+@server.route('/static/<path:path>')
+def serve_react_static(path):
+    return send_from_directory(os.path.join(REACT_BUILD_DIR, 'static'), path)
 
 # --- Configuration --- 
 # Get backend API URL from environment variable or use a default
 # Important: This URL needs to be accessible *from the machine running the Dash app*.
 # If running Dash locally (not in Docker) and backend is in Docker, use localhost mapping.
 # If both are in Docker on same network, use service name.
-BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://localhost:5000/api") # Default for local testing
+# Ensure this matches the service name in your docker-compose.yml if applicable
+BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://ai-backend:5000/api") 
 
 # --- Helper Function for API Calls ---
 def make_api_request(method, endpoint, data=None):
@@ -56,13 +93,16 @@ def form_group(label_text, component):
 # --- Layout Definition ---
 app.layout = dbc.Container([
     dcc.Location(id='url', refresh=False),
-    html.H1("Ethics Dash - Enhanced"),
+    html.H1("Ethics Dash - Integrated"), # Updated Title
     html.Hr(),
     
     dbc.Tabs([
-        dbc.Tab(label="Landing Page", tab_id="tab-landing", children=[
-            html.P("This is the main application container."),
-            html.P("Replace this content with your actual landing page layout and components.")
+        dbc.Tab(label="Analysis Tool", tab_id="tab-analysis", children=[
+            # Use an Iframe to embed the React app served from /react_app
+            html.Iframe(
+                src="/react_app",
+                style={"width": "100%", "height": "80vh", "border": "none"}
+            )
         ]),
         dbc.Tab(label="Database Management", tab_id="tab-db-mgmt", children=[
             html.H3("Ethical Meme Management"),
@@ -320,8 +360,7 @@ def handle_save_meme(
 
 # --- Run the App ---
 if __name__ == '__main__':
-    # Get port from environment or default to 8050
-    port = int(os.environ.get('PORT', 8050))
-    # Set debug=True for local development based on env var or default
-    debug_mode = os.environ.get('DEBUG', 'True').lower() == 'true'
-    app.run_server(debug=debug_mode, host='0.0.0.0', port=port)
+    # Use the Flask server's run method for development
+    # Use debug=True only for development, remove for production
+    # Use host='0.0.0.0' to be accessible externally (within Docker)
+    server.run(host='0.0.0.0', port=8050, debug=False)
