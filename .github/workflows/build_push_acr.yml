@@ -3,8 +3,8 @@
 name: Build and Push Docker Images to ACR
 
 on:
-  push:
-    branches: [ "main" ] # Trigger on pushes to the main branch
+  # push:
+  #  branches: [ "main" ] # Trigger on pushes to the main branch - DISABLED
   workflow_dispatch: # Allow manual triggering
 
 env:
