@@ -91,7 +91,8 @@ app.layout = dbc.Container([
                                  options=[
                                      {'label': 'Deontology', 'value': 'Deontology'},
                                      {'label': 'Teleology', 'value': 'Teleology'},
-                                     {'label': 'Virtue Ethics', 'value': 'Virtue Ethics'}
+                                     {'label': 'Areteology', 'value': 'Areteology'},
+                                     {'label': 'Memetics', 'value': 'Memetics'}
                                  ],
                                  value=[],
                                  id="meme-ethical-dimension",
@@ -179,12 +180,12 @@ def update_dimension_inputs(selected_dimensions):
         children.append(form_group("Time Horizon:", dcc.Input(id='teleo-time-horizon', type="text", placeholder="e.g., Long-term, Short-term, Contextual")))
         children.append(html.Hr())
         
-    if "Virtue Ethics" in selected_dimensions:
-        children.append(html.H5("Virtue Ethics Attributes"))
-        children.append(form_group("Related Virtues:", dcc.Input(id='virtue-related-virtues', type="text", placeholder="Comma-separated virtue names")))
-        children.append(form_group("Related Vices:", dcc.Input(id='virtue-related-vices', type="text", placeholder="Comma-separated vice names")))
-        children.append(form_group("Role of Phronesis:", dcc.Dropdown(id='virtue-role-phronesis', options=['Essential', 'Important', 'Relevant', 'Not Applicable'], placeholder="Select...")))
-        children.append(form_group("Contributes to Eudaimonia?", dcc.Dropdown(id='virtue-contributes-eudaimonia', options=[{'label': 'Yes', 'value': True}, {'label': 'No', 'value': False}, {'label': 'Indirectly', 'value': 'Indirectly'}], placeholder="Select...")))
+    if "Areteology" in selected_dimensions:
+        children.append(html.H5("Areteology Attributes"))
+        children.append(form_group("Related Virtues:", dcc.Input(id='areteology-related-virtues', type="text", placeholder="Comma-separated virtue names")))
+        children.append(form_group("Related Vices:", dcc.Input(id='areteology-related-vices', type="text", placeholder="Comma-separated vice names")))
+        children.append(form_group("Role of Phronesis:", dcc.Dropdown(id='areteology-role-phronesis', options=['Essential', 'Important', 'Relevant', 'Not Applicable'], placeholder="Select...")))
+        children.append(form_group("Contributes to Eudaimonia?", dcc.Dropdown(id='areteology-contributes-eudaimonia', options=[{'label': 'Yes', 'value': True}, {'label': 'No', 'value': False}, {'label': 'Indirectly', 'value': 'Indirectly'}], placeholder="Select...")))
         children.append(html.Hr())
         
     return children
@@ -218,11 +219,11 @@ def update_dimension_inputs(selected_dimensions):
     State("teleo-utility-metric", "value"),
     State("teleo-scope", "value"),
     State("teleo-time-horizon", "value"),
-    # Virtue Ethics States
-    State("virtue-related-virtues", "value"),
-    State("virtue-related-vices", "value"),
-    State("virtue-role-phronesis", "value"),
-    State("virtue-contributes-eudaimonia", "value"),
+    # Areteology States
+    State("areteology-related-virtues", "value"),
+    State("areteology-related-vices", "value"),
+    State("areteology-role-phronesis", "value"),
+    State("areteology-contributes-eudaimonia", "value"),
     prevent_initial_call=True
 )
 def handle_save_meme(
@@ -232,7 +233,7 @@ def handle_save_meme(
     mem_trans, mem_persist, mem_adapt, mem_fidelity, mem_paths_str, mem_press_str,
     deon_rule, deon_univ, deon_respect, deon_intent,
     teleo_focus, teleo_metric, teleo_scope, teleo_horizon,
-    virtue_virtues, virtue_vices, virtue_phronesis, virtue_eudaimonia
+    areteology_virtues, areteology_vices, areteology_phronesis, areteology_eudaimonia
 ):
     if n_clicks is None or n_clicks < 1:
         return ""
@@ -290,13 +291,13 @@ def handle_save_meme(
         if teleo_horizon: teleo_attrs["time_horizon"] = teleo_horizon
         if teleo_attrs: payload["dimension_specific_attributes"]["teleology"] = teleo_attrs
         
-    if "Virtue Ethics" in ethical_dimension:
-        virtue_attrs = {}
-        if virtue_virtues: virtue_attrs["related_virtues"] = split_str(virtue_virtues)
-        if virtue_vices: virtue_attrs["related_vices"] = split_str(virtue_vices)
-        if virtue_phronesis: virtue_attrs["role_of_phronesis"] = virtue_phronesis
-        if virtue_eudaimonia is not None: virtue_attrs["contributes_to_eudaimonia"] = virtue_eudaimonia
-        if virtue_attrs: payload["dimension_specific_attributes"]["virtue_ethics"] = virtue_attrs
+    if "Areteology" in ethical_dimension:
+        areteology_attrs = {}
+        if areteology_virtues: areteology_attrs["related_virtues"] = split_str(areteology_virtues)
+        if areteology_vices: areteology_attrs["related_vices"] = split_str(areteology_vices)
+        if areteology_phronesis: areteology_attrs["role_of_phronesis"] = areteology_phronesis
+        if areteology_eudaimonia is not None: areteology_attrs["contributes_to_eudaimonia"] = areteology_eudaimonia
+        if areteology_attrs: payload["dimension_specific_attributes"]["areteology"] = areteology_attrs
 
     # Make the API call
     result, status_code = make_api_request('POST', '/memes/', data=payload)

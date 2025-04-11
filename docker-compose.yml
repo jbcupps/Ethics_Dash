@@ -64,7 +64,7 @@ services:
     image: mongo:latest
     container_name: ai-ethical-review-mongodb
     ports:
-      - "27017:27017" # Default MongoDB port
+      - "27018:27017" # Default MongoDB port mapped to host 27018
     volumes:
       - mongo_data:/data/db
     environment: {}

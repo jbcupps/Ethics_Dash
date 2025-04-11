@@ -8,7 +8,7 @@ A web application designed to generate responses from various Large Language Mod
 *   **LLM Selection (R1 & R2)**: Dropdowns allow users to select specific models from OpenAI, Gemini, and Anthropic for both the initial response generation (R1) and the ethical analysis (R2).
 *   **API Configuration Override**: Optional input fields for users to provide specific API keys and API endpoint URLs for both R1 and R2 models, overriding the defaults set in environment variables.
 *   **Ethical Analysis**: The generated response (R1) is analyzed by the selected R2 model using the principles defined in `backend/app/ontology.md`.
-*   **Results Display**: Shows the original prompt, the models used, the initial response, the textual ethical analysis summary, and structured ethical scores (Deontology, Teleology, Virtue Ethics).
+*   **Results Display**: Shows the original prompt, the models used, the initial response, the textual ethical analysis summary, and structured ethical scores (Deontology, Teleology, Areteology).
 *   **Dockerized**: Fully containerized using Docker and Docker Compose for easy setup and deployment.
 
 ## Architecture

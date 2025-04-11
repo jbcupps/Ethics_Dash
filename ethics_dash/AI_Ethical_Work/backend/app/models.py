@@ -19,6 +19,9 @@ class PyObjectId(ObjectId):
     def __get_pydantic_json_schema__(cls, field_schema):
         field_schema.update(type="string")
 
+# Define ethical dimensions as Literals for type hinting and validation
+EthicalDimension = Literal["Deontology", "Teleology", "Areteology", "Memetics"]
+
 # --- Sub-models for Dimension Specific Attributes ---
 
 class DeontologyAttributes(BaseModel):
@@ -63,7 +66,7 @@ class MemeMetadata(BaseModel):
 class EthicalMemeBase(BaseModel):
     name: str
     description: str
-    ethical_dimension: List[Literal["Deontology", "Teleology", "Virtue Ethics", "Memetics"]]
+    ethical_dimension: List[EthicalDimension]
     source_concept: str
     keywords: List[str] = Field(default_factory=list)
     variations: List[str] = Field(default_factory=list)
@@ -80,7 +83,7 @@ class EthicalMemeUpdate(BaseModel):
     # All fields are optional for updates
     name: Optional[str] = None
     description: Optional[str] = None
-    ethical_dimension: Optional[List[Literal["Deontology", "Teleology", "Virtue Ethics", "Memetics"]]] = None
+    ethical_dimension: Optional[List[EthicalDimension]] = None
     source_concept: Optional[str] = None
     keywords: Optional[List[str]] = None
     variations: Optional[List[str]] = None

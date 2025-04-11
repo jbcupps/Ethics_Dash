@@ -356,9 +356,9 @@ MEMES_DATA_TEXT = """
   {
     "name": "Courage",
     "description": "The virtue of facing difficulty, danger, pain, or uncertainty with firmness and without fear. In Aristotelian terms, it is the mean between cowardice (deficiency) and rashness (excess).",
-    "ethical_dimension": ["Virtue Ethics"],
+    "ethical_dimension": ["Areteology"],
     "source_concept": "Virtue",
-    "keywords": ["virtue ethics", "aristotle", "character", "virtue", "courage", "bravery", "mean"],
+    "keywords": ["areteology", "aristotle", "character", "virtue", "courage", "bravery", "mean"],
     "variations": ["Be brave", "Stand up for what's right", "Face your fears"],
     "examples": ["A soldier facing battle.", "A whistleblower exposing corruption despite personal risk.", "Someone admitting a mistake even when it's embarrassing."],
     "related_memes": ["Honesty", "Justice", "Phronesis", "Act Virtuously"],
@@ -385,11 +385,11 @@ MEMES_DATA_TEXT = """
     }
   },
   {
-    "name": "Honesty (Virtue)",
-    "description": "The virtue of being truthful, sincere, and fair in one's actions and communications. It involves a disposition towards truth and transparency.",
-    "ethical_dimension": ["Virtue Ethics"],
+    "name": "Honesty",
+    "description": "The virtue of being truthful and sincere in one's communication and actions. It involves representing reality accurately and avoiding deception, aligning one's words and deeds with the truth.",
+    "ethical_dimension": ["Areteology"],
     "source_concept": "Virtue",
-    "keywords": ["virtue ethics", "aristotle", "character", "virtue", "honesty", "truthfulness", "sincerity", "integrity"],
+    "keywords": ["areteology", "aristotle", "character", "virtue", "honesty", "truthfulness", "sincerity", "integrity"],
     "variations": ["Be honest", "Tell the truth", "Integrity"],
     "examples": ["Accurately representing one's qualifications.", "Giving sincere feedback.", "Admitting fault when responsible.", "Conducting business transparently."],
     "related_memes": ["Courage", "Justice", "Phronesis", "Duty of Honesty"],
@@ -417,10 +417,10 @@ MEMES_DATA_TEXT = """
   },
   {
     "name": "Compassion",
-    "description": "The virtue involving sensitivity to the suffering of others coupled with a desire to alleviate it. It combines empathy with benevolent action.",
-    "ethical_dimension": ["Virtue Ethics"],
+    "description": "The virtue of recognizing and responding with kindness and empathy to the suffering of others. It involves feeling concern for others' well-being and acting to alleviate their pain or hardship.",
+    "ethical_dimension": ["Areteology"],
     "source_concept": "Virtue",
-    "keywords": ["virtue ethics", "character", "virtue", "compassion", "empathy", "kindness", "benevolence"],
+    "keywords": ["areteology", "character", "virtue", "compassion", "empathy", "kindness", "benevolence"],
     "variations": ["Be compassionate", "Show kindness", "Empathize with others", "Help those in need"],
     "examples": ["Volunteering time to help the less fortunate.", "Comforting someone who is grieving.", "Donating to disaster relief efforts.", "Listening actively to someone's problems."],
     "related_memes": ["Kindness", "Justice", "Good Will", "Minimize Suffering"],
@@ -447,11 +447,11 @@ MEMES_DATA_TEXT = """
     }
   },
   {
-    "name": "Develop Good Habits",
-    "description": "The principle that virtues are cultivated through consistent practice (habituation). Ethical character is built by repeatedly performing virtuous actions until they become second nature.",
-    "ethical_dimension": ["Virtue Ethics"],
+    "name": "Habituation - Practice Makes Virtue",
+    "description": "The Aristotelian principle that moral virtues are developed through repeated practice and habit, not merely through intellectual understanding. Consistently performing virtuous actions cultivates a virtuous character.",
+    "ethical_dimension": ["Areteology"],
     "source_concept": "Habit",
-    "keywords": ["virtue ethics", "aristotle", "character", "habit", "practice", "virtue", "habituation"],
+    "keywords": ["areteology", "aristotle", "character", "habit", "practice", "virtue", "habituation"],
     "variations": ["Practice makes perfect (in virtue)", "Cultivate good habits", "Act virtuously consistently"],
     "examples": ["Making a daily effort to exercise patience.", "Consistently choosing honesty in small matters.", "Regularly practicing generosity through small acts.", "Developing a routine of reflection on one's actions."],
     "related_memes": ["Act Virtuously", "Phronesis", "Virtue", "Seek Eudaimonia"],
@@ -478,11 +478,11 @@ MEMES_DATA_TEXT = """
     }
   },
   {
-    "name": "Seek Eudaimonia",
-    "description": "The ultimate aim of virtue ethics: achieving a state of 'living well' or human flourishing. This is not mere pleasure, but a deep, objective well-being attained through the active exercise of virtue guided by reason.",
-    "ethical_dimension": ["Virtue Ethics"],
-    "source_concept": "Flourishing (Eudaimonia)",
-    "keywords": ["virtue ethics", "aristotle", "character", "eudaimonia", "flourishing", "living well", "happiness", "telos"],
+    "name": "Eudaimonia - Human Flourishing",
+    "description": "The ultimate aim of areteology: achieving a state of 'living well' or human flourishing. This is not mere pleasure, but a deep, objective well-being attained through the active exercise of virtue guided by reason.",
+    "ethical_dimension": ["Areteology"],
+    "source_concept": "Flourishing",
+    "keywords": ["areteology", "aristotle", "character", "eudaimonia", "flourishing", "living well", "happiness", "telos"],
     "variations": ["Live a flourishing life", "Achieve true happiness", "Fulfill your human potential", "Live virtuously"],
     "examples": ["Living a life characterized by courage, wisdom, justice, and temperance.", "Engaging in meaningful activities that exercise one's capacities.", "Building strong relationships based on mutual respect and virtue."],
     "related_memes": ["Virtue", "Phronesis", "Develop Good Habits", "Act Virtuously"],
@@ -510,10 +510,10 @@ MEMES_DATA_TEXT = """
   },
   {
     "name": "The Golden Rule",
-    "description": "The principle of treating others as one wants to be treated. It resonates across ethical frameworks due to its emphasis on reciprocity, fairness, and empathy.",
-    "ethical_dimension": ["Deontology", "Teleology", "Virtue Ethics"],
+    "description": "The principle of treating others as one wants to be treated. Found in many cultures and ethical systems, it emphasizes reciprocity, empathy, and fairness.",
+    "ethical_dimension": ["Deontology", "Teleology", "Areteology"],
     "source_concept": "Universal Moral Meme",
-    "keywords": ["golden rule", "reciprocity", "fairness", "empathy", "deontology", "teleology", "virtue ethics", "universal"],
+    "keywords": ["golden rule", "reciprocity", "fairness", "empathy", "deontology", "teleology", "areteology", "universal"],
     "variations": ["Do unto others as you would have them do unto you", "Treat others the way you want to be treated", "(Negative form) Do not do to others what you would not want done to yourself"],
     "examples": ["Sharing resources because you would want others to share with you if you were in need.", "Avoiding harmful gossip because you wouldn't want others to gossip about you.", "Designing policies that you would find acceptable if you were subject to them."],
     "related_memes": ["Respect for Persons", "Maximize Happiness", "Compassion", "Justice"],
@@ -552,13 +552,13 @@ MEMES_DATA_TEXT = """
     }
   },
   {
-    "name": "Do No Harm",
-    "description": "The principle of avoiding actions that cause harm, injury, or suffering to others. A foundational precept in many ethical systems, particularly prominent in medical ethics (Primum non nocere).",
-    "ethical_dimension": ["Deontology", "Teleology", "Virtue Ethics"],
-    "source_concept": "Cross-cutting Principle",
-    "keywords": ["do no harm", "non-maleficence", "primum non nocere", "harm reduction", "safety", "deontology", "teleology", "virtue ethics"],
+    "name": "Do No Harm (Primum Non Nocere)",
+    "description": "A fundamental ethical principle, especially prominent in medicine, obligating one to avoid causing harm. It is a core component of ethical consideration across different frameworks.",
+    "ethical_dimension": ["Deontology", "Teleology", "Areteology"],
+    "source_concept": "Universal Moral Meme",
+    "keywords": ["do no harm", "non-maleficence", "primum non nocere", "harm reduction", "safety", "deontology", "teleology", "areteology"],
     "variations": ["First, do no harm", "Avoid causing suffering", "Prevent harm"],
-    "examples": ["A doctor refusing a treatment where risks outweigh benefits.", "Engineers designing products with safety features.", "Avoiding actions known to cause environmental damage.", "Refraining from spreading malicious rumors."],
+    "examples": ["A doctor avoiding treatments where the potential harm outweighs the benefit.", "Engineers designing products with safety features.", "Avoiding actions known to cause environmental damage.", "Refraining from spreading malicious rumors."],
     "related_memes": ["Minimize Suffering", "Respect for Persons", "Compassion", "Justice"],
     "dimension_specific_attributes": {
       "deontology": {
@@ -595,14 +595,14 @@ MEMES_DATA_TEXT = """
     }
   },
   {
-    "name": "Justice",
-    "description": "The principle of fairness, equity, and upholding rights. It involves giving each person their due and rectifying wrongs, interpreted differently but valued across ethical frameworks.",
-    "ethical_dimension": ["Deontology", "Teleology", "Virtue Ethics"],
-    "source_concept": "Cross-cutting Principle",
-    "keywords": ["justice", "fairness", "equity", "rights", "desert", "deontology", "teleology", "virtue ethics"],
+    "name": "Justice / Fairness",
+    "description": "The principle of giving individuals what they are due or deserve, often involving concepts of rights, equality, impartiality, and equity. It is a cornerstone of social and individual ethics.",
+    "ethical_dimension": ["Deontology", "Teleology", "Areteology"],
+    "source_concept": "Universal Moral Meme",
+    "keywords": ["justice", "fairness", "equity", "rights", "desert", "deontology", "teleology", "areteology"],
     "variations": ["Be just", "Fairness for all", "Uphold rights", "Give people what they deserve"],
     "examples": ["Implementing fair legal procedures.", "Distributing resources equitably.", "Correcting historical injustices.", "Treating individuals impartially regardless of background."],
-    "related_memes": ["Respect for Persons", "Maximize Happiness (via fair distribution)", "Honesty (Virtue)", "Courage (to uphold justice)", "The Golden Rule", "Do No Harm"],
+    "related_memes": ["Respect for Persons", "Maximize Happiness (via fair distribution)", "Honesty", "Courage (to uphold justice)", "The Golden Rule", "Do No Harm"],
     "dimension_specific_attributes": {
       "deontology": {
         "is_rule_based": true, // Often involves rules of fair procedure/distribution
