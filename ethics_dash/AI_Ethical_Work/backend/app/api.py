@@ -24,9 +24,11 @@ PROMPT_LOG_FILEPATH = "context/prompts.txt"
 OPENAI_API_KEY_ENV = "OPENAI_API_KEY"
 GEMINI_API_KEY_ENV = "GEMINI_API_KEY"
 ANTHROPIC_API_KEY_ENV = "ANTHROPIC_API_KEY"
+XAI_API_KEY_ENV = "XAI_API_KEY"  # Added xAI (Grok) API key env var
 OPENAI_API_ENDPOINT_ENV = "OPENAI_API_ENDPOINT"
 GEMINI_API_ENDPOINT_ENV = "GEMINI_API_ENDPOINT"
 ANTHROPIC_API_ENDPOINT_ENV = "ANTHROPIC_API_ENDPOINT"
+XAI_API_ENDPOINT_ENV = "XAI_API_ENDPOINT"  # Added xAI (Grok) API endpoint env var
 DEFAULT_LLM_MODEL_ENV = "DEFAULT_LLM_MODEL"
 
 # Environment variables for the Analysis LLM (Added OpenAI)
@@ -34,9 +36,11 @@ ANALYSIS_LLM_MODEL_ENV = "ANALYSIS_LLM_MODEL"
 ANALYSIS_OPENAI_API_KEY_ENV = "ANALYSIS_OPENAI_API_KEY"
 ANALYSIS_GEMINI_API_KEY_ENV = "ANALYSIS_GEMINI_API_KEY"
 ANALYSIS_ANTHROPIC_API_KEY_ENV = "ANALYSIS_ANTHROPIC_API_KEY"
+ANALYSIS_XAI_API_KEY_ENV = "ANALYSIS_XAI_API_KEY"  # Added xAI (Grok) Analysis API key env var
 ANALYSIS_OPENAI_API_ENDPOINT_ENV = "ANALYSIS_OPENAI_API_ENDPOINT"
 ANALYSIS_GEMINI_API_ENDPOINT_ENV = "ANALYSIS_GEMINI_API_ENDPOINT"
 ANALYSIS_ANTHROPIC_API_ENDPOINT_ENV = "ANALYSIS_ANTHROPIC_API_ENDPOINT"
+ANALYSIS_XAI_API_ENDPOINT_ENV = "ANALYSIS_XAI_API_ENDPOINT"  # Added xAI (Grok) Analysis API endpoint env var
 
 # --- Model Definitions ---
 OPENAI_MODELS = [
@@ -49,6 +53,8 @@ GEMINI_MODELS = [
     "gemini-1.5-pro-latest",
     "gemini-1.5-flash-latest",
     "gemini-1.0-pro",
+    "gemini-2.5-pro",
+    "gemini-2.5-flash"
 ]
 
 ANTHROPIC_MODELS = [
@@ -57,7 +63,14 @@ ANTHROPIC_MODELS = [
     "claude-3-haiku-20240307",
 ]
 
-ALL_MODELS = OPENAI_MODELS + GEMINI_MODELS + ANTHROPIC_MODELS
+# New xAI Grok models
+XAI_MODELS = [
+    "grok-2",
+    "grok-3-mini",
+    "grok-3"
+]
+
+ALL_MODELS = OPENAI_MODELS + GEMINI_MODELS + ANTHROPIC_MODELS + XAI_MODELS
 
 # --- Helper Functions ---
 
@@ -118,6 +131,10 @@ def _get_api_config(selected_model: str,
         api_key_name = "Origin Anthropic"
         env_var_key = ANTHROPIC_API_KEY_ENV
         env_var_endpoint = ANTHROPIC_API_ENDPOINT_ENV
+    elif selected_model in XAI_MODELS:
+        api_key_name = "Origin xAI (Grok)"
+        env_var_key = XAI_API_KEY_ENV
+        env_var_endpoint = XAI_API_ENDPOINT_ENV
     else:
         # This case should ideally not be reached if model comes from dropdown
         # If we allow custom model names later, this logic might need adjustment
@@ -129,12 +146,25 @@ def _get_api_config(selected_model: str,
         api_key = form_api_key.strip()
         key_source = "User Input"
         logger.info(f"_get_api_config: Using API key provided via form for {api_key_name}.")
+        # Log a masked version of the key for debugging
+        if api_key:
+            masked_key = f"{api_key[:5]}...{api_key[-5:]}" if len(api_key) > 10 else "***masked***"
+            logger.info(f"_get_api_config: Form API key format check - Length: {len(api_key)}, Start/End: {masked_key}")
     # 2. Fallback to environment variable if form key wasn't provided AND we know the variable name
     elif env_var_key:
         api_key = os.getenv(env_var_key)
+        # Ensure any surrounding quotes are removed (common in environment variables)
+        if api_key and isinstance(api_key, str):
+            api_key = api_key.strip().strip('"\'')
+            
         if api_key:
              key_source = f"Environment Variable ({env_var_key})"
              logger.info(f"_get_api_config: Using API key from env var {env_var_key} for {api_key_name}.")
+             # Log a masked version of the key for debugging
+             masked_key = f"{api_key[:5]}...{api_key[-5:]}" if len(api_key) > 10 else "***masked***"
+             logger.info(f"_get_api_config: Env API key format check - Length: {len(api_key)}, Start/End: {masked_key}")
+        else:
+             logger.warning(f"_get_api_config: No API key found in env var {env_var_key} for {api_key_name}. This may cause request failure.")
 
     # 3. Prioritize API endpoint provided in the form
     if form_api_endpoint and isinstance(form_api_endpoint, str) and form_api_endpoint.strip():
@@ -151,9 +181,12 @@ def _get_api_config(selected_model: str,
     if not api_endpoint and env_var_endpoint: 
         env_endpoint_val = os.getenv(env_var_endpoint)
         if env_endpoint_val:
-            api_endpoint = env_endpoint_val
+            # Ensure any surrounding quotes are removed
+            api_endpoint = env_endpoint_val.strip().strip('"\'')
             endpoint_source = f"Environment Variable ({env_var_endpoint})"
             logger.info(f"_get_api_config: Using API endpoint from env var {env_var_endpoint}: {api_endpoint}")
+        else:
+            logger.warning(f"_get_api_config: No API endpoint found in env var {env_var_endpoint} for {api_key_name}. Using default if available.")
 
     # 5. Validate that *some* API Key was found
     if not api_key:
@@ -166,6 +199,8 @@ def _get_api_config(selected_model: str,
     # Log final sources
     if not error:
         logger.info(f"_get_api_config: Final Key Source: {key_source}, Endpoint Source: {endpoint_source} for {selected_model}")
+    else:
+        logger.error(f"_get_api_config: Configuration error for {selected_model}: {error}")
         
     return {
         "api_key": api_key,
@@ -190,6 +225,10 @@ def _get_analysis_api_config(selected_analysis_model: Optional[str] = None,
         if selected_analysis_model and selected_analysis_model not in ALL_MODELS:
              logger.warning(f"_get_analysis_api_config: Invalid analysis model selected ('{selected_analysis_model}'). Falling back to environment default.")
         default_analysis_model_env = os.getenv(ANALYSIS_LLM_MODEL_ENV)
+        # Clean up environment variable value if needed
+        if default_analysis_model_env and isinstance(default_analysis_model_env, str):
+            default_analysis_model_env = default_analysis_model_env.strip().strip('"\'')
+            
         if not default_analysis_model_env or default_analysis_model_env not in ALL_MODELS:
             error_msg = f"Analysis LLM model is not configured correctly. Neither selected ('{selected_analysis_model}') nor default env var {ANALYSIS_LLM_MODEL_ENV} ('{default_analysis_model_env}') are valid."
             logger.error(error_msg)
@@ -229,6 +268,12 @@ def _get_analysis_api_config(selected_analysis_model: Optional[str] = None,
         fallback_key_env = ANTHROPIC_API_KEY_ENV
         specific_endpoint_env = ANALYSIS_ANTHROPIC_API_ENDPOINT_ENV
         fallback_endpoint_env = ANTHROPIC_API_ENDPOINT_ENV
+    elif analysis_model in XAI_MODELS:
+        api_key_name = "Analysis xAI (Grok)"
+        specific_key_env = ANALYSIS_XAI_API_KEY_ENV
+        fallback_key_env = XAI_API_KEY_ENV
+        specific_endpoint_env = ANALYSIS_XAI_API_ENDPOINT_ENV
+        fallback_endpoint_env = XAI_API_ENDPOINT_ENV
     # No else needed as model validity is checked above
 
     # 1. Prioritize API key provided in the form
@@ -236,20 +281,38 @@ def _get_analysis_api_config(selected_analysis_model: Optional[str] = None,
         api_key = form_analysis_api_key.strip()
         key_source = "User Input"
         logger.info(f"_get_analysis_api_config: Using API key provided via form for {api_key_name}.")
+        # Log a masked version of the key for debugging
+        if api_key:
+            masked_key = f"{api_key[:5]}...{api_key[-5:]}" if len(api_key) > 10 else "***masked***"
+            logger.info(f"_get_analysis_api_config: Form API key format check - Length: {len(api_key)}, Start/End: {masked_key}")
     # 2. Fallback to environment variables if form key wasn't provided
     else:
         # Check specific analysis key first, then standard key
         if specific_key_env:
-            api_key = os.getenv(specific_key_env)
-            if api_key:
+            env_key = os.getenv(specific_key_env)
+            # Clean up environment variable value if needed
+            if env_key and isinstance(env_key, str):
+                env_key = env_key.strip().strip('"\'')
+                
+            if env_key:
+                api_key = env_key
                 key_source = f"Environment Variable ({specific_key_env})"
+        
         if not api_key and fallback_key_env: # If specific key not found or doesn't exist, try fallback
-            api_key = os.getenv(fallback_key_env)
-            if api_key:
-                 key_source = f"Environment Variable ({fallback_key_env})"
+            env_key = os.getenv(fallback_key_env)
+            # Clean up environment variable value if needed
+            if env_key and isinstance(env_key, str):
+                env_key = env_key.strip().strip('"\'')
+                
+            if env_key:
+                api_key = env_key
+                key_source = f"Environment Variable ({fallback_key_env})"
         
         if api_key:
             logger.info(f"_get_analysis_api_config: Using API key from {key_source} for {api_key_name}.")
+            # Log a masked version of the key for debugging
+            masked_key = f"{api_key[:5]}...{api_key[-5:]}" if len(api_key) > 10 else "***masked***"
+            logger.info(f"_get_analysis_api_config: Env API key format check - Length: {len(api_key)}, Start/End: {masked_key}")
 
     # 3. Prioritize API endpoint provided in the form
     if form_analysis_api_endpoint and isinstance(form_analysis_api_endpoint, str) and form_analysis_api_endpoint.strip():
@@ -265,11 +328,20 @@ def _get_analysis_api_config(selected_analysis_model: Optional[str] = None,
         # Check specific analysis endpoint first, then standard endpoint
         if specific_endpoint_env:
             env_endpoint_val = os.getenv(specific_endpoint_env)
+            # Clean up environment variable value if needed
+            if env_endpoint_val and isinstance(env_endpoint_val, str):
+                env_endpoint_val = env_endpoint_val.strip().strip('"\'')
+                
             if env_endpoint_val:
                 api_endpoint = env_endpoint_val
                 endpoint_source = f"Environment Variable ({specific_endpoint_env})"
+        
         if not api_endpoint and fallback_endpoint_env: # If specific endpoint not found or doesn't exist, try fallback
             env_endpoint_val = os.getenv(fallback_endpoint_env)
+            # Clean up environment variable value if needed
+            if env_endpoint_val and isinstance(env_endpoint_val, str):
+                env_endpoint_val = env_endpoint_val.strip().strip('"\'')
+                
             if env_endpoint_val:
                 api_endpoint = env_endpoint_val
                 endpoint_source = f"Environment Variable ({fallback_endpoint_env})"
@@ -544,6 +616,15 @@ def analyze():
 
     # --- Determine R1 Model --- 
     default_r1_model = os.getenv(DEFAULT_LLM_MODEL_ENV)
+    
+    # Ensure default model value is properly cleaned
+    if default_r1_model and isinstance(default_r1_model, str):
+        default_r1_model = default_r1_model.strip().strip('"\'')
+        logger.info(f"analyze: Retrieved default model from env: {default_r1_model}")
+    else:
+        logger.warning(f"analyze: DEFAULT_LLM_MODEL env var is empty or not a string")
+        
+    # Check against known models list
     if not default_r1_model or default_r1_model not in ALL_MODELS:
         logger.warning(f"analyze: DEFAULT_LLM_MODEL env var '{default_r1_model}' invalid or not set. Falling back to first available model: '{ALL_MODELS[0] if ALL_MODELS else None}'.")
         default_r1_model = ALL_MODELS[0] if ALL_MODELS else None # Fallback to first model in list
@@ -558,6 +639,18 @@ def analyze():
     else:
          r1_model_to_use = default_r1_model
          logger.info(f"analyze: Using default Origin Model (R1): '{r1_model_to_use}'")
+         
+    # Log which model provider is being used    
+    if r1_model_to_use in ANTHROPIC_MODELS:
+        logger.info(f"analyze: Selected model '{r1_model_to_use}' is an Anthropic Claude model")
+    elif r1_model_to_use in GEMINI_MODELS:
+        logger.info(f"analyze: Selected model '{r1_model_to_use}' is a Google Gemini model")
+    elif r1_model_to_use in OPENAI_MODELS:
+        logger.info(f"analyze: Selected model '{r1_model_to_use}' is an OpenAI model")
+    elif r1_model_to_use in XAI_MODELS:
+        logger.info(f"analyze: Selected model '{r1_model_to_use}' is an xAI Grok model")
+    else:
+        logger.warning(f"analyze: Selected model '{r1_model_to_use}' is not in any known model list")
 
     # --- Get R1 API Configuration --- 
     # Pass model, optional key, optional endpoint

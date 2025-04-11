@@ -17,8 +17,7 @@ RUN addgroup --system app && adduser --system --group app
 # Install Python dependencies
 # Copy only the requirements file first to leverage Docker cache
 COPY requirements.txt requirements.txt
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+RUN if [ ! -f requirements.txt ]; then echo 'requirements.txt not found, installing defaults' && pip install dash gunicorn; else pip install --no-cache-dir -r requirements.txt; fi
 
 # Copy project code
 # Ensure permissions are set for the non-root user

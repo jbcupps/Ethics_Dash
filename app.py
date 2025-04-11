@@ -55,6 +55,7 @@ def form_group(label_text, component):
 
 # --- Layout Definition ---
 app.layout = dbc.Container([
+    dcc.Location(id='url', refresh=False),
     html.H1("Ethics Dash - Enhanced"),
     html.Hr(),
     
