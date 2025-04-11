@@ -8,7 +8,7 @@ on:
 env:
   # Azure Container Registry settings
   ACR_REGISTRY: ${{ secrets.ACR_REGISTRY }}
-  IMAGE_NAME: ethicsdash-app
+  IMAGE_NAME: ethics-dash
   IMAGE_TAG: ${{ github.sha }}
   
   # Azure Container App settings
@@ -77,7 +77,7 @@ jobs:
                 --name ${{ env.CONTAINER_APP_NAME }} \
                 --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
                 --environment ${{ env.CONTAINER_APP_ENV }} \
-                --image ${{ env.ACR_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+                --image ${{ env.ACR_REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
                 --target-port 8050 \
                 --ingress external \
                 --min-replicas 1 \
