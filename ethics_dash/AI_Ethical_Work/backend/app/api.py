@@ -2,10 +2,11 @@
 
 import os
 from typing import Dict, Any, Optional, Tuple
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 import re # Import regex module for parsing
 import json # Import JSON module for parsing
 import logging # Import logging
+from json import JSONDecodeError
 
 from backend.app.modules.llm_interface import generate_response, perform_ethical_analysis
 
@@ -295,96 +296,69 @@ def _get_analysis_api_config(selected_analysis_model: Optional[str] = None,
     }
 
 def _parse_ethical_analysis(analysis_text: str) -> Tuple[str, Optional[Dict[str, Any]]]:
-    """Parses the ethical analysis text to separate textual summary and structured JSON scores."""
-    if not analysis_text or analysis_text == "[No analysis generated or content blocked]": # Handle placeholder
-        logger.warning("Ethical analysis text was empty or indicated generation failure.")
-        return analysis_text if analysis_text else "", None # Return placeholder or empty, and None scores
+    """Parses the LLM's ethical analysis response, expecting a single JSON object.
 
-    textual_summary = ""
-    json_scores = None
-    raw_json_string = None # Keep track of the raw string for logging
+    Args:
+        analysis_text: The raw text response from the analysis LLM.
+
+    Returns:
+        A tuple containing:
+        - The extracted textual summary (str).
+        - The extracted scores JSON (dict), or None if parsing fails or keys are missing.
+    """
+    if not analysis_text or analysis_text == "[No analysis generated or content blocked]":
+        current_app.logger.warning("Ethical analysis text was empty or indicated generation failure.")
+        return analysis_text if analysis_text else "Analysis not generated.", None
 
     try:
-        # Attempt to find the textual summary first
-        summary_marker = "**Ethical Review Summary:**"
-        scoring_marker = "**Ethical Scoring:**"
-        summary_start_index = analysis_text.find(summary_marker)
-        scoring_start_index = analysis_text.find(scoring_marker)
+        # Attempt to parse the entire response as a single JSON object
+        parsed_data = json.loads(analysis_text)
 
-        if summary_start_index != -1 and scoring_start_index != -1 and summary_start_index < scoring_start_index:
-            textual_summary = analysis_text[summary_start_index + len(summary_marker):scoring_start_index].strip()
-        elif summary_start_index != -1: # If only summary marker is found
-             textual_summary = analysis_text[summary_start_index + len(summary_marker):].strip()
-        else: # Fallback if markers are missing or out of order
-            textual_summary = analysis_text # Assign full text if structure isn't as expected
-            logger.warning("Could not reliably find summary/scoring markers in analysis text.")
+        # Validate the structure and extract keys
+        if not isinstance(parsed_data, dict):
+             current_app.logger.error(f"Parsed analysis is not a dictionary: {type(parsed_data)}")
+             return "Error: Analysis response was not a valid JSON object.", None
 
-        # Attempt to find and parse the JSON block for scores
-        json_match = re.search(r"```json\s*(\{.*?\})\s*```", analysis_text, re.DOTALL)
-        
-        if json_match:
-            json_string = json_match.group(1)
-            raw_json_string = json_string # Store for logging on error
-            try: # Outer try for json.loads
-                parsed_json = json.loads(json_string)
-                # Validation block starts here
-                try: # Inner try for validation accessing parsed_json content
-                     # Basic validation of the parsed JSON structure
-                     required_standard_dims = ["deontology", "teleology", "virtue_ethics"]
-                     required_memetic_dim = "memetics"
-                     required_memetic_keys = ["transmissibility_score", "persistence_score", "adaptability_score", "confidence_score", "justification"]
-                     
-                     is_valid = False
-                     if isinstance(parsed_json, dict): 
-                         # Check standard dimensions
-                         standard_dims_present = all(dim in parsed_json for dim in required_standard_dims)
-                         standard_dims_valid = all(isinstance(parsed_json[dim], dict) and 
-                                                 all(key in parsed_json[dim] for key in ["adherence_score", "confidence_score", "justification"]) 
-                                                 for dim in required_standard_dims if dim in parsed_json) # Check structure only if present
-                         
-                         # Check memetics dimension
-                         memetics_present = required_memetic_dim in parsed_json
-                         memetics_valid = False
-                         if memetics_present and isinstance(parsed_json[required_memetic_dim], dict):
-                             memetics_valid = all(key in parsed_json[required_memetic_dim] for key in required_memetic_keys)
-                             
-                         # Final validation check (all standard dims + memetics must be present and validly structured)
-                         if standard_dims_present and standard_dims_valid and memetics_present and memetics_valid:
-                            is_valid = True
-                     
-                     if is_valid:
-                        json_scores = parsed_json
-                        # Trim summary if needed (same logic as before)
-                        if scoring_start_index != -1 and summary_start_index != -1:
-                             textual_summary = analysis_text[summary_start_index + len(summary_marker):scoring_start_index].strip()
-                        elif scoring_start_index == -1 and textual_summary.endswith(json_match.group(0)):
-                             textual_summary = textual_summary[:-len(json_match.group(0))].strip()
-                     else:
-                         # Validation failed
-                         logger.warning(f"Parsed JSON does not have the expected 4-dimension structure (including memetics). JSON: {json_string[:200]}...")
-                         json_scores = None # Ensure it's None if validation fails
-                except (TypeError, KeyError) as key_err: # Handles errors during validation access
-                     logger.error(f"Error accessing keys in parsed JSON structure: {key_err}. JSON: {json_string[:200]}...", exc_info=True)
-                     json_scores = None # Ensure it's None on structure access error
-                # End of inner try-except block for validation
+        summary = parsed_data.get("summary_text")
+        scores = parsed_data.get("scores_json")
 
-            except json.JSONDecodeError as json_err: # Handles errors during json.loads
-                logger.error(f"Error decoding JSON from analysis: {json_err}. Raw JSON string: {raw_json_string[:200]}...", exc_info=True)
-                json_scores = None # Explicitly set to None on JSON decode error
-        else: # if json_match failed
-            logger.warning("Could not find JSON block for ethical scores in analysis text.")
-            json_scores = None # Ensure it's None if JSON block not found
+        # Check if required keys are present and summary is a string
+        if summary is None or scores is None:
+            missing_keys = []
+            if summary is None: missing_keys.append("summary_text")
+            if scores is None: missing_keys.append("scores_json")
+            current_app.logger.error(f"Parsed analysis JSON is missing required keys: {missing_keys}. Got keys: {list(parsed_data.keys())}")
+            return "Error: Analysis JSON missing required fields.", None
 
+        if not isinstance(summary, str):
+             current_app.logger.error(f"Parsed analysis 'summary_text' is not a string: {type(summary)}")
+             # Still return the scores if they look ok, but provide an error summary
+             summary = f"Error: Invalid summary format received (type: {type(summary)})."
+             # Ensure scores is at least a dict, otherwise nullify it too
+             if not isinstance(scores, dict):
+                 current_app.logger.error(f"Parsed analysis 'scores_json' is not a dictionary: {type(scores)}")
+                 scores = None
+
+        # Basic check if scores look like a dictionary (further validation could be added)
+        elif not isinstance(scores, dict):
+             current_app.logger.error(f"Parsed analysis 'scores_json' is not a dictionary: {type(scores)}")
+             return summary, None # Return valid summary, but no scores
+
+        current_app.logger.info("Successfully parsed ethical analysis JSON.")
+        return summary, scores
+
+    except JSONDecodeError as e:
+        current_app.logger.error(f"Failed to decode analysis response as JSON: {e}")
+        current_app.logger.debug(f"Raw analysis text that failed parsing:\n{analysis_text}")
+        # Try to extract something meaningful as a fallback, or return a generic error
+        error_summary = "Error: Could not parse analysis response from the LLM. It was not valid JSON."
+        # Optionally, you could try regex to find the *intended* summary if the LLM failed formatting
+        # For simplicity, just return the error.
+        return error_summary, None
     except Exception as e:
-        logger.error(f"Error parsing ethical analysis structure: {e}", exc_info=True)
-        textual_summary = analysis_text
-        json_scores = None # Ensure scores are None on major parsing failure
-
-    # Rename for clarity in return and API response
-    ethical_analysis_text = textual_summary
-    ethical_scores = json_scores # This will be None if any parsing/validation step failed
-
-    return ethical_analysis_text, ethical_scores
+        # Catch any other unexpected errors during parsing/validation
+        current_app.logger.error(f"Unexpected error parsing ethical analysis: {e}", exc_info=True)
+        return "Error: An unexpected error occurred while processing the analysis response.", None
 
 # --- Private Helpers for /analyze Route ---
 
@@ -447,71 +421,80 @@ def _process_analysis_request(
     analysis_config: Dict[str, Any],
     ontology_text: str
 ) -> Tuple[Optional[Dict], Optional[int]]:
-    """Handles LLM calls and response parsing for the /analyze endpoint."""
-        
-    selected_model = r1_model_to_use # Use the model determined in the main 'analyze' function
-    analysis_model_name = analysis_config.get("model") # Get the model determined by _get_analysis_api_config
+    """Handles generating R1, performing R2, and parsing results."""
 
-    # Ensure analysis model name is valid before proceeding
-    if not analysis_model_name:
-         logger.error("_process_analysis_request: Analysis model name missing from analysis_config.")
-         # This indicates an issue in _get_analysis_api_config logic
-         return {"error": "Internal Server Error: Failed to determine analysis model."}, 500
+    logger.info(f"_process_analysis_request: Using R1 model: {r1_model_to_use}")
+    logger.info(f"_process_analysis_request: Using R2 model: {analysis_config.get('model')}")
 
-    logger.info(f"_process_analysis_request: Using R1 model: {selected_model}")
-    logger.info(f"_process_analysis_request: Using R2 model: {analysis_model_name}")
-
-    # 1. Generate initial response
-    logger.info(f"Generating initial response (R1) with model: {selected_model}")
-    # Use the API key/endpoint from initial_config (which was fetched based on selected_model)
-    initial_response = generate_response(
-        prompt,
-        initial_config["api_key"], 
-        selected_model, 
-        api_endpoint=initial_config.get("api_endpoint") # Use .get for safety
-    )
-    if initial_response is None:
-        logger.error(f"Failed to generate initial response (R1) from LLM {selected_model}. Check LLM interface logs.")
-        return {"error": f"Failed to generate response (R1) from the upstream language model: {selected_model}."}, 502
-
-    # 2. Generate ethical analysis
-    logger.info(f"Performing analysis (R2) with model: {analysis_model_name}")
-    # Use the API key/endpoint from analysis_config (fetched based on analysis_model_name)
-    raw_ethical_analysis = perform_ethical_analysis(
-        prompt,
-        initial_response,
-        ontology_text,
-        analysis_config["api_key"],
-        analysis_model_name,
-        analysis_api_endpoint=analysis_config.get("api_endpoint") # Use .get for safety
-    )
-    if raw_ethical_analysis is None:
-        logger.error(f"Failed to generate ethical analysis (R2) from LLM {analysis_model_name}. Check LLM interface logs.")
-        error_payload = {
-            "error": f"Generated initial response (R1), but failed to generate ethical analysis (R2) from the upstream language model: {analysis_model_name}.",
-            "prompt": prompt,
-            "model": selected_model, # R1 model used
-            "analysis_model": analysis_model_name, # R2 model attempted
-            "initial_response": initial_response
-        }
-        return error_payload, 502
-
-    # 3. Parse the analysis
-    logger.info("Parsing ethical analysis response.")
-    ethical_analysis_text, ethical_scores = _parse_ethical_analysis(raw_ethical_analysis)
-
-    # 4. Prepare successful result dictionary
-    result_payload = {
+    # Initialize results
+    response_payload = {
         "prompt": prompt,
-        "model": selected_model, # R1 model actually used
-        "analysis_model": analysis_model_name, # R2 model actually used
-        "initial_response": initial_response,
-        "ethical_analysis_text": ethical_analysis_text,
-        "ethical_scores": ethical_scores
+        "r1_model": r1_model_to_use,
+        "r2_model": analysis_config.get('model'),
+        "initial_response": None,
+        "analysis_summary": None,
+        "ethical_scores": None,
+        "error": None
     }
-    # Log the final models used
-    log_prompt(prompt, f"R1: {selected_model}, R2: {analysis_model_name}")
-    return result_payload, None # No error
+
+    try:
+        # --- Generate Initial Response (R1) ---
+        logger.info(f"Generating initial response (R1) with model: {r1_model_to_use}")
+        initial_response = generate_response(
+            prompt=prompt,
+            api_key=initial_config['api_key'],
+            model_name=r1_model_to_use,
+            api_endpoint=initial_config.get('api_endpoint')
+        )
+        response_payload["initial_response"] = initial_response
+
+        if not initial_response:
+            # Even if R1 fails/is blocked, we might still try R2 analysis
+            logger.error(f"Failed to generate initial response (R1) from LLM {r1_model_to_use}. Check LLM interface logs.")
+            initial_response = "[No response generated or content blocked]" # Provide placeholder
+            # response_payload["error"] = f"Failed to generate response (R1) from {r1_model_to_use}."
+            # return response_payload, 500 # Optionally stop here
+
+        # --- Perform Ethical Analysis (R2) ---
+        logger.info(f"Performing analysis (R2) with model: {analysis_config.get('model')}")
+        # Ensure R1 passed to analysis is always a string
+        r1_for_analysis = initial_response if initial_response else "[No initial response was generated or it was blocked]"
+
+        # Combine ontology and db context if needed (adjust based on llm_interface)
+        # For now, context isn't explicitly used by the updated perform_ethical_analysis
+        analysis_context = {"ontology": ontology_text, "db": current_app.db} 
+
+        raw_ethical_analysis_result = perform_ethical_analysis(
+            prompt=prompt,                   # Corrected keyword
+            initial_response=r1_for_analysis,# Corrected keyword
+            analysis_model=analysis_config['model'], # Corrected keyword
+            api_config=analysis_config,      # Pass the whole config dict
+            context=analysis_context         # Pass context dictionary (optional for now)
+        )
+
+        # --- Process R2 Result ---
+        # The function now returns the parsed dict or None
+        if not raw_ethical_analysis_result:
+            logger.error(f"Ethical analysis (R2) failed or returned no result for model {analysis_config.get('model')}. Check LLM interface logs.")
+            # Fix: Ensure existing error is treated as empty string if None
+            existing_error = response_payload.get("error", "") or ""
+            response_payload["error"] = existing_error + f" Failed to generate analysis (R2) from {analysis_config.get('model')}."
+            response_payload["analysis_summary"] = "[No analysis generated or content blocked]"
+            response_payload["ethical_scores"] = None # Ensure scores are None on failure
+        else:
+            # Result should already be the parsed dictionary { "summary_text": ..., "scores_json": ... }
+            response_payload["analysis_summary"] = raw_ethical_analysis_result.get("summary_text", "[Analysis summary missing]")
+            response_payload["ethical_scores"] = raw_ethical_analysis_result.get("scores_json") # This is the nested scores object
+            logger.info("Analysis completed and R2 result processed.")
+
+        return response_payload, 200 # Success (even if parts failed, we have a payload)
+
+    except Exception as e:
+        logger.error(f"Error processing analysis request: {e}", exc_info=True)
+        # Fix for potential NoneType error
+        existing_error = response_payload.get("error", "") or ""
+        response_payload["error"] = existing_error + f" Internal server error: {e}"
+        return response_payload, 500 # Full failure
 
 # --- API Routes ---
 

@@ -1,10 +1,27 @@
 # Backend API Requirements
 Flask>=2.3.0,<3.1.0 # Web framework
 Flask-CORS # Update: Remove version pin to get latest stable version (addresses CVE-2024-6221)
+gunicorn>=23.0.0,<24.0.0 # Update: WSGI server for production (addresses CVE-2024-6827)
+
+# Dash dependencies
+dash
+dash-bootstrap-components
+dash-table
+dotenv # Consider removing if not used directly by Python code
+
+# LLM Dependencies (requests is often used by Dash/Flask too)
+requests
+
+# Visualization
+dash-cytoscape # Added for graph visualization
+
+# LLM Client Libraries (Moved here for grouping)
 google-generativeai==0.5.3 # Gemini API - fixed version for compatibility
 anthropic>=0.20.0,<0.26.0 # Anthropic (Claude) API
-gunicorn>=23.0.0,<24.0.0 # Update: WSGI server for production (addresses CVE-2024-6827)
+openai==1.74.0 # Added OpenAI library - PIN THIS VERSION
 httpx>=0.25.0,<0.28.0 # HTTP client used by Anthropic, explicitly added 
-openai # Added OpenAI library 
+
 pymongo[srv]>=4.0,<5.0 # Added MongoDB driver (with SRV support)
-pydantic>=2.0 # Added Pydantic for data validation 
+pydantic>=2.0 # Added Pydantic for data validation
+
+# Add any other specific versions if necessary 

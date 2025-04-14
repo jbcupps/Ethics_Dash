@@ -18,13 +18,15 @@ export const ethicalReviewApi = {
     try {
       const response = await apiClient.get('/models');
       // Ensure we return an array, even if the API response is unexpected
-      return Array.isArray(response.data.models) ? response.data.models : [];
+      if (response.data && Array.isArray(response.data.models)) {
+        return response.data.models;
+      }
+      console.warn('Unexpected response format when fetching models:', response.data);
+      return []; // Return empty array if format is wrong
     } catch (error) {
-      console.error('Error fetching models:', error);
-      // Return empty array on error so the UI doesn't break
-      return []; 
-      // Optionally re-throw or handle more gracefully
-      // throw error;
+      console.error('Error fetching models:', error.response || error.message || error);
+      // Throw a user-friendly error, keep technical details in console
+      throw new Error('Failed to load available models. Please check the connection or backend status.'); 
     }
   },
   
@@ -64,11 +66,24 @@ export const ethicalReviewApi = {
       const response = await apiClient.post('/analyze', payload);
       return response.data;
     } catch (error) {
-      console.error('Error analyzing prompt:', error);
+      // Log the detailed error (including response data if available)
+      console.error('Error analyzing prompt:', error.response || error.message || error);
+      
+      // Construct a user-friendly message
+      let userMessage = 'Analysis failed. An unknown error occurred.';
       if (error.response && error.response.data && error.response.data.error) {
-        throw new Error(error.response.data.error);
+        // Use the error message from the backend API if available
+        userMessage = `Analysis failed: ${error.response.data.error}`;
+      } else if (error.request) {
+        // Error making the request (e.g., network error)
+        userMessage = 'Analysis failed. Could not reach the backend server. Please check your connection.';
+      } else {
+        // Other errors (e.g., setup issues)
+        userMessage = `Analysis failed: ${error.message}`;
       }
-      throw new Error('An unknown error occurred while analyzing the prompt.');
+      
+      // Throw the user-friendly error message
+      throw new Error(userMessage);
     }
   },
 
@@ -76,12 +91,15 @@ export const ethicalReviewApi = {
   getMemes: async () => {
     try {
       const response = await apiClient.get('/memes'); // Use the correct endpoint /api/memes
-      return Array.isArray(response.data) ? response.data : [];
+      if (response.data && Array.isArray(response.data)) {
+        return response.data;
+      }
+      console.warn('Unexpected response format when fetching memes:', response.data);
+      return []; // Return empty array if format is wrong
     } catch (error) {
-      console.error('Error fetching memes:', error);
-      // Handle specific errors if needed (e.g., 404, 500)
-      // For now, return empty array to prevent UI breaks
-      return [];
+      console.error('Error fetching memes:', error.response || error.message || error);
+      // Throw a user-friendly error
+      throw new Error('Failed to load memes. Please check the connection or backend status.');
     }
   },
 

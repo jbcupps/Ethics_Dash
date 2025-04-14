@@ -3,10 +3,21 @@ from typing import List, Optional, Dict, Any, Union, Literal, Annotated
 from datetime import datetime, timezone
 from bson import ObjectId
 
-# Helper for ObjectId validation/serialization compatible with Pydantic v2
-# Pydantic v2 handles ObjectId directly better with arbitrary_types_allowed
-# but this custom type ensures validation and schema representation.
-PyObjectId = Annotated[ObjectId, Field(validate_default=False)]
+# Helper for ObjectId validation/serialization
+class PyObjectId(ObjectId):
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v):
+        if not ObjectId.is_valid(v):
+            raise ValueError("Invalid ObjectId")
+        return ObjectId(v)
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, field_schema):
+        field_schema.update(type="string")
 
 # --- Sub-models for Dimension Specific Attributes ---
 
@@ -57,59 +68,48 @@ class EthicalMemeBase(BaseModel):
     keywords: List[str] = Field(default_factory=list)
     variations: List[str] = Field(default_factory=list)
     examples: List[str] = Field(default_factory=list)
-    related_memes: List[Union[PyObjectId, str]] = Field(default_factory=list)
+    # Allow string names or ObjectIds for related memes - validation might need refinement
+    related_memes: List[Union[str, str]] = Field(default_factory=list)
     dimension_specific_attributes: Optional[DimensionSpecificAttributes] = None
-    morphisms: Optional[List[Dict[str, Union[str, PyObjectId]]]] = Field(default_factory=list, description="Relationships (morphisms) to other memes. E.g., {'type': 'Universalizes', 'target_meme_id': '...', 'description': '...'}")
+    morphisms: Optional[List[Dict[str, Union[str, str]]]] = Field(default_factory=list, description="Relationships (morphisms) to other memes. E.g., {'type': 'Universalizes', 'target_meme_id': '...', 'description': '...'}")
     cross_category_mappings: Optional[List[Dict[str, str]]] = Field(default_factory=list, description="Mappings across ethical categories. E.g., {'target_concept': 'Net Benefit', 'target_category': 'Teleology', 'mapping_type': 'Functorial Analogy'}")
+    # Add new fields for merged tokens
     is_merged_token: Optional[bool] = Field(default=False, description="Indicates if this meme represents a merged concept from others.")
-    merged_from_tokens: Optional[List[PyObjectId]] = Field(default_factory=list, description="List of ObjectIds of the memes this token merges.")
-    metadata: MemeMetadata
+    merged_from_tokens: Optional[List[str]] = Field(default_factory=list, description="List of ObjectIds of the memes this token merges.")
 
     model_config = {
-        "populate_by_name": True,
-        "arbitrary_types_allowed": True, # Needed for ObjectId
-        "json_encoders": {ObjectId: str} # Used by model_dump_json
+        "arbitrary_types_allowed": True,
+        "json_encoders": {ObjectId: str}
     }
 
-# Create model: Inherits base
+# Create model: Inherits base, includes new fields
 class EthicalMemeCreate(EthicalMemeBase):
-    # Exclude metadata on creation, it will be added by the API
-    metadata: Optional[MemeMetadata] = Field(default=None, exclude=True)
     pass
 
 # Update model: All fields should be optional
 class EthicalMemeUpdate(BaseModel):
-    # Make all fields from Base optional, exclude metadata as it's handled separately
     name: Optional[str] = None
     description: Optional[str] = None
-    ethical_dimension: Optional[List[Literal["Deontology", "Teleology", "Virtue Ethics", "Memetics", "Meta", "Action", "Agent", "Process", "Value", "Principle", "Theory", "Virtue", "Other"]]] = None
-    source_concept: Optional[str] = None
-    keywords: Optional[List[str]] = None
-    variations: Optional[List[str]] = None
-    examples: Optional[List[str]] = None
-    related_memes: Optional[List[Union[PyObjectId, str]]] = None
+    ethical_dimension: Optional[List[str]] = None
     dimension_specific_attributes: Optional[DimensionSpecificAttributes] = None
-    morphisms: Optional[List[Dict[str, Union[str, PyObjectId]]]] = None
+    tags: Optional[List[str]] = None
+    morphisms: Optional[List[Dict[str, Union[str, str]]]] = None
     cross_category_mappings: Optional[List[Dict[str, str]]] = None
     is_merged_token: Optional[bool] = None
-    merged_from_tokens: Optional[List[PyObjectId]] = None
-    # metadata is not directly updatable via this model
+    merged_from_tokens: Optional[List[str]] = None
 
     model_config = {
         "arbitrary_types_allowed": True,
         "json_encoders": {ObjectId: str}
     }
 
-# DB model: Represents data fetched from DB including _id
+# DB model: Inherits base, adds DB-specific fields like id
 class EthicalMemeInDB(EthicalMemeBase):
-    # Use Field with alias for '_id'
-    id: PyObjectId = Field(alias="_id")
-
-    # Inherits model_config from Base, including metadata handling
-    # No need to redefine model_config unless overriding Base
+    id: str = Field(default_factory=lambda: str(ObjectId()), alias="_id")
+    metadata: Optional[MemeMetadata] = None  # Add metadata field
 
     model_config = {
-        "populate_by_name": True,
         "arbitrary_types_allowed": True,
-        "json_encoders": {ObjectId: str}
+        "json_encoders": {ObjectId: str},
+        "populate_by_name": True
     } 

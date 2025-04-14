@@ -57,6 +57,8 @@ services:
       - "27017:27017" # Expose default MongoDB port to host (optional, for external tools)
     volumes:
       - mongo_data:/data/db # Persist database data using a named volume
+      # Mount the initialization script
+      - ./mongo-init/improved-meme-import.js:/docker-entrypoint-initdb.d/init-mongo.js:ro # Mount improved script as read-only
     environment: {} # Provide an empty mapping to satisfy the schema
       # Optional: Set root user/password if needed, but often not required for local dev
       # MONGO_INITDB_ROOT_USERNAME: root

@@ -15,6 +15,7 @@ function App() {
   const [availableModels, setAvailableModels] = useState([]);
   const [showTool, setShowTool] = useState(false);
   const [view, setView] = useState('landing');
+  const [showMemeDropdown, setShowMemeDropdown] = useState(false);
   const [results, setResults] = useState({
     prompt: '',
     originModelUsed: '',
@@ -26,8 +27,14 @@ function App() {
 
   useEffect(() => {
     const fetchModels = async () => {
-      const models = await ethicalReviewApi.getModels();
-      setAvailableModels(models);
+      try {
+        const models = await ethicalReviewApi.getModels();
+        setAvailableModels(models);
+      } catch (err) {
+        setError(err.message || 'Failed to load models. Please try again later.');
+        console.error('Failed to fetch models:', err);
+        setAvailableModels([]);
+      }
     };
     fetchModels();
   }, []);
@@ -37,6 +44,13 @@ function App() {
   const handleViewDocs = () => setView('docs');
   const handleViewLanding = () => setView('landing');
   const handleViewTool = () => setView('tool');
+
+  const handleToggleMemeDropdown = () => setShowMemeDropdown(!showMemeDropdown);
+
+  const handleViewMemesClick = () => {
+    setView('memes');
+    setShowMemeDropdown(false);
+  };
 
   const handleSubmit = async (prompt, 
                               originModel, 
@@ -77,8 +91,7 @@ function App() {
         ethicalScores: response.ethical_scores
       });
     } catch (err) {
-      setError(err.message || 'An error occurred during analysis');
-      console.error('Analysis error:', err);
+      setError(err.message || 'An error occurred during analysis. Please check inputs or try again.');
     } finally {
       setLoading(false);
     }
@@ -95,14 +108,26 @@ function App() {
         >
           Ethical Review Tool
         </button>
-        <button 
-          onClick={handleViewMemes} 
-          className={`nav-button ${view === 'memes' ? 'active' : ''}`}
-          data-tooltip-id="nav-tooltip"
-          data-tooltip-content="Explore the Ethical Memes Library"
-        >
-          Memes Library
-        </button>
+        <div className="nav-dropdown-container">
+          <button 
+            onClick={handleToggleMemeDropdown} 
+            className={`nav-button ${view === 'memes' ? 'active' : ''}`}
+            data-tooltip-id="nav-tooltip"
+            data-tooltip-content="Access Memes Library options"
+          >
+            Memes Library ▼
+          </button>
+          {showMemeDropdown && (
+            <ul className="nav-dropdown-menu">
+              <li>
+                <button onClick={handleViewMemesClick}>View Library</button>
+              </li>
+              <li>
+                <a href="/dash/" target="_blank" rel="noopener noreferrer">Interact with Database</a>
+              </li>
+            </ul>
+          )}
+        </div>
         <button 
           onClick={handleViewDocs} 
           className={`nav-button ${view === 'docs' ? 'active' : ''}`}

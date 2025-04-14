@@ -687,4 +687,42 @@ button:disabled {
   font-size: 0.9em;
   border: 1px solid var(--color-border-standard);
   font-family: monospace;
+}
+
+/* Add styles for navigation dropdown */
+.nav-dropdown-container {
+  position: relative; /* Needed for absolute positioning of the menu */
+  display: inline-block;
+}
+
+.nav-dropdown-menu {
+  display: block; /* Change from none to block when shown */
+  position: absolute;
+  background-color: #f9f9f9;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-radius: 4px;
+  margin-top: 5px; /* Small space between button and menu */
+}
+
+.nav-dropdown-menu li button,
+.nav-dropdown-menu li a {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nav-dropdown-menu li button:hover,
+.nav-dropdown-menu li a:hover {
+  background-color: #ddd;
 } 
