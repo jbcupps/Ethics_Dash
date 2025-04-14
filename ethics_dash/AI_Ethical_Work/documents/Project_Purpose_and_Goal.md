@@ -9,7 +9,7 @@ The primary purpose of this project is to develop a system capable of evaluating
 The desired result is a robust application that can:
 
 1.  Generate responses from various state-of-the-art LLMs based on user-provided prompts.
-2.  Systematically analyze these responses using a comprehensive ethical ontology, specifically integrating Deontology, Teleology, Virtue Ethics, and potentially Memetics.
+2.  Systematically analyze these responses using a comprehensive ethical ontology, specifically integrating Deontology, Teleology, Areteology, and potentially Memetics.
 3.  Provide users (developers, researchers, ethicists) with clear, structured feedback on the ethical alignment of the LLM's output.
 4.  Ultimately, contribute to the development and deployment of AI systems that operate on a more explicit and verifiable ethical basis, fostering trust and responsible AI practices.
 

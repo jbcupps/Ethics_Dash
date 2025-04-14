@@ -43,10 +43,10 @@ const DocumentationPage = () => {
           The ethical analysis (R2) is grounded in a specific, integrated ethical architecture defined within the project. This framework combines four key dimensions:
         </p>
         <ul>
-          <li><strong>Deontology (Eth_Deon):</strong> Focuses on duties, rules, and the inherent rightness/wrongness of actions based on universalizability (e.g., Kant's Categorical Imperative).</li>
-          <li><strong>Teleology (Eth_Teleo):</strong> Focuses on the consequences and outcomes of actions, typically aiming to maximize overall good or utility (e.g., Utilitarianism).</li>
-          <li><strong>Virtue Ethics (Eth_Arete):</strong> Focuses on the character of the agent, promoting virtues (like honesty, compassion) that lead to human flourishing (Eudaimonia).</li>
-          <li><strong>Memetics (Mem):</strong> Analyzes the cultural transmission, persistence, and adaptability of the ideas presented in the prompt/response, treating them as "memes".</li>
+          <li><strong>Deontology (Eth_Deon):</strong> Focuses on duties, rules, and intentions. An action is right if it conforms to a valid moral rule (e.g., Kant's Categorical Imperative).</li>
+          <li><strong>Teleology (Eth_Teleo):</strong> Focuses on consequences and outcomes. An action is right if it produces the best overall results (e.g., Utilitarianism's "greatest good for the greatest number").</li>
+          <li><strong>Areteology (Eth_Arete):</strong> Focuses on the character of the agent, promoting virtues (like honesty, compassion) that lead to human flourishing (Eudaimonia).</li>
+          <li><strong>Memetics (Mem):</strong> Analyzes ethical ideas as memes, focusing on their properties like replication fidelity, persistence, and adaptability.</li>
         </ul>
         <p>
           The detailed definitions, concepts, and analysis questions for each dimension are specified in the foundational ontology document located at: <code>ethics_dash/AI_Ethical_Work/backend/app/ontology.md</code>.
@@ -60,7 +60,7 @@ const DocumentationPage = () => {
           The project includes a backend component to store and manage a library of ethical concepts, principles, and ideas, treated as "memes". This library is stored in a MongoDB collection named <code>ethical_memes</code>.
         </p>
         <p>
-          The structure for each meme document includes its name, description, source concept, keywords, variations, examples, and links to related memes. Crucially, it contains dimension-specific attributes allowing for analysis of the meme itself through the lenses of Deontology, Teleology, Virtue Ethics, and Memetics (including properties like transmissibility, persistence, etc.).
+          The structure for each meme document includes its name, description, source concept, keywords, variations, examples, and links to related memes. Crucially, it contains dimension-specific attributes allowing for analysis of the meme itself through the lenses of Deontology, Teleology, Areteology, and Memetics (including properties like transmissibility, persistence, etc.).
         </p>
         <p>
           The "Memes Library" page in this application provides a dashboard to browse and explore the memes currently stored in the database.
@@ -78,6 +78,23 @@ const DocumentationPage = () => {
           <li><strong>Containerization:</strong> Docker, Docker Compose</li>
           <li><strong>API Design:</strong> RESTful</li>
         </ul>
+      </section>
+
+      <section className="card mb-lg">
+        <h2>Ethical Analysis (R2) Details</h2>
+        <p>
+          The R2 analysis generates two main outputs:
+        </p>
+        <ul>
+          <li><strong>Ethical Scoring:</strong> R1 is quantitatively scored (1-10) on adherence to and confidence in alignment with Deontology, Teleology, Areteology, and Memetics based on the ontology and relevant memes.</li>
+          <li><strong>Memetics Analysis:</strong> Explicit analysis of the memetic properties (fitness) of the ethical ideas present in R1.</li>
+        </ul>
+        <p>
+          The core idea is to assess LLM prompts and responses through the lenses of Deontology, Teleology, Areteology, and Memetics (including properties like transmissibility, persistence, etc.).
+        </p>
+        <p>
+          This allows for a nuanced understanding of the ethical implications, moving beyond simple right/wrong judgments.
+        </p>
       </section>
 
     </div>

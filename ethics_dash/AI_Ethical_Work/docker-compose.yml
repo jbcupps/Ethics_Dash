@@ -8,7 +8,8 @@ services:
       dockerfile: backend/Dockerfile
     container_name: ethical-review-backend
     env_file:
-      - .env # Loads environment variables. For production, consider using Docker secrets or other secure methods.
+      # Reference .env file in the parent directory (project root)
+      - ../../.env
     ports:
       - "5000:5000" # Map host port 5000 to container port 5000
     volumes:
@@ -54,7 +55,7 @@ services:
     image: mongo:latest # Use the official MongoDB image
     container_name: ethical-review-mongodb
     ports:
-      - "27017:27017" # Expose default MongoDB port to host (optional, for external tools)
+      - "27018:27017" # Expose default MongoDB port to host port 27018
     volumes:
       - mongo_data:/data/db # Persist database data using a named volume
       # Mount the initialization script

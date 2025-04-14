@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom'; // Import Link
 import '../App.css'; // Assuming shared styles
 
 const LandingPage = ({ onEnter }) => {
@@ -8,9 +9,9 @@ const LandingPage = ({ onEnter }) => {
       <header className="hero text-center mb-xl">
         {/* Placeholder for an icon or logo if desired */}
         {/* <div className="hero-icon mb-lg">&#x1F916;</div> */}
-        <h1>Ethical Framework Analysis for LLMs</h1>
+        <h1>AI Ethical Review Dashboard</h1>
         <p className="lead text-secondary mb-lg" style={{ maxWidth: '700px', margin: '0 auto var(--spacing-lg) auto' }}>
-          Analyze Large Language Model responses through the integrated lens of Deontology, Teleology, Virtue Ethics, and Memetics.
+          Analyze Large Language Model responses through the integrated lens of Deontology, Teleology, Areteology, and Memetics.
         </p>
         <button onClick={onEnter} className="button button-large" >
           Start Analysis Tool
@@ -26,7 +27,7 @@ const LandingPage = ({ onEnter }) => {
             {/* <div className="feature-icon">&#x1F50D;</div> */} 
             <h3>Multi-Framework Analysis</h3>
             <p className="text-secondary">
-              Evaluate LLM outputs using Deontology, Teleology, Virtue Ethics, and Memetics based on a defined ontology.
+              Evaluate LLM outputs using Deontology, Teleology, Areteology, and Memetics based on a defined ontology.
             </p>
           </div>
           <div className="feature-item card">
@@ -46,6 +47,26 @@ const LandingPage = ({ onEnter }) => {
             </p>
           </div>
         </div>
+      </section>
+
+      <section className="how-it-works text-center">
+        <h2>How It Works</h2>
+        <ol>
+          <li>Enter a prompt for an AI model (R1).</li>
+          <li>Select the AI model (R1) to generate the initial response.</li>
+          <li>Select a second AI model (R2) to perform the ethical review.</li>
+          <li>R1 generates a response based on your prompt.</li>
+          <li>R2 analyzes both the prompt (P1) and the response (R1) using the defined <Link to="/documentation">Ethical Architecture</Link>.</li>
+          <li>Results are displayed, including the ethical analysis summary and scores.</li>
+          <li>(Optional) Populate or query the Ethical Memes Database via the API endpoints described in the documentation.</li>
+        </ol>
+      </section>
+
+      <section className="ethical-framework text-center">
+        <h2>Ethical Framework</h2>
+        <p>
+          Evaluate LLM outputs using Deontology, Teleology, Areteology, and Memetics based on a defined ontology.
+        </p>
       </section>
     </div>
   );

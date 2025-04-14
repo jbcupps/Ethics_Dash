@@ -10,6 +10,12 @@ ENV PYTHONUNBUFFERED=1
 # Create a non-root user and group
 RUN addgroup --system app && adduser --system --group app
 
+# Install system dependencies like curl and CA certificates
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # Set the working directory in the container
 WORKDIR /app
 

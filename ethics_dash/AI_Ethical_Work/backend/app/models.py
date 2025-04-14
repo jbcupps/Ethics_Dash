@@ -8,6 +8,9 @@ from bson import ObjectId
 # but this custom type ensures validation and schema representation.
 PyObjectId = Annotated[ObjectId, Field(validate_default=False)]
 
+# Define ethical dimensions as Literals for type hinting and validation
+EthicalDimension = Literal["Deontology", "Teleology", "Areteology", "Memetics"]
+
 # --- Sub-models for Dimension Specific Attributes ---
 
 class DeontologyAttributes(BaseModel):
@@ -52,7 +55,11 @@ class MemeMetadata(BaseModel):
 class EthicalMemeBase(BaseModel):
     name: str
     description: str
+<<<<<<< HEAD
     ethical_dimension: List[Literal["Deontology", "Teleology", "Virtue Ethics", "Memetics", "Meta", "Action", "Agent", "Process", "Value", "Principle", "Theory", "Virtue", "Other"]]
+=======
+    ethical_dimension: List[EthicalDimension]
+>>>>>>> 9bde32d9c6ab6f51c5cae89b7a08c87de81c265d
     source_concept: str
     keywords: List[str] = Field(default_factory=list)
     variations: List[str] = Field(default_factory=list)
@@ -82,7 +89,11 @@ class EthicalMemeUpdate(BaseModel):
     # Make all fields from Base optional, exclude metadata as it's handled separately
     name: Optional[str] = None
     description: Optional[str] = None
+<<<<<<< HEAD
     ethical_dimension: Optional[List[Literal["Deontology", "Teleology", "Virtue Ethics", "Memetics", "Meta", "Action", "Agent", "Process", "Value", "Principle", "Theory", "Virtue", "Other"]]] = None
+=======
+    ethical_dimension: Optional[List[EthicalDimension]] = None
+>>>>>>> 9bde32d9c6ab6f51c5cae89b7a08c87de81c265d
     source_concept: Optional[str] = None
     keywords: Optional[List[str]] = None
     variations: Optional[List[str]] = None

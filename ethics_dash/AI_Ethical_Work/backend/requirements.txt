@@ -17,10 +17,17 @@ dash-cytoscape # Added for graph visualization
 
 # LLM Client Libraries (Moved here for grouping)
 google-generativeai==0.5.3 # Gemini API - fixed version for compatibility
+<<<<<<< HEAD
 anthropic>=0.20.0,<0.26.0 # Anthropic (Claude) API
 openai==1.74.0 # Added OpenAI library - PIN THIS VERSION
 httpx>=0.25.0,<0.28.0 # HTTP client used by Anthropic, explicitly added 
 
+=======
+anthropic>=0.23.1 # Updated to latest Anthropic SDK for Claude 3 model support
+gunicorn>=23.0.0,<24.0.0 # Update: WSGI server for production (addresses CVE-2024-6827)
+httpx>=0.25.0,<0.28.0 # HTTP client used by Anthropic and xAI APIs, explicitly added 
+openai # Added OpenAI library 
+>>>>>>> 9bde32d9c6ab6f51c5cae89b7a08c87de81c265d
 pymongo[srv]>=4.0,<5.0 # Added MongoDB driver (with SRV support)
 pydantic>=2.0 # Added Pydantic for data validation
 

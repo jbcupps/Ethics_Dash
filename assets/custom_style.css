@@ -1,0 +1,108 @@
+/* assets/custom_style.css */
+
+/* --- Base Styles --- */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; /* Common sans-serif stack. TODO: Verify if W.R. Berkley uses a specific brand font */
+    background-color: #ffffff; /* White background (Matches WRB) */
+    color: #000000; /* Black text (Updated from #333333) */
+}
+
+h1, h2, h3, h4, h5, h6 {
+     color: #000000; /* Black for most headings (Updated from #333333) */
+     /* Add font-weight or other specifics if needed */
+}
+
+/* --- Color Overrides --- */
+/* Define WR Berkley Brand Colors as CSS variables */
+:root {
+  --wrb-green: #0D5640;
+  --wrb-green-darker: #093e2e; /* Darker shade for hover/active */
+  --wrb-green-lighter: #e7f0ed; /* Lighter tint for backgrounds */
+  --wrb-black: #000000;
+  --wrb-cool-gray: #848789;
+  --wrb-light-gray: #f0f1f1; /* Light tint derived from cool gray */
+  --wrb-white: #ffffff;
+
+  /* Override Bootstrap primary color with WRB Green */
+  --bs-primary: var(--wrb-green);
+  --bs-primary-rgb: 13, 86, 64; /* Corresponding RGB for #0D5640 */
+  --bs-link-color: var(--wrb-green); /* Make links use the primary green */
+  --bs-link-hover-color: var(--wrb-green-darker); /* Darker green for link hover */
+}
+
+/* Button overrides to use the primary color */
+.btn-primary {
+  --bs-btn-color: var(--wrb-white);
+  --bs-btn-bg: var(--wrb-green);
+  --bs-btn-border-color: var(--wrb-green);
+  --bs-btn-hover-color: var(--wrb-white);
+  --bs-btn-hover-bg: var(--wrb-green-darker); /* Darker green on hover */
+  --bs-btn-hover-border-color: var(--wrb-green-darker);
+  --bs-btn-focus-shadow-rgb: 13, 86, 64; /* Use green for focus shadow */
+  --bs-btn-active-color: var(--wrb-white);
+  --bs-btn-active-bg: var(--wrb-green-darker); /* Darker green when active */
+  --bs-btn-active-border-color: #073124; /* Even darker shade for active border */
+  --bs-btn-disabled-color: var(--wrb-white);
+  --bs-btn-disabled-bg: var(--wrb-green);
+  --bs-btn-disabled-border-color: var(--wrb-green);
+}
+
+/* Style other buttons similarly if needed (e.g., btn-danger) */
+.btn-danger {
+    /* Keep danger color distinct or adapt slightly if desired */
+    /* Example: Use a standard red or define a brand-specific alert color */
+}
+
+/* --- Component Specific Styles --- */
+
+/* Header */
+h1 {
+    color: var(--wrb-green); /* Make main title use the brand green */
+    /* font-weight: bold; /* Adjust weight as needed */
+    /* margin-bottom: 1.5rem; */
+}
+
+hr {
+    border-top: 1px solid var(--wrb-cool-gray); /* Use cool gray for horizontal rules */
+}
+
+/* Tabs */
+.nav-tabs .nav-link {
+    color: var(--wrb-cool-gray); /* Cool gray text for inactive tabs */
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--wrb-green); /* Brand green for the active tab text */
+    border-bottom-color: var(--wrb-green); /* Match border to green */
+}
+
+/* Cards */
+.card {
+    border: 1px solid var(--wrb-cool-gray); /* Use cool gray for card borders */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* Subtle shadow */
+}
+.card-header {
+    background-color: var(--wrb-light-gray); /* Light gray header background */
+    color: var(--wrb-black); /* Black text for header */
+    font-weight: bold;
+    border-bottom: 1px solid var(--wrb-cool-gray); /* Cool gray border */
+}
+
+/* Accordion */
+.accordion-button {
+   font-weight: bold;
+   color: var(--wrb-black); /* Black text for collapsed accordion button */
+}
+.accordion-button:not(.collapsed) {
+    color: var(--wrb-green); /* Green text when open */
+    background-color: var(--wrb-green-lighter); /* Light green background when open */
+    box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .125); /* Keep default shadow */
+}
+.accordion-button:focus {
+    border-color: var(--wrb-green); /* Green border on focus */
+    box-shadow: 0 0 0 0.25rem rgba(13, 86, 64, 0.25); /* Green focus shadow */
+}
+
+
+/* Form elements - minor adjustments if needed */
+/* .form-control, .form-select { ... } */ 
