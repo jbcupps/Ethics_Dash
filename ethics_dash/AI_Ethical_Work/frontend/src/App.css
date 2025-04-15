@@ -505,20 +505,74 @@ button:disabled {
 }
 
 .hero {
-  padding: calc(var(--spacing-xl) * 2) 0; /* More vertical padding */
-  text-align: center;
-  background-color: var(--color-background-main); /* Optional: Give hero a background */
-  border-bottom: 1px solid var(--color-border-standard); /* Optional separator */
+  /* Make hero full viewport height */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: var(--spacing-xl);
+  /* Parallax Background Setup */
+  /* Replace 'path/to/your/high-quality-image.jpg' with the actual image path in your assets */
+  background-image: url('/path/to/your/high-quality-image.jpg'); 
+  background-attachment: fixed; /* Creates the parallax effect */
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  position: relative; /* Needed for potential overlays */
+  color: white; /* Ensure text is visible on dark images - adjust as needed */
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); /* Improve text readability */
+}
+
+/* Optional: Add an overlay for better text contrast */
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.3); /* Adjust opacity as needed */
+  z-index: 1;
+}
+
+/* Ensure hero content is above the overlay */
+.hero > * { /* Target direct children: h1, p, button etc. */
+  position: relative;
+  z-index: 2;
 }
 
 .hero h1 {
-  font-size: 2.75rem; /* Larger heading */
+  color: inherit; /* Inherit color from .hero (likely white) */
+  font-size: 3.5rem; /* Larger hero title */
   margin-bottom: var(--spacing-md);
 }
 
-.lead {
-  font-size: var(--font-size-large);
-  color: var(--color-text-secondary);
+.hero .lead {
+  color: rgba(255, 255, 255, 0.9); /* Slightly transparent white for lead text */
+  font-size: 1.25rem;
+  margin-bottom: var(--spacing-xl); /* More space before button */
+}
+
+/* Enhance button hover effect */
+.hero .button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.hero .button-secondary {
+  background-color: transparent;
+  border-color: white;
+  color: white;
+  margin-left: var(--spacing-md); /* Space between buttons */
+}
+
+.hero .button-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: white;
+  color: white;
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .button-large {
