@@ -1,4 +1,4 @@
-version: '3.8' # Specify docker-compose version
+# Specify docker-compose version
 
 services:
   # Backend API service
