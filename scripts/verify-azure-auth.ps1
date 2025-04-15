@@ -399,43 +399,6 @@ try {
     Handle-Error "Error assigning roles" $_.Exception.Message
 }
 
-# Add sample secrets to Key Vault if they don't exist
-try {
-    Write-Host "Checking and adding sample secrets to Key Vault..." -ForegroundColor Yellow
-    
-    $secretNames = @("API-KEY", "API-SECRET", "API-ENDPOINT", "API-VERSION", "NODE-ENV", "LOG-LEVEL")
-    $secretValues = @(
-        "sample-api-key-replace-in-production",
-        "sample-api-secret-replace-in-production",
-        "https://api.example.com/v1",
-        "v1",
-        "production",
-        "info"
-    )
-    
-    for ($i = 0; $i -lt $secretNames.Length; $i++) {
-        $secretName = $secretNames[$i]
-        $secretValue = $secretValues[$i]
-        
-        # Check if secret exists
-        $secretExists = az keyvault secret show --vault-name $KeyVaultName --name $secretName 2>&1
-        
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "Adding sample secret '$secretName' to Key Vault..." -ForegroundColor Yellow
-            az keyvault secret set --vault-name $KeyVaultName --name $secretName --value $secretValue --output none
-            if ($LASTEXITCODE -ne 0) {
-                Handle-Error "Failed to add secret '$secretName'" "Check Key Vault permissions" $false
-            } else {
-                Write-Host "Secret '$secretName' added successfully" -ForegroundColor Green
-            }
-        } else {
-            Write-Host "Secret '$secretName' already exists in Key Vault" -ForegroundColor Green
-        }
-    }
-} catch {
-    Handle-Error "Error adding secrets to Key Vault" $_.Exception.Message
-}
-
 # Update GitHub secrets
 try {
     Write-Host "Updating GitHub repository secrets..." -ForegroundColor Yellow
