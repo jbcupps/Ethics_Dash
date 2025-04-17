@@ -8,7 +8,8 @@ import json # Import JSON module for parsing
 import logging # Import logging
 from json import JSONDecodeError
 
-from backend.app.modules.llm_interface import generate_response, perform_ethical_analysis
+from backend.app.modules.llm_interface import generate_response, perform_ethical_analysis, select_relevant_memes
+from backend.app.db import get_all_memes_for_selection
 
 # --- Blueprint Definition ---
 api_bp = Blueprint('api', __name__, url_prefix='/api')
@@ -18,7 +19,9 @@ logger = logging.getLogger(__name__)
 # Assuming basicConfig is called in app __init__ or wsgi.py
 
 # --- Constants ---
-ONTOLOGY_FILEPATH = os.path.join(os.path.dirname(__file__), "ontology.md")
+ONTOLOGY_FILEPATH = os.path.normpath(
+    os.path.join(os.path.dirname(__file__), '..', '..', 'documents', 'ontology.md')
+)
 PROMPT_LOG_FILEPATH = "context/prompts.txt"
 
 # Environment variable names (Added OpenAI)
@@ -111,9 +114,10 @@ def _get_api_config(selected_model: str,
     key_source = "Environment Variable"
     endpoint_source = "Environment Variable"
     
-    logger.info(f"_get_api_config: Fetching config for selected_model: {selected_model}")
-    logger.info(f"_get_api_config: Received form_api_key: {'Provided' if form_api_key else 'Not Provided'}")
-    logger.info(f"_get_api_config: Received form_api_endpoint: {'Provided' if form_api_endpoint else 'Not Provided'}")
+    # Detailed logging for debugging default application
+    logger.debug(f"_get_api_config: START - Model: {selected_model}")
+    logger.debug(f"_get_api_config: Form Key Provided: {'YES' if form_api_key else 'NO'}")
+    logger.debug(f"_get_api_config: Form Endpoint Provided: {'YES' if form_api_endpoint else 'NO'}")
 
     # Determine API provider and corresponding ENV VAR names
     env_var_key = None
@@ -142,6 +146,9 @@ def _get_api_config(selected_model: str,
         logger.warning(f"_get_api_config: Unknown model type '{selected_model}' encountered. Relying on form inputs only for key/endpoint.")
         # No known env vars to check
 
+    logger.debug(f"_get_api_config: Determined Key Env Var: {env_var_key}")
+    logger.debug(f"_get_api_config: Determined Endpoint Env Var: {env_var_endpoint}")
+
     # 1. Prioritize API key provided in the form
     if form_api_key and isinstance(form_api_key, str) and form_api_key.strip():
         api_key = form_api_key.strip()
@@ -161,6 +168,7 @@ def _get_api_config(selected_model: str,
         if api_key:
              key_source = f"Environment Variable ({env_var_key})"
              logger.info(f"_get_api_config: Using API key from env var {env_var_key} for {api_key_name}.")
+             logger.debug(f"_get_api_config: Retrieved key from {env_var_key}: {'Exists' if api_key else 'Not Found or Empty'}")
              # Log a masked version of the key for debugging
              masked_key = f"{api_key[:5]}...{api_key[-5:]}" if len(api_key) > 10 else "***masked***"
              logger.info(f"_get_api_config: Env API key format check - Length: {len(api_key)}, Start/End: {masked_key}")
@@ -186,8 +194,9 @@ def _get_api_config(selected_model: str,
             api_endpoint = env_endpoint_val.strip().strip('"\'')
             endpoint_source = f"Environment Variable ({env_var_endpoint})"
             logger.info(f"_get_api_config: Using API endpoint from env var {env_var_endpoint}: {api_endpoint}")
+            logger.debug(f"_get_api_config: Retrieved endpoint from {env_var_endpoint}: {api_endpoint}")
         else:
-            logger.warning(f"_get_api_config: No API endpoint found in env var {env_var_endpoint} for {api_key_name}. Using default if available.")
+            logger.info(f"_get_api_config: No API endpoint found in env var {env_var_endpoint} for {api_key_name}. Library default (if any) will be used.")
 
     # 5. Validate that *some* API Key was found
     if not api_key:
@@ -221,6 +230,11 @@ def _get_analysis_api_config(selected_analysis_model: Optional[str] = None,
     key_source = "Environment Variable"
     endpoint_source = "Environment Variable"
 
+    # Detailed logging for debugging default application
+    logger.debug(f"_get_analysis_api_config: START - Requested Model: {selected_analysis_model}")
+    logger.debug(f"_get_analysis_api_config: Form Key Provided: {'YES' if form_analysis_api_key else 'NO'}")
+    logger.debug(f"_get_analysis_api_config: Form Endpoint Provided: {'YES' if form_analysis_api_endpoint else 'NO'}")
+
     # --- Determine Analysis Model --- 
     if not analysis_model or analysis_model not in ALL_MODELS:
         # If user provided an invalid model, log and try env var
@@ -233,13 +247,15 @@ def _get_analysis_api_config(selected_analysis_model: Optional[str] = None,
         # Use env var if valid
         if default_analysis_model_env in ALL_MODELS:
             analysis_model = default_analysis_model_env
-            logger.info(f"_get_analysis_api_config: Using default analysis model from env var {ANALYSIS_LLM_MODEL_ENV}: {analysis_model}")
+            logger.info(f"_get_analysis_api_config: Using R2 model from env var {ANALYSIS_LLM_MODEL_ENV}: {analysis_model}")
+            logger.debug(f"_get_analysis_api_config: Env var {ANALYSIS_LLM_MODEL_ENV} value: '{os.getenv(ANALYSIS_LLM_MODEL_ENV)}'")
         else:
             # Final fallback to first available model
             analysis_model = ALL_MODELS[0] if ALL_MODELS else None
             logger.warning(f"_get_analysis_api_config: No valid ANALYSIS_LLM_MODEL set. Falling back to first available model: {analysis_model}")
+            logger.debug(f"_get_analysis_api_config: Env var {ANALYSIS_LLM_MODEL_ENV} value: '{os.getenv(ANALYSIS_LLM_MODEL_ENV)}'")
     else:
-        logger.info(f"_get_analysis_api_config: Using user-selected analysis model: {analysis_model}")
+        logger.info(f"_get_analysis_api_config: Using user-selected R2 model: {analysis_model}")
 
     # --- Determine API Key & Endpoint --- 
     api_key = None
@@ -279,6 +295,11 @@ def _get_analysis_api_config(selected_analysis_model: Optional[str] = None,
         fallback_endpoint_env = XAI_API_ENDPOINT_ENV
     # No else needed as model validity is checked above
 
+    logger.debug(f"_get_analysis_api_config: Determined Specific Key Env: {specific_key_env}")
+    logger.debug(f"_get_analysis_api_config: Determined Fallback Key Env: {fallback_key_env}")
+    logger.debug(f"_get_analysis_api_config: Determined Specific Endpoint Env: {specific_endpoint_env}")
+    logger.debug(f"_get_analysis_api_config: Determined Fallback Endpoint Env: {fallback_endpoint_env}")
+
     # 1. Prioritize API key provided in the form
     if form_analysis_api_key and isinstance(form_analysis_api_key, str) and form_analysis_api_key.strip():
         api_key = form_analysis_api_key.strip()
@@ -299,6 +320,7 @@ def _get_analysis_api_config(selected_analysis_model: Optional[str] = None,
                 
             if env_key:
                 api_key = env_key
+                logger.debug(f"_get_analysis_api_config: Found key in specific env var: {specific_key_env}")
                 key_source = f"Environment Variable ({specific_key_env})"
         
         if not api_key and fallback_key_env: # If specific key not found or doesn't exist, try fallback
@@ -309,6 +331,7 @@ def _get_analysis_api_config(selected_analysis_model: Optional[str] = None,
                 
             if env_key:
                 api_key = env_key
+                logger.debug(f"_get_analysis_api_config: Found key in fallback env var: {fallback_key_env}")
                 key_source = f"Environment Variable ({fallback_key_env})"
         
         if api_key:
@@ -337,6 +360,7 @@ def _get_analysis_api_config(selected_analysis_model: Optional[str] = None,
                 
             if env_endpoint_val:
                 api_endpoint = env_endpoint_val
+                logger.debug(f"_get_analysis_api_config: Found endpoint in specific env var: {specific_endpoint_env}")
                 endpoint_source = f"Environment Variable ({specific_endpoint_env})"
         
         if not api_endpoint and fallback_endpoint_env: # If specific endpoint not found or doesn't exist, try fallback
@@ -347,6 +371,7 @@ def _get_analysis_api_config(selected_analysis_model: Optional[str] = None,
                 
             if env_endpoint_val:
                 api_endpoint = env_endpoint_val
+                logger.debug(f"_get_analysis_api_config: Found endpoint in fallback env var: {fallback_endpoint_env}")
                 endpoint_source = f"Environment Variable ({fallback_endpoint_env})"
         
         if api_endpoint:
@@ -471,14 +496,17 @@ def _process_analysis_request(
     """Handles generating R1, performing R2, and parsing results."""
 
     logger.info(f"_process_analysis_request: Using R1 model: {r1_model_to_use}")
-    logger.info(f"_process_analysis_request: Using R2 model: {analysis_config.get('model')}")
+    r2_model_to_use = analysis_config.get('model')
+    logger.info(f"_process_analysis_request: Using R2 model: {r2_model_to_use}")
 
     # Initialize results
     response_payload = {
         "prompt": prompt,
         "r1_model": r1_model_to_use,
-        "r2_model": analysis_config.get('model'),
+        "r2_model": r2_model_to_use,
         "initial_response": None,
+        "selected_memes": None, # Add field for selected memes
+        "selected_memes_reasoning": None, # Add field for reasoning
         "analysis_summary": None,
         "ethical_scores": None,
         "error": None
@@ -502,6 +530,36 @@ def _process_analysis_request(
             # response_payload["error"] = f"Failed to generate response (R1) from {r1_model_to_use}."
             # return response_payload, 500 # Optionally stop here
 
+        # --- NEW: Select Relevant Memes (R3 - using R2 config for now) ---
+        selected_meme_names = []
+        selected_memes_reasoning = None
+        try:
+            logger.info("Fetching memes for selection...")
+            available_memes = get_all_memes_for_selection()
+            if available_memes:
+                # Use R2/analysis config for the selector LLM call
+                meme_selection_result = select_relevant_memes(
+                    prompt=prompt,
+                    r1_response=initial_response, # Use R1 output as context
+                    available_memes=available_memes,
+                    selector_api_key=analysis_config['api_key'],
+                    selector_api_endpoint=analysis_config.get('api_endpoint')
+                    # selector_model defaults to Haiku in llm_interface
+                )
+                if meme_selection_result:
+                    selected_meme_names = meme_selection_result.selected_memes
+                    selected_memes_reasoning = meme_selection_result.reasoning
+                    response_payload["selected_memes"] = selected_meme_names
+                    response_payload["selected_memes_reasoning"] = selected_memes_reasoning
+                    logger.info(f"Meme Selector identified: {selected_meme_names}")
+                else:
+                    logger.warning("Meme selection process did not return results.")
+            else:
+                logger.warning("No memes found in DB for selection.")
+        except Exception as meme_select_err:
+            logger.error(f"Error during meme selection phase: {meme_select_err}", exc_info=True)
+            # Continue with analysis even if meme selection fails
+
         # --- Perform Ethical Analysis (R2) ---
         logger.info(f"Performing analysis (R2) with model: {analysis_config.get('model')}")
         # Ensure R1 passed to analysis is always a string
@@ -514,7 +572,8 @@ def _process_analysis_request(
             ontology=ontology_text,
             analysis_api_key=analysis_config['api_key'],
             analysis_model_name=analysis_config['model'],
-            analysis_api_endpoint=analysis_config.get('api_endpoint')
+            analysis_api_endpoint=analysis_config.get('api_endpoint'),
+            selected_meme_names=selected_meme_names # Pass selected memes to R2
         )
 
         # --- Process R2 Result ---

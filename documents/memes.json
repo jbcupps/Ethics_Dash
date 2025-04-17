@@ -1,28 +1,4 @@
-import os
-import json
-from datetime import datetime
-from pymongo import MongoClient
-from dotenv import load_dotenv
-from bson import ObjectId, json_util
-import re
-
-# Path to external memes JSON file (fallback to inline if missing)
-SCRIPT_DIR = os.path.dirname(__file__)
-EXTERNAL_MEMES_PATH = os.path.normpath(os.path.join(SCRIPT_DIR, '..', 'documents', 'memes.json'))
-
-# Load environment variables from .env file
-load_dotenv()
-
-# MongoDB connection details
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://ai-mongo:27017/")
-DB_NAME = os.getenv("MONGO_DB_NAME", "ethics_db")
-COLLECTION_NAME = "ethical_memes"
-
-# --- Paste the generated JSON data here ---
-# Ensure each JSON object is a valid Python dictionary within the list
-# Replace ISODate strings with datetime objects
-MEMES_DATA_TEXT = """
-[
+﻿[
   {
     "name": "Duty of Honesty",
     "description": "The obligation to communicate truthfully, derived from the moral law's requirement to act on maxims that can be universalized without contradiction (lying cannot be universalized).",
@@ -49,8 +25,8 @@ MEMES_DATA_TEXT = """
       }
     },
     "metadata": {
-      "created_at": {"$date": "2024-04-08T16:20:00Z"},
-      "updated_at": {"$date": "2024-04-08T16:20:00Z"},
+      "created_at": "2024-04-08T16:20:00+00:00",
+      "updated_at": "2024-04-08T16:20:00+00:00",
       "version": 1
     }
   },
@@ -75,13 +51,13 @@ MEMES_DATA_TEXT = """
         "estimated_persistence": "High",
         "estimated_adaptability": "High",
         "fidelity_level": "Medium",
-        "common_transmission_pathways": ["Philosophy Texts", "Text", "Education"],
+        "common_transmission_pathways": ["Philosophy Texts", "Text", "Education"], 
         "relevant_selection_pressures": ["Social Cohesion", "Value of Experience", "Philosophical Tradition"]
       }
     },
     "metadata": {
-      "created_at": {"$date": "2024-04-08T16:20:00Z"},
-      "updated_at": {"$date": "2024-04-08T16:20:00Z"},
+      "created_at": "2024-04-08T16:20:00+00:00",
+      "updated_at": "2024-04-08T16:20:00+00:00",
       "version": 1
     }
   },
@@ -106,13 +82,13 @@ MEMES_DATA_TEXT = """
         "estimated_persistence": "High",
         "estimated_adaptability": "Medium",
         "fidelity_level": "High",
-        "common_transmission_pathways": ["Text", "Law", "Education", "Mentorship"],
+        "common_transmission_pathways": ["Text", "Law", "Education", "Mentorship"], 
         "relevant_selection_pressures": ["Utility", "Clarity of definition", "Social Cohesion", "Need for Nuance"]
       }
     },
     "metadata": {
-      "created_at": {"$date": "2024-04-08T16:20:00Z"},
-      "updated_at": {"$date": "2024-04-08T16:20:00Z"},
+      "created_at": "2024-04-08T16:20:00+00:00",
+      "updated_at": "2024-04-08T16:20:00+00:00",
       "version": 1
     }
   },
@@ -137,13 +113,13 @@ MEMES_DATA_TEXT = """
         "estimated_persistence": "High",
         "estimated_adaptability": "Medium",
         "fidelity_level": "Medium",
-        "common_transmission_pathways": ["Philosophy Texts", "Religious Texts", "Education"],
+        "common_transmission_pathways": ["Philosophy Texts", "Religious Texts", "Education"], 
         "relevant_selection_pressures": ["Philosophical Tradition", "Complexity", "Value of Experience"]
       }
     },
     "metadata": {
-      "created_at": {"$date": "2024-04-08T16:20:00Z"},
-      "updated_at": {"$date": "2024-04-08T16:20:00Z"},
+      "created_at": "2024-04-08T16:20:00+00:00",
+      "updated_at": "2024-04-08T16:20:00+00:00",
       "version": 1
     }
   },
@@ -168,13 +144,13 @@ MEMES_DATA_TEXT = """
         "estimated_persistence": "High",
         "estimated_adaptability": "Medium",
         "fidelity_level": "Medium",
-        "common_transmission_pathways": ["Philosophy Texts", "Education", "Academic Papers"],
+        "common_transmission_pathways": ["Philosophy Texts", "Education", "Academic Papers"], 
         "relevant_selection_pressures": ["Logical Rigor", "Philosophical Tradition", "Clarity of definition"]
       }
     },
     "metadata": {
-      "created_at": {"$date": "2024-04-08T16:20:00Z"},
-      "updated_at": {"$date": "2024-04-08T16:20:00Z"},
+      "created_at": "2024-04-08T16:20:00+00:00",
+      "updated_at": "2024-04-08T16:20:00+00:00",
       "version": 1
     }
   },
@@ -190,8 +166,8 @@ MEMES_DATA_TEXT = """
     "dimension_specific_attributes": {
       "teleology": {
         "focus": "Consequences/Outcomes",
-        "utility_metric": "Happiness",
-        "scope": "Universal",
+        "utility_metric": "Happiness", 
+        "scope": "Universal", 
         "time_horizon": "Long-term"
       },
       "memetics": {
@@ -199,13 +175,13 @@ MEMES_DATA_TEXT = """
         "estimated_persistence": "High",
         "estimated_adaptability": "High",
         "fidelity_level": "Medium",
-        "common_transmission_pathways": ["Philosophy Texts", "Education", "Law", "Oral"],
-        "relevant_selection_pressures": ["Intuitive Appeal (promoting happiness)", "Logical Rigor", "Utility"]
+        "common_transmission_pathways": ["Philosophy Texts", "Education", "Law", "Oral"], 
+        "relevant_selection_pressures": ["Intuitive Appeal (promoting happiness)", "Logical Rigor", "Utility"] 
       }
     },
     "metadata": {
-      "created_at": {"$date": "2024-04-08T16:20:00Z"},
-      "updated_at": {"$date": "2024-04-08T16:20:00Z"},
+      "created_at": "2024-04-08T16:20:00+00:00",
+      "updated_at": "2024-04-08T16:20:00+00:00",
       "version": 1
     }
   },
@@ -221,9 +197,9 @@ MEMES_DATA_TEXT = """
     "dimension_specific_attributes": {
       "teleology": {
         "focus": "Consequences/Outcomes",
-        "utility_metric": "Well-being",
+        "utility_metric": "Well-being", 
         "scope": "Universal",
-        "time_horizon": "Long-term"
+        "time_horizon": "Long-term" 
       },
       "memetics": {
         "estimated_transmissibility": "Medium",
@@ -235,8 +211,8 @@ MEMES_DATA_TEXT = """
       }
     },
     "metadata": {
-      "created_at": {"$date": "2024-04-08T16:20:00Z"},
-      "updated_at": {"$date": "2024-04-08T16:20:00Z"},
+      "created_at": "2024-04-08T16:20:00+00:00",
+      "updated_at": "2024-04-08T16:20:00+00:00",
       "version": 1
     }
   },
@@ -252,9 +228,9 @@ MEMES_DATA_TEXT = """
     "dimension_specific_attributes": {
       "teleology": {
         "focus": "Consequences/Outcomes",
-        "utility_metric": "Preference",
-        "scope": "Group",
-        "time_horizon": "Mixed"
+        "utility_metric": "Preference", 
+        "scope": "Group", 
+        "time_horizon": "Mixed" 
       },
       "memetics": {
         "estimated_transmissibility": "Medium",
@@ -266,8 +242,8 @@ MEMES_DATA_TEXT = """
       }
     },
     "metadata": {
-      "created_at": {"$date": "2024-04-08T16:20:00Z"},
-      "updated_at": {"$date": "2024-04-08T16:20:00Z"},
+      "created_at": "2024-04-08T16:20:00+00:00",
+      "updated_at": "2024-04-08T16:20:00+00:00",
       "version": 1
     }
   },
@@ -283,8 +259,8 @@ MEMES_DATA_TEXT = """
     "dimension_specific_attributes": {
       "teleology": {
         "focus": "Consequences/Outcomes",
-        "utility_metric": "Other",
-        "scope": "Universal",
+        "utility_metric": "Other", 
+        "scope": "Universal", 
         "time_horizon": "Long-term"
       },
       "memetics": {
@@ -297,8 +273,8 @@ MEMES_DATA_TEXT = """
       }
     },
     "metadata": {
-      "created_at": {"$date": "2024-04-08T16:20:00Z"},
-      "updated_at": {"$date": "2024-04-08T16:20:00Z"},
+      "created_at": "2024-04-08T16:20:00+00:00",
+      "updated_at": "2024-04-08T16:20:00+00:00",
       "version": 1
     }
   },
@@ -315,7 +291,7 @@ MEMES_DATA_TEXT = """
       "teleology": {
         "focus": "Consequences/Outcomes",
         "utility_metric": "Other",
-        "scope": "Individual",
+        "scope": "Individual", 
         "time_horizon": "Short-term"
       },
       "memetics": {
@@ -323,13 +299,13 @@ MEMES_DATA_TEXT = """
         "estimated_persistence": "Medium",
         "estimated_adaptability": "High",
         "fidelity_level": "Low",
-        "common_transmission_pathways": ["Oral", "Folklore", "Social Media"],
+        "common_transmission_pathways": ["Oral", "Folklore", "Social Media"], 
         "relevant_selection_pressures": ["Utility", "Practicality (decision-making)", "Group Benefit"]
       }
     },
     "metadata": {
-      "created_at": {"$date": "2024-04-08T16:20:00Z"},
-      "updated_at": {"$date": "2024-04-08T16:20:00Z"},
+      "created_at": "2024-04-08T16:20:00+00:00",
+      "updated_at": "2024-04-08T16:20:00+00:00",
       "version": 1
     }
   },
@@ -343,10 +319,10 @@ MEMES_DATA_TEXT = """
     "examples": ["A soldier facing battle.", "A whistleblower exposing corruption despite personal risk.", "Someone admitting a mistake even when it's embarrassing."],
     "related_memes": [],
     "dimension_specific_attributes": {
-      "virtue_ethics": {
+      "virtue_ethics": { 
         "related_virtues": ["Perseverance", "Integrity", "Confidence"],
         "related_vices": ["Cowardice", "Rashness"],
-        "role_of_phronesis": "High",
+        "role_of_phronesis": "High", 
         "contributes_to_eudaimonia": true
       },
       "memetics": {
@@ -354,13 +330,13 @@ MEMES_DATA_TEXT = """
         "estimated_persistence": "High",
         "estimated_adaptability": "High",
         "fidelity_level": "Medium",
-        "common_transmission_pathways": ["Oral", "Folklore", "Mentorship", "Text"],
-        "relevant_selection_pressures": ["Social Cohesion", "Group Benefit", "Value of Experience"]
+        "common_transmission_pathways": ["Oral", "Folklore", "Mentorship", "Text"], 
+        "relevant_selection_pressures": ["Social Conformity", "Group Benefit", "Value of Experience"]
       }
     },
     "metadata": {
-      "created_at": {"$date": "2024-04-08T16:20:00Z"},
-      "updated_at": {"$date": "2024-04-08T16:20:00Z"},
+      "created_at": "2024-04-08T16:20:00+00:00",
+      "updated_at": "2024-04-08T16:20:00+00:00",
       "version": 1
     }
   },
@@ -377,7 +353,7 @@ MEMES_DATA_TEXT = """
       "virtue_ethics": {
         "related_virtues": ["Integrity", "Fairness", "Trustworthiness"],
         "related_vices": ["Dishonesty", "Deceitfulness", "Duplicity"],
-        "role_of_phronesis": "Medium",
+        "role_of_phronesis": "Medium", 
         "contributes_to_eudaimonia": true
       },
       "memetics": {
@@ -390,8 +366,8 @@ MEMES_DATA_TEXT = """
       }
     },
     "metadata": {
-      "created_at": {"$date": "2024-04-08T16:20:00Z"},
-      "updated_at": {"$date": "2024-04-08T16:20:00Z"},
+      "created_at": "2024-04-08T16:20:00+00:00",
+      "updated_at": "2024-04-08T16:20:00+00:00",
       "version": 1
     }
   },
@@ -408,7 +384,7 @@ MEMES_DATA_TEXT = """
       "virtue_ethics": {
         "related_virtues": ["Kindness", "Generosity", "Benevolence", "Empathy"],
         "related_vices": ["Callousness", "Indifference", "Cruelty"],
-        "role_of_phronesis": "Medium",
+        "role_of_phronesis": "Medium", 
         "contributes_to_eudaimonia": true
       },
       "memetics": {
@@ -421,8 +397,8 @@ MEMES_DATA_TEXT = """
       }
     },
     "metadata": {
-      "created_at": {"$date": "2024-04-08T16:20:00Z"},
-      "updated_at": {"$date": "2024-04-08T16:20:00Z"},
+      "created_at": "2024-04-08T16:20:00+00:00",
+      "updated_at": "2024-04-08T16:20:00+00:00",
       "version": 1
     }
   },
@@ -437,9 +413,9 @@ MEMES_DATA_TEXT = """
     "related_memes": [],
     "dimension_specific_attributes": {
       "virtue_ethics": {
-        "related_virtues": ["All virtues"],
-        "related_vices": ["All vices"],
-        "role_of_phronesis": "Medium",
+        "related_virtues": ["All virtues"], 
+        "related_vices": ["All vices"], 
+        "role_of_phronesis": "Medium", 
         "contributes_to_eudaimonia": true
       },
       "memetics": {
@@ -452,8 +428,8 @@ MEMES_DATA_TEXT = """
       }
     },
     "metadata": {
-      "created_at": {"$date": "2024-04-08T16:20:00Z"},
-      "updated_at": {"$date": "2024-04-08T16:20:00Z"},
+      "created_at": "2024-04-08T16:20:00+00:00",
+      "updated_at": "2024-04-08T16:20:00+00:00",
       "version": 1
     }
   },
@@ -471,7 +447,7 @@ MEMES_DATA_TEXT = """
         "related_virtues": ["All virtues"],
         "related_vices": ["All vices"],
         "role_of_phronesis": "High",
-        "contributes_to_eudaimonia": true
+        "contributes_to_eudaimonia": true 
       },
       "memetics": {
         "estimated_transmissibility": "Low",
@@ -483,8 +459,8 @@ MEMES_DATA_TEXT = """
       }
     },
     "metadata": {
-      "created_at": {"$date": "2024-04-08T16:20:00Z"},
-      "updated_at": {"$date": "2024-04-08T16:20:00Z"},
+      "created_at": "2024-04-08T16:20:00+00:00",
+      "updated_at": "2024-04-08T16:20:00+00:00",
       "version": 1
     }
   },
@@ -507,7 +483,7 @@ MEMES_DATA_TEXT = """
       "teleology": {
         "focus": "Consequences/Outcomes",
         "utility_metric": "Happiness",
-        "scope": "Universal",
+        "scope": "Universal", 
         "time_horizon": "Long-term"
       },
       "virtue_ethics": {
@@ -526,8 +502,8 @@ MEMES_DATA_TEXT = """
       }
     },
     "metadata": {
-      "created_at": {"$date": "2024-04-08T16:20:00Z"},
-      "updated_at": {"$date": "2024-04-08T16:20:00Z"},
+      "created_at": "2024-04-08T16:20:00+00:00",
+      "updated_at": "2024-04-08T16:20:00+00:00",
       "version": 1
     }
   },
@@ -545,12 +521,12 @@ MEMES_DATA_TEXT = """
         "is_rule_based": true,
         "universalizability_test": "Applicable",
         "respects_rational_agents": true,
-        "focus_on_intent": true
+        "focus_on_intent": true 
       },
       "teleology": {
         "focus": "Consequences/Outcomes",
-        "utility_metric": "Well-being",
-        "scope": "Universal",
+        "utility_metric": "Well-being", 
+        "scope": "Universal", 
         "time_horizon": "Mixed"
       },
       "virtue_ethics": {
@@ -569,8 +545,8 @@ MEMES_DATA_TEXT = """
       }
     },
     "metadata": {
-      "created_at": {"$date": "2024-04-08T16:20:00Z"},
-      "updated_at": {"$date": "2024-04-08T16:20:00Z"},
+      "created_at": "2024-04-08T16:20:00+00:00",
+      "updated_at": "2024-04-08T16:20:00+00:00",
       "version": 1
     }
   },
@@ -585,108 +561,36 @@ MEMES_DATA_TEXT = """
     "related_memes": [],
     "dimension_specific_attributes": {
       "deontology": {
-        "is_rule_based": true,
+        "is_rule_based": true, 
         "universalizability_test": "Applicable",
-        "respects_rational_agents": true,
-        "focus_on_intent": true
+        "respects_rational_agents": true, 
+        "focus_on_intent": true 
       },
       "teleology": {
         "focus": "Consequences/Outcomes",
-        "utility_metric": "Well-being",
-        "scope": "Universal",
+        "utility_metric": "Well-being", 
+        "scope": "Universal", 
         "time_horizon": "Long-term"
       },
       "virtue_ethics": {
         "related_virtues": ["Fairness", "Integrity", "Impartiality", "Courage"],
         "related_vices": ["Unfairness", "Bias", "Corruption", "Greed"],
         "role_of_phronesis": "High",
-        "contributes_to_eudaimonia": true
+        "contributes_to_eudaimonia": true 
       },
       "memetics": {
         "estimated_transmissibility": "High",
         "estimated_persistence": "High",
-        "estimated_adaptability": "High",
-        "fidelity_level": "Medium",
+        "estimated_adaptability": "High", 
+        "fidelity_level": "Medium", 
         "common_transmission_pathways": ["Law", "Philosophy Texts", "Religious Texts", "Education", "Text"],
         "relevant_selection_pressures": ["Social Cohesion", "Fairness Intuition", "Utility", "Group Benefit"]
       }
     },
     "metadata": {
-      "created_at": {"$date": "2024-04-08T16:20:00Z"},
-      "updated_at": {"$date": "2024-04-08T16:20:00Z"},
+      "created_at": "2024-04-08T16:20:00+00:00",
+      "updated_at": "2024-04-08T16:20:00+00:00",
       "version": 1
     }
   }
 ]
-"""
-
-def parse_datetime(iso_str):
-    """Parses ISO 8601 string (with Z) to datetime object."""
-    # Remove 'Z' and parse, assuming UTC
-    if iso_str.endswith('Z'):
-        iso_str = iso_str[:-1] + '+00:00'
-    return datetime.fromisoformat(iso_str)
-
-def deserialize_data(text):
-    """Parses the JSON string and converts ISODate strings to datetime objects."""
-    try:
-        # Attempt to load directly, assuming valid JSON
-        # Explicitly remove potential BOM before parsing
-        text_cleaned = text.lstrip('\ufeff')
-        data = json.loads(text_cleaned)
-        for item in data:
-            if 'metadata' in item:
-                # Check if dates are strings and parse them
-                if 'created_at' in item['metadata'] and isinstance(item['metadata']['created_at'], str):
-                    item['metadata']['created_at'] = parse_datetime(item['metadata']['created_at'])
-                if 'updated_at' in item['metadata'] and isinstance(item['metadata']['updated_at'], str):
-                    item['metadata']['updated_at'] = parse_datetime(item['metadata']['updated_at'])
-        return data
-    except json.JSONDecodeError as e:
-        print(f"Error decoding JSON: {e}")
-        return []
-
-def populate_db():
-    """Connects to MongoDB and inserts the meme data."""
-    try:
-        client = MongoClient(MONGO_URI)
-        db = client[DB_NAME]
-        collection = db[COLLECTION_NAME]
-
-        # Load memes data from external file if it exists, otherwise use inline text
-        if os.path.isfile(EXTERNAL_MEMES_PATH):
-            print(f"Loading memes from external file: {EXTERNAL_MEMES_PATH}")
-            # Add encoding='utf-8-sig' to handle potential BOM
-            with open(EXTERNAL_MEMES_PATH, 'r', encoding='utf-8-sig') as f:
-                memes_data = deserialize_data(f.read())
-        else:
-            memes_data = deserialize_data(MEMES_DATA_TEXT)
-
-        if not memes_data:
-            print("No valid meme data to insert.")
-            return
-
-        # Optional: Clear existing data before inserting (use with caution)
-        # print(f"Deleting existing documents from {DB_NAME}.{COLLECTION_NAME}...")
-        # delete_result = collection.delete_many({})
-        # print(f"Deleted {delete_result.deleted_count} documents.")
-
-        print(f"Inserting {len(memes_data)} documents into {DB_NAME}.{COLLECTION_NAME}...")
-
-        # Insert the data
-        # Use insert_many for efficiency
-        insert_result = collection.insert_many(memes_data)
-
-        print(f"Successfully inserted {len(insert_result.inserted_ids)} documents.")
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
-    finally:
-        if 'client' in locals() and client:
-            client.close()
-            print("MongoDB connection closed.")
-
-if __name__ == "__main__":
-    print("Starting MongoDB population script...")
-    populate_db()
-    print("Script finished.") 

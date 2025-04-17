@@ -5,6 +5,7 @@ import requests # To call backend API
 import json     # To handle JSON data
 import os       # To read backend URL from env
 from flask import Flask, send_from_directory # Import Flask and send_from_directory
+from dash import dash_table  # for rendering existing memes table
 
 # Initialize Flask server explicitly for route handling
 server = Flask(__name__, static_folder='static') # Define static folder explicitly
@@ -163,7 +164,17 @@ app.layout = dbc.Container([
                     dbc.Button("Save New Meme", id="btn-save-meme", color="primary", className="me-2"),
                     dbc.Spinner(html.Div(id="save-meme-status"))
                 ])
-            ])
+            ]),
+            # Section 3: Display existing memes
+            dbc.Card([
+                dbc.CardHeader("Existing Memes"),
+                dbc.CardBody([
+                    dbc.Button("Refresh List", id="btn-refresh-memes", color="secondary", className="me-2"),
+                    html.Div(id="existing-memes-container"),
+                    # Auto-load memes once on initial render
+                    dcc.Interval(id="init-load-memes", interval=1000, n_intervals=0, max_intervals=1)
+                ])
+            ], className="mt-4")
         ])
     ])
 ], fluid=True)
@@ -356,6 +367,49 @@ def handle_save_meme(
         alert_text = f"Error ({status_code}): {result.get('error', 'Unknown error saving meme')}"
         
     return dbc.Alert(alert_text, color=alert_color, dismissable=True, duration=8000)
+
+# --- Callback to refresh existing memes table ---
+@callback(
+    Output("existing-memes-container", "children"),
+    Input("btn-refresh-memes", "n_clicks"),
+    Input("init-load-memes", "n_intervals")  # auto trigger once
+)
+def refresh_existing_memes(n_clicks, n_intervals):
+    result, status_code = make_api_request("GET", "/memes/")
+    if status_code != 200:
+        return dbc.Alert(f"API error {status_code}: {result}",
+                         color="danger")
+    if not result:           # empty list
+        return dbc.Alert("No memes returned (check DB or BACKEND_API_URL)",
+                         color="warning")
+    else:
+        columns = [
+            {"name": "Name", "id": "name"},
+            {"name": "Description", "id": "description"},
+            {"name": "Dimensions", "id": "ethical_dimension"},
+            {"name": "Tags", "id": "keywords"},
+            {"name": "Merged", "id": "is_merged_token"},
+            {"name": "ID", "id": "_id"},
+        ]
+        data = [
+            {
+                "name": m.get("name", ""),
+                "description": m.get("description", ""),
+                "ethical_dimension": ", ".join(m.get("ethical_dimension", [])),
+                "keywords": ", ".join(m.get("keywords", [])),
+                "is_merged_token": m.get("is_merged_token", False),
+                "_id": m.get("_id", ""),
+            }
+            for m in result
+        ]
+        table = dash_table.DataTable(
+            columns=columns,
+            data=data,
+            page_size=10,
+            style_table={"overflowX": "auto"},
+            style_cell={"textAlign": "left", "whiteSpace": "normal"}
+        )
+        return table
 
 # --- Run the App ---
 if __name__ == '__main__':

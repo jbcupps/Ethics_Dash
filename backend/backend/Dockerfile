@@ -31,6 +31,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY --chown=app:app backend/backend/ /app/backend/
 COPY --chown=app:app scripts/ /app/scripts/
 
+# Copy external documents (memes JSON and ontology)
+COPY --chown=app:app documents/ /app/documents/
+
 # Switch to the non-root user
 USER app
 

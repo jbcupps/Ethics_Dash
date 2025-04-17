@@ -8,6 +8,11 @@ from bson import ObjectId
 # but this custom type ensures validation and schema representation.
 PyObjectId = Annotated[ObjectId, Field(validate_default=False)]
 
+# --- Model for Meme Selection LLM Output ---
+class MemeSelectionResponse(BaseModel):
+    selected_memes: List[str] = Field(description="List of names of the most relevant ethical memes.")
+    reasoning: Optional[str] = Field(default=None, description="Explanation for why these memes were selected.")
+
 # Define ethical dimensions as Literals for type hinting and validation
 EthicalDimension = Literal["Deontology", "Teleology", "Areteology", "Memetics"]
 
@@ -15,15 +20,15 @@ EthicalDimension = Literal["Deontology", "Teleology", "Areteology", "Memetics"]
 
 class DeontologyAttributes(BaseModel):
     is_rule_based: Optional[bool] = None
-    universalizability_test: Optional[Literal["Applicable", "Not Applicable", "Contradictory"]] = None
+    universalizability_test: Optional[str] = None
     respects_rational_agents: Optional[bool] = None
     focus_on_intent: Optional[bool] = None
 
 class TeleologyAttributes(BaseModel):
-    focus: Optional[Literal["Consequences/Outcomes"]] = None # Could expand later
-    utility_metric: Optional[Literal["Happiness", "Well-being", "Preference", "Other"]] = None
-    scope: Optional[Literal["Individual", "Group", "Universal"]] = None
-    time_horizon: Optional[Literal["Short-term", "Long-term", "Mixed"]] = None
+    focus: Optional[str] = None
+    utility_metric: Optional[str] = None
+    scope: Optional[str] = None
+    time_horizon: Optional[str] = None
 
 class VirtueEthicsAttributes(BaseModel):
     related_virtues: Optional[List[str]] = Field(default_factory=list)
@@ -36,8 +41,8 @@ class MemeticsAttributes(BaseModel):
     estimated_persistence: Optional[Literal["Very High", "High", "Medium", "Low", "Very Low"]] = None
     estimated_adaptability: Optional[Literal["Very High", "High", "Medium", "Low", "Very Low"]] = None
     fidelity_level: Optional[Literal["High", "Medium", "Low"]] = None
-    common_transmission_pathways: Optional[List[Literal["Oral", "Text", "Ritual", "Social Media", "Academic Papers", "Books on Evolution/Culture", "Online Forums", "Philosophy Texts", "Mentorship", "Life Experience", "Religious Texts", "Parenting", "Folklore", "Education", "Law"]]] = Field(default_factory=list)
-    relevant_selection_pressures: Optional[List[Literal["Cognitive Appeal", "Social Conformity", "Utility", "Group Benefit", "Logical Rigor", "Philosophical Tradition", "Intuitive Appeal (promoting happiness)", "Practicality (decision-making)", "Criticism (minority rights)", "Complexity", "Value of Experience", "Need for Nuance", "Interpersonal Utility", "Fairness Intuition", "Social Cohesion", "Religious Authority", "Importance for understanding evolution", "Clarity of definition"]]] = Field(default_factory=list)
+    common_transmission_pathways: Optional[List[str]] = Field(default_factory=list)
+    relevant_selection_pressures: Optional[List[str]] = Field(default_factory=list)
 
 class DimensionSpecificAttributes(BaseModel):
     deontology: Optional[DeontologyAttributes] = None
