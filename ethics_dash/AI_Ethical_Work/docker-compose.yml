@@ -4,8 +4,10 @@ services:
   # Backend API service
   backend:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      # Use project root so scripts/, backend/, and documents are available
+      context: ../..
+      # Specify the backend Dockerfile path relative to project root
+      dockerfile: ethics_dash/AI_Ethical_Work/backend/Dockerfile
     container_name: ethical-review-backend
     env_file:
       # Reference .env file in the parent directory (project root)

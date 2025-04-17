@@ -17,8 +17,8 @@ services:
   # AI Ethical Work Backend API Service
   ai-backend:
     build:
-      context: ./ethics_dash/AI_Ethical_Work # Path relative to root
-      dockerfile: backend/Dockerfile
+      context: .
+      dockerfile: ethics_dash/AI_Ethical_Work/backend/Dockerfile
     container_name: ai-ethical-review-backend
     env_file:
       - .env # Use root .env file

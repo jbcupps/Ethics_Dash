@@ -18,9 +18,8 @@ app = dash.Dash(
     server=server, # Use the explicit Flask server
     external_stylesheets=[dbc.themes.BOOTSTRAP],
     suppress_callback_exceptions=True,
-    assets_folder='assets', # Default, but explicit
-    # If Dash needs to handle its own callbacks under a prefix:
-    # requests_pathname_prefix='/dash/' 
+    assets_folder='assets',
+    requests_pathname_prefix='/dash/',
 )
 
 # Path for the React build artifacts

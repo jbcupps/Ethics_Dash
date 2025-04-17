@@ -223,21 +223,23 @@ def _get_analysis_api_config(selected_analysis_model: Optional[str] = None,
 
     # --- Determine Analysis Model --- 
     if not analysis_model or analysis_model not in ALL_MODELS:
+        # If user provided an invalid model, log and try env var
         if selected_analysis_model and selected_analysis_model not in ALL_MODELS:
-             logger.warning(f"_get_analysis_api_config: Invalid analysis model selected ('{selected_analysis_model}'). Falling back to environment default.")
+            logger.warning(f"_get_analysis_api_config: Invalid analysis model selected ('{selected_analysis_model}'). Checking ANALYSIS_LLM_MODEL env var.")
+        # Check ANALYSIS_LLM_MODEL environment variable
         default_analysis_model_env = os.getenv(ANALYSIS_LLM_MODEL_ENV)
-        # Clean up environment variable value if needed
-        if default_analysis_model_env and isinstance(default_analysis_model_env, str):
+        if isinstance(default_analysis_model_env, str):
             default_analysis_model_env = default_analysis_model_env.strip().strip('"\'')
-            
-        if not default_analysis_model_env or default_analysis_model_env not in ALL_MODELS:
-            error_msg = f"Analysis LLM model is not configured correctly. Neither selected ('{selected_analysis_model}') nor default env var {ANALYSIS_LLM_MODEL_ENV} ('{default_analysis_model_env}') are valid."
-            logger.error(error_msg)
-            return {"error": error_msg, "model": None, "api_key": None, "api_endpoint": None}
-        analysis_model = default_analysis_model_env
-        logger.info(f"_get_analysis_api_config: Using default analysis model from env var {ANALYSIS_LLM_MODEL_ENV}: {analysis_model}")
+        # Use env var if valid
+        if default_analysis_model_env in ALL_MODELS:
+            analysis_model = default_analysis_model_env
+            logger.info(f"_get_analysis_api_config: Using default analysis model from env var {ANALYSIS_LLM_MODEL_ENV}: {analysis_model}")
+        else:
+            # Final fallback to first available model
+            analysis_model = ALL_MODELS[0] if ALL_MODELS else None
+            logger.warning(f"_get_analysis_api_config: No valid ANALYSIS_LLM_MODEL set. Falling back to first available model: {analysis_model}")
     else:
-         logger.info(f"_get_analysis_api_config: Using user-selected analysis model: {analysis_model}")
+        logger.info(f"_get_analysis_api_config: Using user-selected analysis model: {analysis_model}")
 
     # --- Determine API Key & Endpoint --- 
     api_key = None
@@ -383,54 +385,27 @@ def _parse_ethical_analysis(analysis_text: str) -> Tuple[str, Optional[Dict[str,
         return analysis_text if analysis_text else "Analysis not generated.", None
 
     try:
-        # Attempt to parse the entire response as a single JSON object
-        parsed_data = json.loads(analysis_text)
-
-        # Validate the structure and extract keys
-        if not isinstance(parsed_data, dict):
-             current_app.logger.error(f"Parsed analysis is not a dictionary: {type(parsed_data)}")
-             return "Error: Analysis response was not a valid JSON object.", None
-
-        summary = parsed_data.get("summary_text")
-        scores = parsed_data.get("scores_json")
-
-        # Check if required keys are present and summary is a string
-        if summary is None or scores is None:
-            missing_keys = []
-            if summary is None: missing_keys.append("summary_text")
-            if scores is None: missing_keys.append("scores_json")
-            current_app.logger.error(f"Parsed analysis JSON is missing required keys: {missing_keys}. Got keys: {list(parsed_data.keys())}")
-            return "Error: Analysis JSON missing required fields.", None
-
-        if not isinstance(summary, str):
-             current_app.logger.error(f"Parsed analysis 'summary_text' is not a string: {type(summary)}")
-             # Still return the scores if they look ok, but provide an error summary
-             summary = f"Error: Invalid summary format received (type: {type(summary)})."
-             # Ensure scores is at least a dict, otherwise nullify it too
-             if not isinstance(scores, dict):
-                 current_app.logger.error(f"Parsed analysis 'scores_json' is not a dictionary: {type(scores)}")
-                 scores = None
-
-        # Basic check if scores look like a dictionary (further validation could be added)
-        elif not isinstance(scores, dict):
-             current_app.logger.error(f"Parsed analysis 'scores_json' is not a dictionary: {type(scores)}")
-             return summary, None # Return valid summary, but no scores
-
-        current_app.logger.info("Successfully parsed ethical analysis JSON.")
-        return summary, scores
+        # Look for a JSON code block for ethical scoring
+        json_block = re.search(r"```json\s*([\s\S]*?)```", analysis_text)
+        if json_block:
+            json_str = json_block.group(1)
+            scores = json.loads(json_str)
+            # Extract summary text before the scoring block
+            summary_section = analysis_text[:json_block.start()].split("**Ethical Review Summary:**", 1)
+            summary = summary_section[-1].strip() if summary_section else analysis_text.strip()
+            return summary, scores
+        # No JSON scoring block: return full text as summary
+        return analysis_text.strip(), None
 
     except JSONDecodeError as e:
-        current_app.logger.error(f"Failed to decode analysis response as JSON: {e}")
-        current_app.logger.debug(f"Raw analysis text that failed parsing:\n{analysis_text}")
-        # Try to extract something meaningful as a fallback, or return a generic error
-        error_summary = "Error: Could not parse analysis response from the LLM. It was not valid JSON."
-        # Optionally, you could try regex to find the *intended* summary if the LLM failed formatting
-        # For simplicity, just return the error.
-        return error_summary, None
+        current_app.logger.error(f"Failed to decode JSON scoring block: {e}")
+        current_app.logger.debug(f"Raw analysis text:\n{analysis_text}")
+        # Fallback: return full text as summary
+        return analysis_text.strip(), None
     except Exception as e:
-        # Catch any other unexpected errors during parsing/validation
-        current_app.logger.error(f"Unexpected error parsing ethical analysis: {e}", exc_info=True)
-        return "Error: An unexpected error occurred while processing the analysis response.", None
+        current_app.logger.error(f"Unexpected error in parsing analysis: {e}", exc_info=True)
+        # Fallback: return full text as summary
+        return analysis_text.strip(), None
 
 # --- Private Helpers for /analyze Route ---
 
