@@ -3,10 +3,10 @@ FROM node:18-slim AS builder
 WORKDIR /frontend-build
 
 # Copy frontend source code relative to the root context
-COPY ethics_dash/AI_Ethical_Work/frontend/package.json ethics_dash/AI_Ethical_Work/frontend/package-lock.json* ./
+COPY frontend/package*.json ./
 RUN npm install
 
-COPY ethics_dash/AI_Ethical_Work/frontend/ ./
+COPY frontend/ ./
 RUN npm run build
 
 # Stage 2: Build Python Application
@@ -38,8 +38,6 @@ COPY app.py ./app.py
 COPY assets/ ./assets/
 RUN mkdir -p context # Ensure target directory exists
 COPY Context/ ./context/
-COPY ethics_dash/ ./ethics_dash/
-# Avoid copying the large frontend source again if possible, adjust if needed
 
 # Copy built frontend static files from the builder stage
 COPY --from=builder /frontend-build/build /app/static/react

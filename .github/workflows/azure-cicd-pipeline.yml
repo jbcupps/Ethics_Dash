@@ -85,8 +85,8 @@ jobs:
     - name: Build and push 'ai-backend' image
       uses: docker/build-push-action@v5
       with:
-        context: ./ethics_dash/AI_Ethical_Work # Context for this service
-        file: ./ethics_dash/AI_Ethical_Work/backend/Dockerfile
+        context: .
+        file: ./backend/backend/Dockerfile
         push: true
         tags: |
           ${{ env.ACR_REGISTRY_NAME }}.azurecr.io/${{ env.IMAGE_NAME_BACKEND }}:latest
@@ -105,8 +105,8 @@ jobs:
     - name: Build and push 'ai-frontend' image
       uses: docker/build-push-action@v5
       with:
-        context: ./ethics_dash/AI_Ethical_Work # Context for this service
-        file: ./ethics_dash/AI_Ethical_Work/frontend/Dockerfile
+        context: ./frontend
+        file: ./frontend/Dockerfile
         push: true
         tags: |
           ${{ env.ACR_REGISTRY_NAME }}.azurecr.io/${{ env.IMAGE_NAME_FRONTEND }}:latest

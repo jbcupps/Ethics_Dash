@@ -18,15 +18,14 @@ services:
   ai-backend:
     build:
       context: .
-      dockerfile: ethics_dash/AI_Ethical_Work/backend/Dockerfile
+      dockerfile: backend/backend/Dockerfile
     container_name: ai-ethical-review-backend
     env_file:
       - .env # Use root .env file
     ports:
       - "5000:5000" # AI backend API port
     volumes:
-      # Mount the root context directory into the container for log persistence
-      - ./context:/app/context # Path relative to root
+      - ./Context:/app/context
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:5000/api/models"]
@@ -40,13 +39,13 @@ services:
   # AI Ethical Work Frontend Service (Nginx)
   ai-frontend:
     build:
-      context: ./ethics_dash/AI_Ethical_Work # Path relative to root
-      dockerfile: frontend/Dockerfile
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: ai-ethical-review-frontend
     ports:
       - "80:80" # Standard HTTP port for AI frontend
     volumes:
-      - ./ethics_dash/AI_Ethical_Work/frontend/nginx.conf:/etc/nginx/conf.d/default.conf # Path relative to root
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - ai-backend
     restart: unless-stopped
@@ -70,7 +69,7 @@ services:
 
 # Named volume for MongoDB data persistence
 volumes:
-  mongo_data: null
+  mongo_data:
 
 # You can add other services (like a database) here
 # volumes:
