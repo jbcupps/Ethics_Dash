@@ -9,6 +9,7 @@ from bson.json_util import dumps, loads
 from bson import ObjectId
 from bson.errors import InvalidId
 from flask import current_app # Use current_app for logger
+import os  # <- added import (keep near the other standard imports at top)
 
 # Import helpers 
 from .helpers import create_morphism_inputs, create_mapping_inputs 
@@ -16,7 +17,17 @@ from .helpers import create_morphism_inputs, create_mapping_inputs
 logger = logging.getLogger(__name__)
 
 # Config
-BACKEND_API_URL = "http://backend:5000/api/memes" 
+# Determine the base API URL from environment or default to the Docker Compose service
+# The `.env` file (and docker‑compose) sets BACKEND_API_URL to something like
+#     http://ai-backend:5000/api
+# We append the `/memes` segment here so that all subsequent calls can simply add
+# a trailing slash or additional path fragments as required.
+
+# Get the base URL for the backend (no trailing slash)
+_base_api_url = os.getenv("BACKEND_API_URL", "http://ai-backend:5000/api").rstrip("/")
+
+# Final URL pointing to the memes sub‑resource
+BACKEND_API_URL = f"{_base_api_url}/memes"
 
 MAX_NAME_LENGTH = 100
 MAX_DESC_LENGTH = 5000

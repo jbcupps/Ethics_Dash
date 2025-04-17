@@ -2,14 +2,19 @@
 
 import requests
 import logging
+import os
 from dash import Input, Output, callback
 from bson.json_util import loads
 from bson import ObjectId 
 
 logger = logging.getLogger(__name__)
 
-# Config - Should ideally be shared/imported
-BACKEND_API_URL = "http://backend:5000/api/memes"
+# Config - derive from environment variable so it works in multiple environments
+# (local vs Docker Compose vs cloud). We rely on BACKEND_API_URL variable set in
+# `.env` or runtime environment, defaulting to the docker‑compose service name.
+
+_base_api_url = os.getenv("BACKEND_API_URL", "http://ai-backend:5000/api").rstrip("/")
+BACKEND_API_URL = f"{_base_api_url}/memes"
 
 def register_visualization_callbacks(dash_app):
 

@@ -532,16 +532,14 @@ def _process_analysis_request(
         # Ensure R1 passed to analysis is always a string
         r1_for_analysis = initial_response if initial_response else "[No initial response was generated or it was blocked]"
 
-        # Combine ontology and db context if needed (adjust based on llm_interface)
-        # For now, context isn't explicitly used by the updated perform_ethical_analysis
-        analysis_context = {"ontology": ontology_text, "db": current_app.db} 
-
+        # Call analysis helper with correct signature
         raw_ethical_analysis_result = perform_ethical_analysis(
-            prompt=prompt,                   # Corrected keyword
-            initial_response=r1_for_analysis,# Corrected keyword
-            analysis_model=analysis_config['model'], # Corrected keyword
-            api_config=analysis_config,      # Pass the whole config dict
-            context=analysis_context         # Pass context dictionary (optional for now)
+            initial_prompt=prompt,
+            generated_response=r1_for_analysis,
+            ontology=ontology_text,
+            analysis_api_key=analysis_config['api_key'],
+            analysis_model_name=analysis_config['model'],
+            analysis_api_endpoint=analysis_config.get('api_endpoint')
         )
 
         # --- Process R2 Result ---
@@ -554,9 +552,17 @@ def _process_analysis_request(
             response_payload["analysis_summary"] = "[No analysis generated or content blocked]"
             response_payload["ethical_scores"] = None # Ensure scores are None on failure
         else:
-            # Result should already be the parsed dictionary { "summary_text": ..., "scores_json": ... }
-            response_payload["analysis_summary"] = raw_ethical_analysis_result.get("summary_text", "[Analysis summary missing]")
-            response_payload["ethical_scores"] = raw_ethical_analysis_result.get("scores_json") # This is the nested scores object
+            if isinstance(raw_ethical_analysis_result, dict):
+                response_payload["analysis_summary"] = raw_ethical_analysis_result.get("summary_text", "[Analysis summary missing]")
+                response_payload["ethical_scores"] = raw_ethical_analysis_result.get("scores_json")
+            elif isinstance(raw_ethical_analysis_result, str):
+                # use helper to parse
+                summary, scores = _parse_ethical_analysis(raw_ethical_analysis_result)
+                response_payload["analysis_summary"] = summary
+                response_payload["ethical_scores"] = scores
+            else:
+                response_payload["analysis_summary"] = "[Unexpected analysis result format]"
+                response_payload["ethical_scores"] = None
             logger.info("Analysis completed and R2 result processed.")
 
         return response_payload, 200 # Success (even if parts failed, we have a payload)

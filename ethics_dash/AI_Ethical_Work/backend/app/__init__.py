@@ -8,6 +8,8 @@ from flask_cors import CORS
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 from werkzeug.middleware.proxy_fix import ProxyFix
+from dotenv import load_dotenv  # Load .env file for local development
+load_dotenv()  # Load environment variables from .env file
 
 # Dash Imports
 import dash

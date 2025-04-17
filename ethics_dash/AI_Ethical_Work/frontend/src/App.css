@@ -513,8 +513,8 @@ button:disabled {
   align-items: center;
   padding: var(--spacing-xl);
   /* Parallax Background Setup */
-  /* Replace 'path/to/your/high-quality-image.jpg' with the actual image path in your assets */
-  background-image: url('/path/to/your/high-quality-image.jpg'); 
+  /* background-image: url('./assets/cyber_security_command_center.jpg'); */
+  background-color: var(--color-background-main);
   background-attachment: fixed; /* Creates the parallax effect */
   background-position: center;
   background-repeat: no-repeat;

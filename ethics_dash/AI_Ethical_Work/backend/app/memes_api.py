@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify, current_app
 from bson import ObjectId
 from bson.errors import InvalidId
-<<<<<<< HEAD
 from pydantic import ValidationError, TypeAdapter
 import os
 import io
@@ -16,11 +15,6 @@ import json
 import base64
 from werkzeug.utils import secure_filename
 from typing import List, Dict, Any
-=======
-from pydantic import ValidationError
-import os
-import json
->>>>>>> 9bde32d9c6ab6f51c5cae89b7a08c87de81c265d
 
 # Import Pydantic models
 from .models import EthicalMemeCreate, EthicalMemeUpdate, EthicalMemeInDB
@@ -850,7 +844,6 @@ def delete_meme(meme_id):
         logger.error(f"Error deleting meme {meme_id}: {e}", exc_info=True)
         return jsonify({"error": f"Internal server error deleting meme {meme_id}"}), 500
 
-<<<<<<< HEAD
 # --- File Upload Route ---
 @memes_bp.route('/upload', methods=['POST'])
 def upload_memes():
@@ -921,9 +914,7 @@ def upload_memes():
                 f"1. `extracted_memes`: A JSON array containing valid objects strictly adhering to the schema. Include only successfully parsed entries. \n"
                 f"2. `processing_summary`: A brief TEXT string summarizing any issues encountered (e.g., skipped records due to missing fields, format errors, ambiguities). If no issues, state that processing was successful.\n\n"
                 f"**DO NOT include any text before or after the main JSON object.**\n\n"
-                f"Data Content:\n---\{filename} START---\
-{content_string}\
----\{filename} END---"
+                f"Data Content:\n---{filename} START---\n{content_string}\n---{filename} END---"
             )
             
             logger.debug(f"Sending prompt to LLM ({upload_llm_model}) for file parsing.")
@@ -1053,58 +1044,85 @@ def upload_memes():
         "validation_errors": validation_errors,
         "llm_feedback": llm_feedback
     }), 200 
-=======
-# --- New Route for Mass Population ---
 
+# --- New Route for Mass Population ---
 @memes_bp.route('/populate', methods=['POST'])
 def populate_memes():
-    """Populate the ethical_memes collection with predefined data.
-       WARNING: This will clear the existing collection first.
-    """
-    if not current_app.db:
-        return jsonify({"error": "Database connection not available"}), 503
-
-    collection = current_app.db.ethical_memes # Use collection name from models or config
+    """Populates the database with predefined memes, checking for existence first."""
+    if current_app.db is None:
+         return jsonify({"error": "Database connection not available"}), 503
+    
+    memes_collection = current_app.db.ethical_memes
+    inserted_count = 0
+    skipped_count = 0
+    errors = []
 
     try:
-        # Deserialize the predefined JSON data
-        memes_raw_data = json.loads(MEMES_DATA_TEXT)
-        memes_to_insert = []
-        for item in memes_raw_data:
-            # Convert ISODate strings to datetime objects for MongoDB
-            if 'metadata' in item:
-                if 'created_at' in item['metadata'] and isinstance(item['metadata']['created_at'], dict) and '$date' in item['metadata']['created_at']:
-                    item['metadata']['created_at'] = parse_datetime(item['metadata']['created_at']['$date'])
-                if 'updated_at' in item['metadata'] and isinstance(item['metadata']['updated_at'], dict) and '$date' in item['metadata']['updated_at']:
-                    item['metadata']['updated_at'] = parse_datetime(item['metadata']['updated_at']['$date'])
-            memes_to_insert.append(item)
+        # Parse the predefined JSON data
+        predefined_memes = json.loads(MEMES_DATA_TEXT)
+        logger.info(f"Found {len(predefined_memes)} predefined memes to potentially populate.")
+        
+        now = datetime.now(timezone.utc)
 
-        if not memes_to_insert:
-            return jsonify({"error": "No valid meme data found to insert"}), 400
+        for meme_data in predefined_memes:
+            name = meme_data.get("name")
+            if not name:
+                logger.warning("Skipping predefined meme with no name.")
+                skipped_count += 1
+                continue
 
-        # --- Clear existing data --- (Use with caution!)
-        logger.warning(f"Clearing existing documents from {collection.name} collection...")
-        delete_result = collection.delete_many({})
-        logger.info(f"Deleted {delete_result.deleted_count} documents.")
-        # --- Alternative: Consider using update_one with upsert=True based on 'name' to avoid duplicates without clearing --- 
-        # Example (requires loop and checking each item):
-        # for meme_data in memes_to_insert:
-        #     collection.update_one({'name': meme_data['name']}, {'$set': meme_data}, upsert=True)
+            # Check if a meme with the same name already exists
+            existing_meme = memes_collection.find_one({"name": name})
+            if existing_meme:
+                logger.info(f"Meme '{name}' already exists. Skipping.")
+                skipped_count += 1
+                continue
 
-        # --- Insert new data ---
-        logger.info(f"Inserting {len(memes_to_insert)} predefined documents...")
-        insert_result = collection.insert_many(memes_to_insert)
+            try:
+                # Add/overwrite metadata and parse datetimes if necessary
+                if 'metadata' in meme_data and isinstance(meme_data['metadata'], dict):
+                     if 'created_at' in meme_data['metadata'] and isinstance(meme_data['metadata']['created_at'], dict) and '$date' in meme_data['metadata']['created_at']:
+                         meme_data['metadata']['created_at'] = parse_datetime(meme_data['metadata']['created_at']['$date'])
+                     else:
+                         meme_data['metadata']['created_at'] = now
+                     
+                     if 'updated_at' in meme_data['metadata'] and isinstance(meme_data['metadata']['updated_at'], dict) and '$date' in meme_data['metadata']['updated_at']:
+                         meme_data['metadata']['updated_at'] = parse_datetime(meme_data['metadata']['updated_at']['$date'])
+                     else:
+                         meme_data['metadata']['updated_at'] = now
+                else:
+                    meme_data['metadata'] = {'created_at': now, 'updated_at': now, 'version': 1}
+                    
+                # Validate with Pydantic before inserting
+                validated_meme = EthicalMemeCreate(**meme_data)
+                meme_doc_to_insert = validated_meme.model_dump(by_alias=True)
+                # Re-add metadata as it might not be part of EthicalMemeCreate
+                meme_doc_to_insert['metadata'] = meme_data['metadata']
+                
+                # Insert the new meme
+                result = memes_collection.insert_one(meme_doc_to_insert)
+                if result.inserted_id:
+                    inserted_count += 1
+                    logger.debug(f"Inserted meme '{name}' with ID: {result.inserted_id}")
+                else:
+                    errors.append(f"Failed to insert meme '{name}'.")
+                    
+            except ValidationError as e:
+                logger.warning(f"Validation failed for predefined meme '{name}': {e.errors()}")
+                errors.append(f"Validation failed for '{name}': {e.errors()}")
+            except Exception as insert_err:
+                logger.error(f"Error processing or inserting predefined meme '{name}': {insert_err}", exc_info=True)
+                errors.append(f"Error processing '{name}': {insert_err}")
 
+        status_code = 200 if not errors else 207 # Multi-status if errors occurred
         return jsonify({
-            "message": "Successfully populated ethical memes collection.",
-            "deleted_count": delete_result.deleted_count,
-            "inserted_count": len(insert_result.inserted_ids)
-        }), 200
-
+            "message": f"Population complete. Inserted: {inserted_count}, Skipped (already exists): {skipped_count}.",
+            "errors": errors
+        }), status_code
+        
     except json.JSONDecodeError as e:
-        logger.error(f"Error decoding predefined JSON data: {e}", exc_info=True)
-        return jsonify({"error": "Internal server error: Invalid predefined JSON data"}), 500
+        logger.error(f"Error decoding predefined meme data: {e}", exc_info=True)
+        return jsonify({"error": "Internal server error reading predefined meme data"}), 500
     except Exception as e:
-        logger.error(f"Error populating memes collection: {e}", exc_info=True)
-        return jsonify({"error": "Internal server error populating memes"}), 500 
->>>>>>> 9bde32d9c6ab6f51c5cae89b7a08c87de81c265d
+         logger.error(f"Error populating memes collection: {e}", exc_info=True)
+         return jsonify({"error": "Internal server error populating memes"}), 500 

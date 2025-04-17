@@ -55,11 +55,7 @@ class MemeMetadata(BaseModel):
 class EthicalMemeBase(BaseModel):
     name: str
     description: str
-<<<<<<< HEAD
-    ethical_dimension: List[Literal["Deontology", "Teleology", "Virtue Ethics", "Memetics", "Meta", "Action", "Agent", "Process", "Value", "Principle", "Theory", "Virtue", "Other"]]
-=======
-    ethical_dimension: List[EthicalDimension]
->>>>>>> 9bde32d9c6ab6f51c5cae89b7a08c87de81c265d
+    ethical_dimension: List[str]
     source_concept: str
     keywords: List[str] = Field(default_factory=list)
     variations: List[str] = Field(default_factory=list)
@@ -89,11 +85,7 @@ class EthicalMemeUpdate(BaseModel):
     # Make all fields from Base optional, exclude metadata as it's handled separately
     name: Optional[str] = None
     description: Optional[str] = None
-<<<<<<< HEAD
-    ethical_dimension: Optional[List[Literal["Deontology", "Teleology", "Virtue Ethics", "Memetics", "Meta", "Action", "Agent", "Process", "Value", "Principle", "Theory", "Virtue", "Other"]]] = None
-=======
-    ethical_dimension: Optional[List[EthicalDimension]] = None
->>>>>>> 9bde32d9c6ab6f51c5cae89b7a08c87de81c265d
+    ethical_dimension: Optional[List[str]] = None
     source_concept: Optional[str] = None
     keywords: Optional[List[str]] = None
     variations: Optional[List[str]] = None

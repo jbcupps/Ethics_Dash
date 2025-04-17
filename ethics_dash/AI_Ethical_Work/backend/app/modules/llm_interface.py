@@ -414,37 +414,6 @@ def _call_openai(
         logger.error(f"Unexpected exception during OpenAI call for model {model_name}: {e}. Prompt (start): {log_prompt_start}...", exc_info=True)
         return None
 
-<<<<<<< HEAD
-# Helper function to format relationship data for the prompt
-def _format_relationships_for_prompt(meme_doc: Optional[Dict[str, Any]], meme_label: str) -> str:
-    """Formats morphisms and mappings from a meme document for LLM prompt injection."""
-    if not meme_doc:
-        return f"No database record found for {meme_label}.\\n"
-
-    output_lines = []
-    output_lines.append(f"Relationships for {meme_label} ('{meme_doc.get('name', 'N/A')}'):")
-
-    morphisms = meme_doc.get('morphisms', [])
-    if morphisms:
-        output_lines.append("  Morphisms:")
-        for morph in morphisms:
-            target_id = morph.get('target_meme_id', 'Unknown Target')
-            # TODO: Optionally fetch target meme name here using db connection if passed
-            output_lines.append(f"    - Type: {morph.get('type', 'N/A')}, Target ID: {target_id}, Desc: {morph.get('description', '')}")
-    else:
-        output_lines.append("  Morphisms: None defined.")
-
-    mappings = meme_doc.get('cross_category_mappings', [])
-    if mappings:
-        output_lines.append("  Cross-Category Mappings:")
-        for mapping in mappings:
-            output_lines.append(f"    - Type: {mapping.get('mapping_type', 'N/A')}, Target Concept: {mapping.get('target_concept', 'N/A')}, Target Category: {mapping.get('target_category', 'N/A')}")
-    else:
-        output_lines.append("  Cross-Category Mappings: None defined.")
-
-    output_lines.append("\\") # Add newline separation
-    return "\\".join(output_lines)
-=======
 def _call_xai(
     prompt: str,
     api_key: str,
@@ -512,7 +481,6 @@ def _call_xai(
     except Exception as e:
         logger.error(f"Unexpected exception during xAI call for model {model_name}: {e}. Prompt (start): {log_prompt_start}...", exc_info=True)
         return None
->>>>>>> 9bde32d9c6ab6f51c5cae89b7a08c87de81c265d
 
 # --- Public Interface Functions ---
 
@@ -555,118 +523,6 @@ def generate_response(prompt: str, api_key: str, model_name: str, api_endpoint: 
         logger.error(f"Unsupported or unknown model specified in generate_response: {model_name}")
         return None
 
-<<<<<<< HEAD
-def perform_ethical_analysis(prompt: str, initial_response: str, analysis_model: str, api_config: Dict[str, Any], context: Optional[Dict[str, Any]] = None) -> Optional[Dict]:
-    """Performs ethical analysis (R2) using a specified model."""
-    logger.info(f"--- Starting perform_ethical_analysis for model: {analysis_model} ---")
-    
-    analysis_prompt_template = _load_prompt_template('R2_prompt_template.txt')
-    if not analysis_prompt_template:
-        logger.error("Failed to load R2 prompt template.")
-        return None
-        
-    relevant_memes_str = "No relevant memes found or meme search disabled." # Default
-    try:
-        # --- Meme Integration (Check if called) ---
-        # TODO: Confirm if find_relevant_memes is actually used here.
-        # If find_relevant_memes is used, add logging around it:
-        # logger.info("Attempting to find relevant memes...")
-        # relevant_memes = find_relevant_memes(initial_response) # Assuming this function exists and is called
-        # if relevant_memes:
-        #     relevant_memes_str = format_memes_for_prompt(relevant_memes) # Assuming this function exists
-        #     logger.info(f"Found and formatted {len(relevant_memes)} memes.")
-        # else:
-        #     logger.info("No relevant memes found by find_relevant_memes.")
-        pass # Placeholder if meme search isn't implemented/used here yet
-    except Exception as meme_err:
-        logger.error(f"Error during meme finding/formatting: {meme_err}", exc_info=True)
-        # Decide if this should prevent analysis or just use default string
-        # For now, let's log and continue with the default string
-        
-    formatted_analysis_prompt = ""
-    try:
-        logger.info("Formatting R2 analysis prompt...")
-        # Format the analysis prompt using the template
-        formatted_analysis_prompt = analysis_prompt_template.format(
-            user_prompt=prompt,
-            initial_response=initial_response,
-            relevant_memes=relevant_memes_str # Include formatted memes or default string
-        )
-        logger.info("Successfully formatted R2 analysis prompt.")
-        # Optionally log the formatted prompt (can be very long)
-        # logger.debug(f"Formatted R2 Prompt:\n{formatted_analysis_prompt}") 
-    except Exception as format_err:
-        logger.error(f"Error formatting R2 analysis prompt: {format_err}", exc_info=True)
-        return None # Cannot proceed without a formatted prompt
-
-    response = None
-    try:
-        provider = api_config.get('provider')
-        api_key = api_config.get('key')
-        endpoint = api_config.get('endpoint')
-        
-        logger.info(f"Preparing to call {provider} LLM for R2 analysis...")
-
-        if provider == "Anthropic":
-            response = _call_anthropic(formatted_analysis_prompt, api_key, analysis_model, endpoint)
-        elif provider == "OpenAI":
-            response = _call_openai(formatted_analysis_prompt, api_key, analysis_model, endpoint)
-        elif provider == "Gemini":
-             response = _call_gemini(formatted_analysis_prompt, api_key, analysis_model, endpoint)
-        else:
-            logger.error(f"Unsupported analysis LLM provider: {provider}")
-            return None
-            
-        logger.info(f"LLM call for R2 completed. Response object received: {type(response)}")
-
-        if response is None:
-            logger.error(f"LLM call for R2 failed or returned None.")
-            return None
-
-        # Log the raw response content for debugging
-        # Ensure response has a .content attribute or adjust accordingly
-        raw_content = "Error extracting content" 
-        try:
-            if hasattr(response, 'content') and response.content:
-                 # Attempt to decode if bytes
-                 if isinstance(response.content, bytes):
-                     try:
-                          raw_content = response.content.decode('utf-8', errors='replace')
-                     except Exception as decode_err:
-                          raw_content = f"Error decoding bytes content: {decode_err}"
-                 elif hasattr(response.content, 'text'): # Handle potential nested structure like requests Response
-                     raw_content = response.content.text
-                 else:
-                     raw_content = str(response.content) # Fallback to string representation
-            elif hasattr(response, 'text'): # Maybe it's directly on response?
-                raw_content = response.text
-            else:
-                 raw_content = str(response) # Last resort
-        except Exception as content_err:
-            logger.error(f"Error accessing response content: {content_err}")
-            raw_content = f"Exception accessing content: {content_err}"
-            
-        logger.debug(f"Raw R2 analysis response content:\n{raw_content}")
-
-        # Attempt to find and parse the JSON block
-        try:
-            analysis_json = _parse_analysis_json(raw_content) # Parse the extracted/decoded content
-            if analysis_json:
-                 logger.info("Successfully parsed ethical analysis JSON.")
-                 return analysis_json
-            else:
-                 logger.error("Parsing ethical analysis JSON failed (_parse_analysis_json returned None).")
-                 return None
-        except Exception as e:
-            logger.error(f"Error parsing ethical analysis JSON: {e}", exc_info=True)
-            return None
-            
-    except Exception as e:
-        # Log any exception during the LLM call or initial response handling
-        logger.error(f"Exception during R2 LLM call or response handling: {e}", exc_info=True)
-        # Detailed traceback
-        # logger.error(traceback.format_exc())
-=======
 def perform_ethical_analysis(
     initial_prompt: str,
     generated_response: str,
@@ -800,7 +656,6 @@ def perform_ethical_analysis(
     else:
         # This case might be reachable if api.py allows models not defined here
         logger.error(f"Unsupported or unknown model specified in perform_ethical_analysis: {analysis_model_name}")
->>>>>>> 9bde32d9c6ab6f51c5cae89b7a08c87de81c265d
         return None
 
 # Example usage (for testing this module directly)

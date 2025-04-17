@@ -2,12 +2,19 @@
 
 import requests
 import logging
+import os  # To read env var for backend URL
 from dash import Input, Output, callback
 
 logger = logging.getLogger(__name__)
 
 # Config
-BACKEND_API_URL = "http://backend:5000/api/memes" 
+# Build the backend API base URL dynamically from environment variable to avoid
+# hard‑coding the Docker hostname. Docker‑compose sets BACKEND_API_URL to
+# something like `http://ai-backend:5000/api` – we ensure there is no trailing
+# slash and then append the `/memes` segment that this callback module needs.
+
+_base_api_url = os.getenv("BACKEND_API_URL", "http://ai-backend:5000/api").rstrip("/")
+BACKEND_API_URL = f"{_base_api_url}/memes"
 
 # --- Registration Function --- 
 def register_data_loading_callbacks(dash_app):

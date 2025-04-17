@@ -9,8 +9,6 @@ services:
       - "8050:8050" # Default Dash port mapped to host
     env_file:
       - .env       # Load environment variables from root .env file
-    volumes:
-      - .:/app     # Mount current directory for development (reflect code changes)
     restart: unless-stopped
     depends_on:
       - ai-backend # Optional: if the main app needs the AI API
