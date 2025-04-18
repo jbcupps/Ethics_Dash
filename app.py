@@ -4,7 +4,7 @@ from dash import html, dcc, Input, Output, State, callback
 import requests # To call backend API
 import json     # To handle JSON data
 import os       # To read backend URL from env
-from flask import Flask, send_from_directory # Import Flask and send_from_directory
+from flask import Flask, send_from_directory, jsonify # Import Flask and send_from_directory
 from dash import dash_table  # for rendering existing memes table
 
 # Initialize Flask server explicitly for route handling
@@ -410,6 +410,13 @@ def refresh_existing_memes(n_clicks, n_intervals):
             style_cell={"textAlign": "left", "whiteSpace": "normal"}
         )
         return table
+
+@server.route('/api/memes', methods=['GET'])
+def proxy_get_memes():
+    """Proxy endpoint to fetch current meme list from backend for health checks."""
+    result, status_code = make_api_request('GET', '/memes/')
+    # Ensure proper JSON response regardless of list or dict
+    return jsonify(result), status_code
 
 # --- Run the App ---
 if __name__ == '__main__':

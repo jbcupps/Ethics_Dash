@@ -7,9 +7,11 @@ import re # Import regex module for parsing
 import json # Import JSON module for parsing
 import logging # Import logging
 from json import JSONDecodeError
+from pydantic import ValidationError
 
 from backend.app.modules.llm_interface import generate_response, perform_ethical_analysis, select_relevant_memes
 from backend.app.db import get_all_memes_for_selection
+from backend.app.models import AnalysisResultModel
 
 # --- Blueprint Definition ---
 api_bp = Blueprint('api', __name__, url_prefix='/api')
@@ -658,24 +660,108 @@ def _process_analysis_request(
         )
 
         # --- Process R2 Result ---
-        # The function now returns the parsed dict or None
         if not raw_ethical_analysis_result:
             logger.error(f"Ethical analysis (R2) failed or returned no result for model {analysis_config.get('model')}. Check LLM interface logs.")
-            # Fix: Ensure existing error is treated as empty string if None
             existing_error = response_payload.get("error", "") or ""
             response_payload["error"] = existing_error + f" Failed to generate analysis (R2) from {analysis_config.get('model')}."
             response_payload["analysis_summary"] = "[No analysis generated or content blocked]"
-            response_payload["ethical_scores"] = None # Ensure scores are None on failure
+            response_payload["ethical_scores"] = None
         else:
-            if isinstance(raw_ethical_analysis_result, dict):
-                response_payload["analysis_summary"] = raw_ethical_analysis_result.get("summary_text", "[Analysis summary missing]")
-                response_payload["ethical_scores"] = raw_ethical_analysis_result.get("scores_json")
-            elif isinstance(raw_ethical_analysis_result, str):
-                # use helper to parse
+            # Parse response first if it's a string
+            analysis_data = raw_ethical_analysis_result
+            if isinstance(raw_ethical_analysis_result, str):
+                # First parse the string into a dictionary using existing helper
                 summary, scores = _parse_ethical_analysis(raw_ethical_analysis_result)
-                response_payload["analysis_summary"] = summary
-                response_payload["ethical_scores"] = scores
+                if scores:
+                    # Transform the flat score structure into nested structure expected by our model
+                    restructured_scores = {}
+                    # Find all score keys that have a matching justification
+                    for key in list(scores.keys()):
+                        # Skip keys that are already justifications
+                        if key.endswith('_justification'):
+                            continue
+                        
+                        # Look for corresponding justification
+                        justification_key = f"{key}_justification"
+                        if justification_key in scores:
+                            # Create nested structure for this dimension
+                            restructured_scores[key] = {
+                                "score": scores[key],
+                                "justification": scores[justification_key]
+                            }
+                            # Remove processed justification key to avoid duplication
+                            scores.pop(justification_key, None)
+                        else:
+                            # Handle case where justification is missing
+                            restructured_scores[key] = {
+                                "score": scores[key],
+                                "justification": "No justification provided"
+                            }
+                    
+                    # Create a dictionary structure compatible with our model
+                    analysis_data = {
+                        "summary_text": summary,
+                        "scores_json": restructured_scores
+                    }
+                    logger.info("Parsed R2 text output into dictionary format.")
+                else:
+                    # Skip validation if we couldn't extract scores
+                    response_payload["analysis_summary"] = summary
+                    response_payload["ethical_scores"] = None
+                    logger.warning("R2 response couldn't be parsed to extract valid scores.")
+                    logger.info("Analysis completed with partial results.")
+                    return response_payload, 200  # Return early
+
+            # Now try validation if we have a dictionary
+            if isinstance(analysis_data, dict):
+                logger.info(f"Analysis data structure: {analysis_data.keys()}")
+                # Also restructure scores_json if it exists and has a flat structure
+                if "scores_json" in analysis_data:
+                    logger.info(f"Scores data structure: {type(analysis_data['scores_json'])}")
+                    if isinstance(analysis_data["scores_json"], dict):
+                        scores = analysis_data["scores_json"]
+                        logger.info(f"Scores keys: {scores.keys()}")
+                        
+                        # Check if we have a flat structure with _justification keys
+                        has_flat_structure = any(key.endswith('_justification') for key in scores.keys())
+                        
+                        if has_flat_structure:
+                            logger.info("Detected flat structure with _justification keys")
+                            restructured_scores = {}
+                            # Process each dimension
+                            for key in list(scores.keys()):
+                                if key.endswith('_justification'):
+                                    continue
+                                
+                                justification_key = f"{key}_justification"
+                                if justification_key in scores:
+                                    restructured_scores[key] = {
+                                        "score": scores[key],
+                                        "justification": scores[justification_key]
+                                    }
+                                    scores.pop(justification_key, None)
+                                else:
+                                    restructured_scores[key] = {
+                                        "score": scores[key],
+                                        "justification": "No justification provided"
+                                    }
+                            
+                            # Replace with restructured scores
+                            analysis_data["scores_json"] = restructured_scores
+                            logger.info("Restructured existing dictionary scores into required format")
+                
+                try:
+                    result_model = AnalysisResultModel(**analysis_data)
+                    response_payload["analysis_summary"] = result_model.summary_text
+                    response_payload["ethical_scores"] = {k: v.model_dump() for k, v in result_model.scores_json.items()}
+                    logger.info("R2 output validated successfully.")
+                except ValidationError as val_err:
+                    logger.error(f"R2 output failed validation: {val_err}")
+                    # Fallback to raw dictionary values without validation
+                    response_payload["analysis_summary"] = analysis_data.get("summary_text", "[Analysis summary missing]")
+                    response_payload["ethical_scores"] = analysis_data.get("scores_json")
             else:
+                logger.error(f"Unexpected R2 result format: {type(analysis_data)}")
                 response_payload["analysis_summary"] = "[Unexpected analysis result format]"
                 response_payload["ethical_scores"] = None
             logger.info("Analysis completed and R2 result processed.")

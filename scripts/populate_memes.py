@@ -1,7 +1,7 @@
 import os
 import json
 from datetime import datetime
-from pymongo import MongoClient
+from pymongo import MongoClient, UpdateOne
 from dotenv import load_dotenv
 from bson import ObjectId, json_util
 import re
@@ -671,13 +671,25 @@ def populate_db():
         # delete_result = collection.delete_many({})
         # print(f"Deleted {delete_result.deleted_count} documents.")
 
-        print(f"Inserting {len(memes_data)} documents into {DB_NAME}.{COLLECTION_NAME}...")
+        print(f"Upserting {len(memes_data)} memes into {DB_NAME}.{COLLECTION_NAME} (idempotent)...")
 
-        # Insert the data
-        # Use insert_many for efficiency
-        insert_result = collection.insert_many(memes_data)
+        # Build bulk upsert operations to avoid duplicate-key errors on restart
+        bulk_ops = []
+        for meme in memes_data:
+            bulk_ops.append(
+                UpdateOne(
+                    {"name": meme.get("name")},  # unique key
+                    {"$setOnInsert": meme},
+                    upsert=True
+                )
+            )
 
-        print(f"Successfully inserted {len(insert_result.inserted_ids)} documents.")
+        if bulk_ops:
+            result = collection.bulk_write(bulk_ops, ordered=False)
+            inserted = len(result.upserted_ids) if result.upserted_ids else 0
+            print(f"Bulk upsert complete – {inserted} new memes inserted, existing records left untouched.")
+        else:
+            print("No bulk operations generated – nothing to insert.")
 
     except Exception as e:
         print(f"An error occurred: {e}")

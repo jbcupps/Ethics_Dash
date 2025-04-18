@@ -120,4 +120,19 @@ class EthicalMemeInDB(EthicalMemeBase):
         "populate_by_name": True,
         "arbitrary_types_allowed": True,
         "json_encoders": {ObjectId: str}
+    }
+
+# --- Pydantic models for R2 analysis output validation ---
+from pydantic import BaseModel  # Ensure BaseModel is available
+
+class ScoreEntry(BaseModel):
+    score: int
+    justification: str
+
+class AnalysisResultModel(BaseModel):
+    summary_text: str
+    scores_json: Dict[str, ScoreEntry]
+
+    model_config = {
+        "extra": "ignore"  # ignore any additional keys
     } 

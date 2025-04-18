@@ -87,7 +87,7 @@ function App() {
         originModelUsed: response.model,
         analysisModelUsed: response.analysis_model,
         initialResponse: response.initial_response,
-        ethicalAnalysisText: response.ethical_analysis_text,
+        ethicalAnalysisText: response.analysis_summary,
         ethicalScores: response.ethical_scores
       });
     } catch (err) {

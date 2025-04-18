@@ -487,6 +487,27 @@ def _call_xai(
         logger.error(f"Unexpected exception during xAI call for model {model_name}: {e}. Prompt (start): {log_prompt_start}...", exc_info=True)
         return None
 
+# --- Optional Meme Pre-filter Configuration ---
+MEME_PREFILTER_ENABLED = os.getenv("MEME_PREFILTER_ENABLED", "true").lower() in ("1","true","yes")
+MEME_PREFILTER_TOP_K = int(os.getenv("MEME_PREFILTER_TOP_K", "50"))
+
+def _prefilter_memes(query_text: str, memes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Pre-filter memes by simple token overlap, keeping top K if enabled."""
+    if not MEME_PREFILTER_ENABLED:
+        return memes
+    query_tokens = set(re.findall(r'\\w+', query_text.lower()))
+    scored: List[Tuple[int, Dict[str, Any]]] = []
+    for meme in memes:
+        meme_text = f"{meme.get('name','')} {meme.get('description','')}"
+        meme_tokens = set(re.findall(r'\\w+', meme_text.lower()))
+        overlap = len(query_tokens & meme_tokens)
+        scored.append((overlap, meme))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    top_k = [m for score, m in scored[:MEME_PREFILTER_TOP_K] if score > 0]
+    if not top_k:
+        top_k = [m for _, m in scored[:MEME_PREFILTER_TOP_K]]
+    return top_k
+
 # --- NEW: Meme Selection Function ---
 MEME_SELECTOR_MODEL = "claude-3-haiku-20240307" # Use Haiku by default
 
@@ -515,6 +536,13 @@ def select_relevant_memes(
     if not available_memes:
         logger.warning("select_relevant_memes: No available memes provided. Skipping selection.")
         return None
+
+    # Apply optional pre-filter based on token overlap
+    original_count = len(available_memes)
+    query_text = f"{prompt} {r1_response}"
+    available_memes = _prefilter_memes(query_text, available_memes)
+    if len(available_memes) < original_count:
+        logger.info(f"Meme prefilter applied: {original_count} -> {len(available_memes)}")
 
     # Format the list of available memes for the prompt
     meme_list_str = "\n".join([
@@ -610,6 +638,8 @@ Respond *only* with the JSON object.
         logger.error(f"Unexpected error during meme selection call with {MEME_SELECTOR_MODEL}: {e}", exc_info=True)
         return None
 
+# --- R2 analysis context size limit ---
+R2_MEME_CONTEXT_MAX_CHARS = int(os.getenv("R2_MEME_CONTEXT_MAX_CHARS", "300"))
 
 # --- Main Interface Functions ---
 
@@ -690,6 +720,10 @@ def perform_ethical_analysis(
     if selected_meme_names:
         meme_context = "\n\n**Potentially Relevant Ethical Memes Identified:**\n- " + "\n- ".join(selected_meme_names)
         logger.info(f"Adding {len(selected_meme_names)} selected memes to analysis context.")
+        # Truncate meme_context to max length to avoid oversized prompts
+        if len(meme_context) > R2_MEME_CONTEXT_MAX_CHARS:
+            meme_context = meme_context[:R2_MEME_CONTEXT_MAX_CHARS] + "\n[... truncated meme context ...]"
+            logger.info(f"Truncated meme context to {R2_MEME_CONTEXT_MAX_CHARS} characters.")
 
     # --- Format the Analysis Prompt ---
     formatted_prompt = analysis_prompt_template.format(
