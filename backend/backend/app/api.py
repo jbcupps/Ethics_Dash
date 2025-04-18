@@ -76,6 +76,10 @@ XAI_MODELS = [
 
 ALL_MODELS = OPENAI_MODELS + GEMINI_MODELS + ANTHROPIC_MODELS + XAI_MODELS
 
+# Constants for parsing
+SUMMARY_DELIMITER = "SUMMARY:"
+JSON_DELIMITER = "JSON SCORES:"
+
 # --- Helper Functions ---
 
 def load_ontology(filepath: str = ONTOLOGY_FILEPATH) -> Optional[str]:
@@ -395,42 +399,119 @@ def _get_analysis_api_config(selected_analysis_model: Optional[str] = None,
     }
 
 def _parse_ethical_analysis(analysis_text: str) -> Tuple[str, Optional[Dict[str, Any]]]:
-    """Parses the LLM's ethical analysis response, expecting a single JSON object.
+    """Parses the raw text analysis from the LLM into summary and JSON scores."""
+    logger.debug(f"_parse_ethical_analysis: Attempting to parse raw text:\n---\n{analysis_text}\n---")
+    summary = "[Parsing Error: Summary not found]"
+    scores_json = None
 
-    Args:
-        analysis_text: The raw text response from the analysis LLM.
+    # --- NEW: Attempt direct JSON parsing first ---
+    # Some prompt templates instruct the LLM to return ONLY a JSON object with
+    # keys "summary_text" and "scores_json" (no additional delimiters). In such
+    # cases the earlier delimiter‑based extraction fails.  We therefore attempt
+    # to parse the entire response as JSON *before* looking for legacy
+    # delimiters.  If this succeeds we can return immediately.
+    trimmed = analysis_text.strip()
 
-    Returns:
-        A tuple containing:
-        - The extracted textual summary (str).
-        - The extracted scores JSON (dict), or None if parsing fails or keys are missing.
-    """
-    if not analysis_text or analysis_text == "[No analysis generated or content blocked]":
-        current_app.logger.warning("Ethical analysis text was empty or indicated generation failure.")
-        return analysis_text if analysis_text else "Analysis not generated.", None
+    # Attempt 1: Entire string is JSON
+    if trimmed.startswith("{") and trimmed.endswith("}"):
+        candidate = trimmed
+    else:
+        # Attempt 2: Find first '{' and last '}' in response
+        first_brace = trimmed.find('{')
+        last_brace = trimmed.rfind('}')
+        candidate = trimmed[first_brace:last_brace+1] if (first_brace != -1 and last_brace != -1 and last_brace > first_brace) else None
+
+    if candidate:
+        try:
+            parsed = json.loads(candidate)
+            if isinstance(parsed, dict) and ("summary_text" in parsed or "scores_json" in parsed):
+                summary = parsed.get("summary_text", "[Parsing Error: summary_text missing]")
+                scores_json = parsed.get("scores_json")
+                logger.info("_parse_ethical_analysis: Parsed response as JSON without delimiters.")
+                return summary, scores_json
+        except json.JSONDecodeError:
+            # candidate wasn't valid JSON – continue to legacy delimiter logic
+            pass
 
     try:
-        # Look for a JSON code block for ethical scoring
-        json_block = re.search(r"```json\s*([\s\S]*?)```", analysis_text)
-        if json_block:
-            json_str = json_block.group(1)
-            scores = json.loads(json_str)
-            # Extract summary text before the scoring block
-            summary_section = analysis_text[:json_block.start()].split("**Ethical Review Summary:**", 1)
-            summary = summary_section[-1].strip() if summary_section else analysis_text.strip()
-            return summary, scores
-        # No JSON scoring block: return full text as summary
-        return analysis_text.strip(), None
+        # Normalize line endings and strip leading/trailing whitespace
+        normalized_text = analysis_text.replace('\\r\\n', '\\n').strip()
 
-    except JSONDecodeError as e:
-        current_app.logger.error(f"Failed to decode JSON scoring block: {e}")
-        current_app.logger.debug(f"Raw analysis text:\n{analysis_text}")
-        # Fallback: return full text as summary
-        return analysis_text.strip(), None
+        # Find delimiters (case-insensitive)
+        summary_match = re.search(f"^{SUMMARY_DELIMITER}", normalized_text, re.IGNORECASE | re.MULTILINE)
+        json_match = re.search(f"^{JSON_DELIMITER}", normalized_text, re.IGNORECASE | re.MULTILINE)
+
+        summary_start_index = -1
+        json_start_index = -1
+
+        if summary_match:
+            summary_start_index = summary_match.end()
+            logger.debug(f"Found summary delimiter at index {summary_start_index}")
+        else:
+            logger.warning(f"'{SUMMARY_DELIMITER}' not found in analysis text.")
+
+        if json_match:
+            json_start_index = json_match.end()
+            logger.debug(f"Found JSON delimiter at index {json_start_index}")
+        else:
+            logger.warning(f"'{JSON_DELIMITER}' not found in analysis text.")
+
+        # Extract sections based on found delimiters
+        if summary_start_index != -1 and json_start_index != -1:
+            if summary_start_index < json_start_index:
+                # SUMMARY: comes before JSON SCORES:
+                summary_text_raw = normalized_text[summary_start_index:json_match.start()].strip()
+                json_text_raw = normalized_text[json_start_index:].strip()
+            else:
+                # JSON SCORES: comes before SUMMARY:
+                json_text_raw = normalized_text[json_start_index:summary_match.start()].strip()
+                summary_text_raw = normalized_text[summary_start_index:].strip()
+
+        elif summary_start_index != -1:
+            # Only SUMMARY: found
+            summary_text_raw = normalized_text[summary_start_index:].strip()
+            json_text_raw = "" # No JSON section
+            logger.warning("Only summary delimiter found, no JSON scores expected.")
+        elif json_start_index != -1:
+            # Only JSON SCORES: found
+            json_text_raw = normalized_text[json_start_index:].strip()
+            summary_text_raw = "[Summary missing, only scores found]" # No summary section
+            logger.warning("Only JSON delimiter found, no summary text expected.")
+        else:
+            # Neither delimiter found - assume the whole text is the summary
+            summary_text_raw = normalized_text
+            json_text_raw = ""
+            logger.warning("Neither summary nor JSON delimiter found. Treating entire text as summary.")
+
+        # Assign the extracted summary text
+        summary = summary_text_raw if summary_text_raw else "[Parsing Error: Extracted summary was empty]"
+        logger.debug(f"Extracted Summary Text:\n---\n{summary}\n---")
+
+        # Parse the JSON part
+        if json_text_raw:
+            # Clean the JSON string: find the first '{' and the last '}'
+            first_brace = json_text_raw.find('{')
+            last_brace = json_text_raw.rfind('}')
+            if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+                json_string_cleaned = json_text_raw[first_brace:last_brace+1]
+                logger.debug(f"Attempting to parse JSON string:\n---\n{json_string_cleaned}\n---")
+                try:
+                    scores_json = json.loads(json_string_cleaned)
+                    logger.info("Successfully parsed JSON scores.")
+                except json.JSONDecodeError as json_err:
+                    logger.error(f"JSON decoding failed: {json_err}. Raw JSON text: {json_string_cleaned}")
+                    summary += " [Warning: Failed to parse JSON scores]" # Append warning to summary
+            else:
+                logger.warning(f"Could not find valid JSON structure ({{...}}) in the JSON section. Raw text: {json_text_raw}")
+        else:
+            logger.info("No JSON score section found or extracted.")
+
     except Exception as e:
-        current_app.logger.error(f"Unexpected error in parsing analysis: {e}", exc_info=True)
-        # Fallback: return full text as summary
-        return analysis_text.strip(), None
+        logger.error(f"Unexpected error during parsing of analysis text: {e}", exc_info=True)
+        summary = f"[Critical Parsing Error: {e}]"
+        scores_json = None
+
+    return summary, scores_json
 
 # --- Private Helpers for /analyze Route ---
 

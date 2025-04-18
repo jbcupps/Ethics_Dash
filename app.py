@@ -93,6 +93,8 @@ def form_group(label_text, component):
 # --- Layout Definition ---
 app.layout = dbc.Container([
     dcc.Location(id='url', refresh=False),
+    # Auto-load memes once at startup
+    dcc.Interval(id='init-load-memes', interval=1, n_intervals=0, max_intervals=1),
     html.H1("Ethics Dash - Integrated"), # Updated Title
     html.Hr(),
     
@@ -170,9 +172,7 @@ app.layout = dbc.Container([
                 dbc.CardHeader("Existing Memes"),
                 dbc.CardBody([
                     dbc.Button("Refresh List", id="btn-refresh-memes", color="secondary", className="me-2"),
-                    html.Div(id="existing-memes-container"),
-                    # Auto-load memes once on initial render
-                    dcc.Interval(id="init-load-memes", interval=1000, n_intervals=0, max_intervals=1)
+                    html.Div(id="existing-memes-container")
                 ])
             ], className="mt-4")
         ])

@@ -54,7 +54,7 @@ def get_all_memes_for_selection() -> List[Dict[str, Any]]:
     memes_list = []
     try:
         db = get_db()
-        if db:
+        if db is not None:
             collection = db[MEME_COLLECTION_NAME]
             # Project only necessary fields
             cursor = collection.find({}, {"_id": 1, "name": 1, "description": 1})

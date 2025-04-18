@@ -12,6 +12,7 @@ from anthropic import APIError as AnthropicAPIError, APIConnectionError as Anthr
 from openai import OpenAIError, APIConnectionError as OpenAIConnectionError, APITimeoutError as OpenAITimeoutError, AuthenticationError as OpenAIAuthError, RateLimitError as OpenAIRateLimitError # Added OpenAI errors
 from urllib.parse import urlparse
 import json # Added for structured logging potentially
+import re    # Import regex for parsing in select_relevant_memes
 from bson import ObjectId # Added for fetching memes by ID
 from bson.errors import InvalidId # Added for error handling
 from pymongo.database import Database # Type hint for db object

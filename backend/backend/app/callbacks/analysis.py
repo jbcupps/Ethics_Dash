@@ -8,7 +8,8 @@ from bson import ObjectId
 from bson.errors import InvalidId
 
 # Import the analysis function
-from backend.app.modules.llm_interface import perform_ethical_analysis 
+from backend.app.modules.llm_interface import perform_ethical_analysis, select_relevant_memes
+from backend.app.db import get_all_memes_for_selection
 
 logger = logging.getLogger(__name__)
 
@@ -63,45 +64,44 @@ def register_analysis_callbacks(dash_app):
              return "Error: Analysis service API key not configured."
 
         try:
-            # Prepare arguments for the current perform_ethical_analysis signature
-            api_config = {
-                "provider": None, # Determine provider based on model name if possible, or add config
-                "key": analysis_api_key,
-                "model": analysis_model_name,
-                "endpoint": analysis_api_endpoint
-            }
-            # Determine provider based on model name (simple heuristic)
-            if "gpt-" in analysis_model_name.lower():
-                api_config["provider"] = "OpenAI"
-            elif "gemini" in analysis_model_name.lower():
-                api_config["provider"] = "Gemini"
-            elif "claude" in analysis_model_name.lower():
-                api_config["provider"] = "Anthropic"
+            # Select relevant memes based on prompt and initial response
+            selected_meme_names = []
+            available_memes = get_all_memes_for_selection()
+            if available_memes:
+                meme_selection_result = select_relevant_memes(
+                    prompt=p1_meme_text,
+                    r1_response=r1_meme_text,
+                    available_memes=available_memes,
+                    selector_api_key=analysis_api_key,
+                    selector_api_endpoint=analysis_api_endpoint
+                )
+                if meme_selection_result:
+                    selected_meme_names = meme_selection_result.selected_memes
+                    logger.info(f"Selected memes for analysis: {selected_meme_names}")
+                else:
+                    logger.warning("Meme selection returned no results.")
             else:
-                 logger.warning(f"Could not determine LLM provider for model: {analysis_model_name}. Add provider config or adjust logic.")
-                 # Optionally default to a provider or raise an error
+                logger.warning("No memes available for selection.")
 
-            # Context might include ontology or other relevant info for the LLM call
-            context_data = {"ontology": ontology_content}
-
+            # Perform ethical analysis with selected memes
             analysis_result_dict = perform_ethical_analysis(
-                prompt=p1_meme_text,                # Changed from initial_prompt
-                initial_response=r1_meme_text,    # Changed from generated_response
-                analysis_model=analysis_model_name, # Changed from analysis_model_name
-                api_config=api_config,              # Pass the constructed config dict
-                context=context_data                # Pass the context dict
+                initial_prompt=p1_meme_text,
+                generated_response=r1_meme_text,
+                ontology=ontology_content,
+                analysis_api_key=analysis_api_key,
+                analysis_model_name=analysis_model_name,
+                analysis_api_endpoint=analysis_api_endpoint,
+                selected_meme_names=selected_meme_names
             )
 
             # Process the result dictionary
             if analysis_result_dict:
                 logger.info("Ethical analysis successful via Dash callback.")
-                # Extract summary and format the output
                 summary = analysis_result_dict.get("summary_text", "[Summary not found in analysis result]")
-                # We might want to display scores too if needed, extracted from analysis_result_dict["scores_json"]
                 return f"### Ethical Analysis Results\n\n**P1 Meme:** {p1_doc.get('name', p1_meme_id)}\n**R1 Meme:** {r1_doc.get('name', r1_meme_id)}\n\n---\n\n{summary}"
             else:
                 logger.warning("Ethical analysis returned None via Dash callback.")
                 return "Analysis failed. LLM returned no result (check backend logs)."
         except Exception as e:
-            logger.error(f"Error calling perform_ethical_analysis via Dash callback: {e}", exc_info=True)
+            logger.error(f"Error during analysis callback: {e}", exc_info=True)
             return f"An unexpected error occurred during analysis: {e}" 
