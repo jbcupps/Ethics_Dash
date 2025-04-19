@@ -9,14 +9,14 @@ const LandingPage = ({ onEnter }) => {
       <header className="hero text-center mb-xl">
         {/* Add the AI Ethics image */}
         <div className="hero-image mb-lg">
-          <img src="/images/aiethics.png" alt="AI Ethics Concept" className="hero-img" />
+          <img src="/images/herodash.webp" alt="AI Ethics Dashboard" className="hero-img" />
         </div>
-        <h1>AI Ethical Review Dashboard</h1>
+        <h1>Transforming AI Ethics Analysis</h1>
         <p className="lead text-secondary mb-lg" style={{ maxWidth: '700px', margin: '0 auto var(--spacing-lg) auto' }}>
-          Analyze Large Language Model responses through the integrated lens of Deontology, Teleology, Areteology, and Memetics.
+          Unlock deeper insights into AI responses with our advanced ethical review tool, integrating Deontology, Teleology, Areteology, and Memetics.
         </p>
         <button onClick={onEnter} className="button button-large" >
-          Start Analysis Tool
+          Explore Ethical Analysis Now
         </button>
       </header>
 

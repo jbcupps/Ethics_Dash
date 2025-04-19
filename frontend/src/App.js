@@ -16,6 +16,7 @@ function App() {
   const [showTool, setShowTool] = useState(false);
   const [view, setView] = useState('landing');
   const [showMemeDropdown, setShowMemeDropdown] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState({
     prompt: '',
     originModelUsed: '',
@@ -98,7 +99,7 @@ function App() {
   };
 
   const renderHeader = () => (
-    <header className="app-header">
+    <header className="app-header sticky-header">
       <nav>
         <button 
           onClick={handleViewTool} 
@@ -136,11 +137,21 @@ function App() {
         >
           Documentation
         </button>
+        <div className="nav-search">
+          <input 
+            type="text" 
+            placeholder="Search content..." 
+            className="search-input"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
       </nav>
     </header>
   );
 
   const renderContent = () => {
+    const lowerSearchTerm = searchTerm.toLowerCase();
     switch (view) {
       case 'tool':
         return (
@@ -164,13 +175,14 @@ function App() {
               initialResponse={results.initialResponse}
               ethicalAnalysisText={results.ethicalAnalysisText}
               ethicalScores={results.ethicalScores}
+              searchTerm={lowerSearchTerm}
             />
           </>
         );
       case 'memes':
-        return <MemesDashboard />;
+        return <MemesDashboard searchTerm={lowerSearchTerm} />;
       case 'docs':
-        return <DocumentationPage />;
+        return <DocumentationPage searchTerm={lowerSearchTerm} />;
       case 'landing':
       default:
         return <LandingPage onEnter={handleEnterTool} />;

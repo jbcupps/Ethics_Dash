@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ethicalReviewApi from '../services/api';
 import '../App.css'; // Assuming shared styles
 
-const MemesDashboard = () => {
+const MemesDashboard = ({ searchTerm }) => {
   const [memes, setMemes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -33,6 +33,16 @@ const MemesDashboard = () => {
     ));
   };
 
+  // Filter memes based on search term
+  const filteredMemes = searchTerm 
+    ? memes.filter(meme => 
+        meme.name.toLowerCase().includes(searchTerm) || 
+        meme.description.toLowerCase().includes(searchTerm) || 
+        (meme.keywords && meme.keywords.some(kw => kw.toLowerCase().includes(searchTerm))) ||
+        (meme.source_concept && meme.source_concept.toLowerCase().includes(searchTerm))
+      )
+    : memes;
+
   return (
     <div className="memes-dashboard">
       <h2 className="mb-lg">Ethical Memes Library</h2>
@@ -44,12 +54,12 @@ const MemesDashboard = () => {
         </div>
       )}
       
-      {error && <div className="alert alert-error">{error}</div>}
+      {error && <div className="alert alert-error" role="alert">{error}</div>}
 
       {!loading && !error && (
         <div className="memes-list">
-          {memes.length > 0 ? (
-            memes.map(meme => (
+          {filteredMemes.length > 0 ? (
+            filteredMemes.map(meme => (
               <div key={meme._id} className="card meme-card mb-lg">
                 <h3>{meme.name}</h3>
                 <div className="meme-dimensions mb-sm">
@@ -64,7 +74,7 @@ const MemesDashboard = () => {
               </div>
             ))
           ) : (
-            <p>No memes found in the library.</p>
+            <p>No memes found matching your search criteria.</p>
           )}
         </div>
       )}
