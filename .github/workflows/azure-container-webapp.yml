@@ -52,6 +52,7 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           allow-no-subscriptions: true
+          environment: 'AzureCloud'
 
       - name: Log in to Azure Container Registry
         uses: azure/docker-login@v1
@@ -85,6 +86,7 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           allow-no-subscriptions: true
+          environment: 'AzureCloud'
 
       - name: Register o4-mini (Preview) feature
         run: az feature register --namespace Microsoft.AzureOpenAI --name o4MiniModelV1
