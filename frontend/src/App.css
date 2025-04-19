@@ -512,46 +512,46 @@ button:disabled {
   justify-content: center;
   align-items: center;
   padding: var(--spacing-xl);
-  /* Parallax Background Setup */
+  /* Remove background image styles */
   /* background-image: url('./assets/cyber_security_command_center.jpg'); */
   background-color: var(--color-background-main);
-  background-attachment: fixed; /* Creates the parallax effect */
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
-  position: relative; /* Needed for potential overlays */
-  color: white; /* Ensure text is visible on dark images - adjust as needed */
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); /* Improve text readability */
+  /* background-attachment: fixed; */ /* Removed */
+  /* background-position: center; */ /* Removed */
+  /* background-repeat: no-repeat; */ /* Removed */
+  /* background-size: cover; */ /* Removed */
+  position: relative; /* Needed for potential absolute positioning elements if added later */
+  color: var(--color-text-primary); /* Change default text color back */
+  /* text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); */ /* Removed */
 }
 
-/* Optional: Add an overlay for better text contrast */
-.hero::before {
+/* Remove the overlay */
+/* .hero::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.3); /* Adjust opacity as needed */
+  background-color: rgba(0, 0, 0, 0.3); 
   z-index: 1;
-}
+} */
 
-/* Ensure hero content is above the overlay */
-.hero > * { /* Target direct children: h1, p, button etc. */
+/* Ensure hero content is visible */
+.hero > * { 
   position: relative;
-  z-index: 2;
+  z-index: 2; /* Keep z-index in case needed later */
 }
 
 .hero h1 {
-  color: inherit; /* Inherit color from .hero (likely white) */
-  font-size: 3.5rem; /* Larger hero title */
+  color: var(--color-text-primary); /* Use primary text color */
+  font-size: 3.5rem; 
   margin-bottom: var(--spacing-md);
 }
 
 .hero .lead {
-  color: rgba(255, 255, 255, 0.9); /* Slightly transparent white for lead text */
+  color: var(--color-text-secondary); /* Use secondary text color */
   font-size: 1.25rem;
-  margin-bottom: var(--spacing-xl); /* More space before button */
+  margin-bottom: var(--spacing-xl); 
 }
 
 /* Enhance button hover effect */
@@ -779,4 +779,19 @@ button:disabled {
 .nav-dropdown-menu li button:hover,
 .nav-dropdown-menu li a:hover {
   background-color: #ddd;
+}
+
+/* Hero image styles */
+.hero-image {
+  margin-bottom: var(--spacing-lg);
+  display: flex;
+  justify-content: center;
+}
+
+.hero-img {
+  max-width: 100%;
+  height: auto;
+  max-height: 300px;
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--box-shadow-standard);
 } 

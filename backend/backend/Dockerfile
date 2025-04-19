@@ -21,18 +21,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Copy the requirements file into the container at /app
-COPY --chown=app:app backend/backend/requirements.txt requirements.txt
+COPY --chown=app:app requirements.txt requirements.txt
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir dash-cytoscape && \
+    pip install --no-cache-dir google-generativeai && \
+    pip install --no-cache-dir anthropic && \
+    pip install --no-cache-dir openai
 
 # Copy the application code into the container
-COPY --chown=app:app backend/backend/ /app/backend/
-COPY --chown=app:app scripts/ /app/scripts/
+COPY --chown=app:app . /app/backend/
 
 # Copy external documents (memes JSON and ontology)
 COPY --chown=app:app documents/ /app/documents/
+
+# Copy scripts
+RUN mkdir -p /app/scripts
+COPY --chown=app:app scripts/ /app/scripts/
 
 # Switch to the non-root user
 USER app

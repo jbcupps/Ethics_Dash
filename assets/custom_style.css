@@ -12,6 +12,31 @@ h1, h2, h3, h4, h5, h6 {
      /* Add font-weight or other specifics if needed */
 }
 
+/* --- Image Usage Examples --- */
+.header-logo {
+    background-image: url('/images/logo-main-200.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    height: 50px;
+    width: 200px;
+}
+
+.dashboard-background {
+    background-image: url('/images/bg-dashboard-large.jpg');
+    background-size: cover;
+    background-position: center;
+}
+
+.icon-dashboard {
+    background-image: url('/images/icon-dashboard-24.svg');
+    width: 24px;
+    height: 24px;
+    display: inline-block;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
 /* --- Color Overrides --- */
 /* Define WR Berkley Brand Colors as CSS variables */
 :root {

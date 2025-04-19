@@ -49,19 +49,28 @@ def register_dynamic_input_callbacks(dash_app):
 
     # Callback to REMOVE a morphism input group
     @dash_app.callback(
-        Output('morphisms-container', 'children', allow_duplicate=True),
-        # Use MATCH on the button type
-        Input({'type': 'remove-morphism-button', 'index': MATCH}, 'n_clicks'), 
+        Output('morphisms-container', 'children'),
+        # Use ALL instead of MATCH for pattern matching
+        Input({'type': 'remove-morphism-button', 'index': ALL}, 'n_clicks'),
         State('morphisms-container', 'children'),
         prevent_initial_call=True
     )
-    def remove_morphism(n_clicks, existing_children):
-        if not n_clicks or not existing_children:
+    def remove_morphism(n_clicks_list, existing_children):
+        if not n_clicks_list or not existing_children or not any(n for n in n_clicks_list if n):
             return existing_children # No clicks or nothing to remove
 
+        # Find which button was clicked by looking for a change in n_clicks
+        clicked_index = None
+        for i, n_clicks in enumerate(n_clicks_list):
+            if n_clicks:
+                clicked_index = i
+                break
+                
+        if clicked_index is None:
+            return existing_children
+
         # Get the index of the button that was clicked
-        triggered_id = ctx.triggered_id
-        remove_index = triggered_id['index']
+        remove_index = clicked_index
         logger.info(f"Removing morphism at index {remove_index}")
 
         # Filter out the child whose card ID matches the removed index
@@ -80,18 +89,27 @@ def register_dynamic_input_callbacks(dash_app):
 
     # Callback to REMOVE a mapping input group
     @dash_app.callback(
-        Output('mappings-container', 'children', allow_duplicate=True),
-        # Use MATCH on the button type
-        Input({'type': 'remove-mapping-button', 'index': MATCH}, 'n_clicks'),
+        Output('mappings-container', 'children'),
+        # Use ALL instead of MATCH for pattern matching
+        Input({'type': 'remove-mapping-button', 'index': ALL}, 'n_clicks'),
         State('mappings-container', 'children'),
         prevent_initial_call=True
     )
-    def remove_mapping(n_clicks, existing_children):
-        if not n_clicks or not existing_children:
+    def remove_mapping(n_clicks_list, existing_children):
+        if not n_clicks_list or not existing_children or not any(n for n in n_clicks_list if n):
             return existing_children
 
-        triggered_id = ctx.triggered_id
-        remove_index = triggered_id['index']
+        # Find which button was clicked by looking for a change in n_clicks
+        clicked_index = None
+        for i, n_clicks in enumerate(n_clicks_list):
+            if n_clicks:
+                clicked_index = i
+                break
+                
+        if clicked_index is None:
+            return existing_children
+          
+        remove_index = clicked_index
         logger.info(f"Removing mapping at index {remove_index}")
 
         updated_children = [
@@ -105,7 +123,7 @@ def register_dynamic_input_callbacks(dash_app):
 
     # Callback to populate morphism inputs when editing
     @dash_app.callback(
-        Output('morphisms-container', 'children', allow_duplicate=True),
+        Output('morphisms-container', 'children'),
         Input('edit-meme-store', 'data'),
         State('analysis-p1-dropdown', 'options'), # Need options for target dropdown
         prevent_initial_call=True
@@ -153,7 +171,7 @@ def register_dynamic_input_callbacks(dash_app):
 
     # Callback to populate mapping inputs when editing
     @dash_app.callback(
-        Output('mappings-container', 'children', allow_duplicate=True),
+        Output('mappings-container', 'children'),
         Input('edit-meme-store', 'data'),
         prevent_initial_call=True
     )

@@ -85,13 +85,27 @@ JSON_DELIMITER = "JSON SCORES:"
 # --- Helper Functions ---
 
 def load_ontology(filepath: str = ONTOLOGY_FILEPATH) -> Optional[str]:
-    """Loads the ethical ontology text from the specified file."""
-    try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            return f.read()
-    except Exception as e:
-        logger.error(f"Error loading ontology: {e}")
-        return None
+    """Loads the ethical ontology text from the specified file, falling back to /app/documents/ontology.md if needed."""
+    # Try the primary path
+    if filepath and os.path.exists(filepath):
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                return f.read()
+        except Exception as e:
+            logger.error(f"Error reading ontology at {filepath}: {e}", exc_info=True)
+    else:
+        logger.warning(f"Ontology file not found at primary path: {filepath}")
+    # Fallback to mounted documents directory
+    fallback_path = '/app/documents/ontology.md'
+    if os.path.exists(fallback_path):
+        try:
+            with open(fallback_path, 'r', encoding='utf-8') as f:
+                return f.read()
+        except Exception as e:
+            logger.error(f"Error reading ontology at fallback path {fallback_path}: {e}", exc_info=True)
+    else:
+        logger.error(f"Ontology file not found at fallback path: {fallback_path}")
+    return None
 
 def log_prompt(prompt: str, model_name: str, filepath: str = PROMPT_LOG_FILEPATH):
     """Appends the given prompt and selected model to the log file."""

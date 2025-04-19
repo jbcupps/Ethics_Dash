@@ -16,11 +16,12 @@ server = Flask(__name__, static_folder='static') # Define static folder explicit
 # Use the Flask server instance
 app = dash.Dash(
     __name__,
-    server=server, # Use the explicit Flask server
+    server=server,  # Use the explicit Flask server
     external_stylesheets=[dbc.themes.BOOTSTRAP],
     suppress_callback_exceptions=True,
     assets_folder='assets',
-    requests_pathname_prefix='/dash/',
+    requests_pathname_prefix='/dash/',  # URL prefix for page rendering
+    routes_pathname_prefix='/dash/'    # URL prefix for static assets (components)
 )
 
 # Path for the React build artifacts
@@ -375,7 +376,7 @@ def handle_save_meme(
     Input("init-load-memes", "n_intervals")  # auto trigger once
 )
 def refresh_existing_memes(n_clicks, n_intervals):
-    result, status_code = make_api_request("GET", "/memes/")
+    result, status_code = make_api_request("GET", "/memes")
     if status_code != 200:
         return dbc.Alert(f"API error {status_code}: {result}",
                          color="danger")

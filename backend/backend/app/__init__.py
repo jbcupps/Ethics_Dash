@@ -43,36 +43,19 @@ def create_app():
     server.config['MONGO_DB_NAME'] = os.getenv("MONGO_DB_NAME", "ethical_memes_db")
     
     # Load API Keys and Model Config for Analysis
-    server.config['ANALYSIS_API_KEY'] = os.getenv("ANALYSIS_API_KEY")
-    server.config['ANALYSIS_MODEL_NAME'] = os.getenv("ANALYSIS_MODEL_NAME", "gpt-4o") # Example default
+    # Use specific analysis keys if present, otherwise fall back to general keys
+    server.config['ANALYSIS_API_KEY'] = (
+        os.getenv("ANALYSIS_ANTHROPIC_API_KEY") or
+        os.getenv("ANTHROPIC_API_KEY") or
+        os.getenv("ANALYSIS_OPENAI_API_KEY") or
+        os.getenv("OPENAI_API_KEY") or
+        os.getenv("ANALYSIS_GEMINI_API_KEY") or
+        os.getenv("GEMINI_API_KEY")
+    )
+    # Default analysis model (Anthropic Claude Sonnet)
+    server.config['ANALYSIS_LLM_MODEL'] = os.getenv("ANALYSIS_LLM_MODEL", "claude-3-sonnet-20240229")
     server.config['ANALYSIS_API_ENDPOINT'] = os.getenv("ANALYSIS_API_ENDPOINT") # Optional
     
-    # Add specific analysis keys (even if None)
-    server.config['ANALYSIS_OPENAI_API_KEY'] = os.getenv("ANALYSIS_OPENAI_API_KEY")
-    server.config['ANALYSIS_GEMINI_API_KEY'] = os.getenv("ANALYSIS_GEMINI_API_KEY")
-    server.config['ANALYSIS_ANTHROPIC_API_KEY'] = os.getenv("ANALYSIS_ANTHROPIC_API_KEY")
-
-    # --- Check for missing ANALYSIS keys and log warnings --- 
-    # Determine if *any* specific analysis key is set
-    specific_analysis_key_set = (
-        server.config['ANALYSIS_OPENAI_API_KEY'] or
-        server.config['ANALYSIS_GEMINI_API_KEY'] or
-        server.config['ANALYSIS_ANTHROPIC_API_KEY']
-    )
-    
-    # Also check general keys (as fallbacks)
-    general_openai_key = os.getenv("OPENAI_API_KEY")
-    general_gemini_key = os.getenv("GEMINI_API_KEY")
-    general_anthropic_key = os.getenv("ANTHROPIC_API_KEY")
-    general_key_set = general_openai_key or general_gemini_key or general_anthropic_key
-    
-    # Warn if NO analysis key (specific or general fallback) is likely available for the chosen model
-    # This logic might need refinement depending on how _get_api_config chooses keys
-    if not specific_analysis_key_set and not general_key_set:
-         logger.warning("No specific or general API key found for analysis LLM in environment variables. Ethical analysis will likely fail.")
-    elif not specific_analysis_key_set:
-        logger.info("No specific ANALYSIS_***_API_KEY found. Analysis will rely on general API keys (OPENAI_API_KEY, GEMINI_API_KEY, ANTHROPIC_API_KEY).")
-
     # Enable CORS for frontend and Dash interactions
     CORS(server)
     

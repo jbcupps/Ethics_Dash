@@ -9,6 +9,7 @@ def create_layout():
     """Creates the Dash application layout."""
     return dbc.Container([
         dcc.Store(id='meme-update-trigger-store'), # Triggers dropdown/table updates
+        dcc.Interval(id='meme-initial-load', interval=1000, n_intervals=0, max_intervals=1), # Load memes once on startup
         dcc.Store(id='edit-meme-store', storage_type='memory'), # Holds data for meme being edited
         html.H1("Ethical Memes Dashboard"),
         dbc.Alert(id='alert-message', color='warning', is_open=False), # For notifications

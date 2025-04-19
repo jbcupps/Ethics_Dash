@@ -1,7 +1,7 @@
 # Ethics Dashboard
 
 <!-- Project Description: A brief overview of what the Ethics Dashboard does. -->
-[**TODO:** Add a brief 1-2 sentence description of the project here.]
+A web application focused on ethical analysis using AI models, leveraging backend processes for validation, model selection, and result generation.
 
 ## Table of Contents
 
@@ -130,20 +130,16 @@ The base URL for the API is configured via the `API_ENDPOINT` environment variab
 
 ### Authentication
 Authentication is typically handled using the `API_KEY` and `API_SECRET`.
-- **Mechanism:** [**TODO:** Describe *how* the key/secret are used - e.g., specific HTTP headers (like `X-API-KEY`, `Authorization: Bearer <token>`), query parameters, etc.]
+- **Mechanism:** Authentication details (e.g., header names like `X-API-KEY` or `Authorization`) should be verified in the API implementation.
 - **Credentials:** Obtain the necessary key and secret from the configured GitHub Secrets or your local `.env` file.
 
 ### Endpoints
-[**TODO:** Add details on where to find the API endpoint documentation. Options:
-- Link to a Swagger/OpenAPI specification file (e.g., `docs/api.yaml`) or a hosted Swagger UI.
-- Link to a Postman collection.
-- Link to separate documentation pages or a wiki.
-- If documentation doesn't exist yet, state that it needs to be created.]
+Detailed API endpoint documentation is not currently linked here. Please refer to the API source code or create dedicated documentation (e.g., using Swagger/OpenAPI). The `docs/R2_Ethical_Analysis_Flow.md` file describes the `/analyze` endpoint flow.
 
 Example: "Detailed API endpoint documentation can be found in the [API Specification](link-to-spec-or-docs)."
 
 ### Versioning
-The API version may be specified by the `API_VERSION` configuration variable. If used, include this information in your requests as needed (e.g., in the URL path or an `Accept` header). [**TODO:** Clarify if/how versioning is implemented.]
+The API version may be specified by the `API_VERSION` configuration variable. If used, include this information in your requests as needed (e.g., in the URL path or an `Accept` header). The specific implementation of API versioning (if any) should be verified in the API source code.
 
 ## CI/CD Pipeline
 

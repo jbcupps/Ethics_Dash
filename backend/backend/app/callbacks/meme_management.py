@@ -117,19 +117,19 @@ def register_meme_management_callbacks(app):
     
     # --- Add other meme management callbacks (save, clear, table selection, etc.) here eventually --- 
     
-    # Example placeholder for save button (needs implementation)
-    @app.callback(
-        Output('alert-message', 'children'),
-        Output('alert-message', 'is_open'),
-        Output('alert-message', 'color'),
-        # ... more outputs (like meme-update-trigger-store?)
-        Input('save-meme-button', 'n_clicks'),
-        # ... states for all form inputs ... 
-        prevent_initial_call=True
-    )
-    def save_meme_callback(n_clicks):
-         if n_clicks is None or n_clicks < 1:
-             raise PreventUpdate
-         # TODO: Implement save logic (collect data, validate, call API)
-         # For now, just show a message
-         return "Save functionality not yet fully implemented.", True, "info" 
+    # Removed placeholder save_meme_callback as it's implemented in form_callbacks.py
+    # @app.callback(
+    #     Output('alert-message', 'children'),
+    #     Output('alert-message', 'is_open'),
+    #     Output('alert-message', 'color'),
+    #     # ... more outputs (like meme-update-trigger-store?)
+    #     Input('save-meme-button', 'n_clicks'),
+    #     # ... states for all form inputs ... 
+    #     prevent_initial_call=True
+    # )
+    # def save_meme_callback(n_clicks):
+    #      if n_clicks is None or n_clicks < 1:
+    #          raise PreventUpdate
+    #      # TODO: Implement save logic (collect data, validate, call API)
+    #      # For now, just show a message
+    #      return "Save functionality not yet fully implemented.", True, "info" 

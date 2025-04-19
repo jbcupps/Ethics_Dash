@@ -7,8 +7,10 @@ const LandingPage = ({ onEnter }) => {
     <div className="landing-page">
       {/* Hero Section */}
       <header className="hero text-center mb-xl">
-        {/* Placeholder for an icon or logo if desired */}
-        {/* <div className="hero-icon mb-lg">&#x1F916;</div> */}
+        {/* Add the AI Ethics image */}
+        <div className="hero-image mb-lg">
+          <img src="/images/aiethics.png" alt="AI Ethics Concept" className="hero-img" />
+        </div>
         <h1>AI Ethical Review Dashboard</h1>
         <p className="lead text-secondary mb-lg" style={{ maxWidth: '700px', margin: '0 auto var(--spacing-lg) auto' }}>
           Analyze Large Language Model responses through the integrated lens of Deontology, Teleology, Areteology, and Memetics.

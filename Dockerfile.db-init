@@ -1,0 +1,9 @@
+FROM python:3.9-slim
+
+# Install dependencies
+RUN pip install pymongo python-dotenv
+
+# Set the working directory
+WORKDIR /app
+
+# Command will be specified in docker-compose.yml 

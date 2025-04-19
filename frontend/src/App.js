@@ -111,7 +111,7 @@ function App() {
         <div className="nav-dropdown-container">
           <button 
             onClick={handleToggleMemeDropdown} 
-            className={`nav-button ${view === 'memes' ? 'active' : ''}`}
+            className={`nav-button ${view === 'memes' ? 'active' : ''}`} 
             data-tooltip-id="nav-tooltip"
             data-tooltip-content="Access Memes Library options"
           >

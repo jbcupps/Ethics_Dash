@@ -10,6 +10,7 @@ from bson.errors import InvalidId
 # Import the analysis function
 from backend.app.modules.llm_interface import perform_ethical_analysis, select_relevant_memes
 from backend.app.db import get_all_memes_for_selection
+from backend.app.api import load_ontology  # add this import
 
 logger = logging.getLogger(__name__)
 
@@ -45,18 +46,15 @@ def register_analysis_callbacks(dash_app):
         except InvalidId as e: logger.error(f"Invalid ID: {e}"); return f"Error: Invalid meme ID format."
         except Exception as e: logger.error(f"DB error fetching P1/R1: {e}", exc_info=True); return f"Error fetching meme data."
             
-        ontology_content = ""
-        ontology_path = os.path.join(current_app.root_path, 'ontology.md')
-        if not os.path.exists(ontology_path):
-             ontology_path_alt = os.path.join(os.path.dirname(__file__), '..', 'ontology.md') # Adjust path relative to analysis.py
-             if os.path.exists(ontology_path_alt): ontology_path = ontology_path_alt
-             else: logger.error(f"ontology.md not found: {ontology_path} or {ontology_path_alt}"); return "Error: ontology.md not found."
-        try:
-            with open(ontology_path, 'r', encoding='utf-8') as f: ontology_content = f.read()
-        except Exception as e: logger.error(f"Error reading ontology: {e}", exc_info=True); return f"Error reading ontology file."
+        # Load the ontology text using the shared helper
+        ontology_content = load_ontology()
+        if ontology_content is None:
+            logger.error("Error loading ontology via load_ontology helper.")
+            return "Error: Could not load ethical ontology."
             
         analysis_api_key = current_app.config.get('ANALYSIS_API_KEY')
-        analysis_model_name = current_app.config.get('ANALYSIS_MODEL_NAME', 'gpt-4o')
+        # Use the configured analysis model (Anthropic Claude Sonnet by default)
+        analysis_model_name = current_app.config.get('ANALYSIS_LLM_MODEL', 'claude-3-sonnet-20240229')
         analysis_api_endpoint = current_app.config.get('ANALYSIS_API_ENDPOINT')
         
         if not analysis_api_key:

@@ -10,8 +10,14 @@ done
 
 echo "MongoDB is up. Populating default memes..."
 
-# Run the memes population script
-python3 /app/scripts/populate_memes.py
+echo "Populating default memes..."
+if [ -f "/app/scripts/populate_memes.py" ]; then
+  python3 /app/scripts/populate_memes.py
+else
+  echo "Error: populate_memes.py script not found at /app/scripts/populate_memes.py"
+  echo "Contents of /app/scripts:"
+  ls -l /app/scripts/
+fi
 
 echo "Starting Gunicorn server..."
 exec gunicorn --workers 4 --bind 0.0.0.0:5000 backend.wsgi:app 
