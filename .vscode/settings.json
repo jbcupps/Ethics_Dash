@@ -1,0 +1,4 @@
+{
+  // Replace placeholders with your actual subscription, resource group and web app names
+  "azureAppService.defaultWebAppToDeploy": "/subscriptions/${{AZURE_SUBSCRIPTION_ID}}/resourceGroups/${{RESOURCE_GROUP}}/providers/Microsoft.Web/sites/${{AZURE_WEBAPP_NAME}}"
+}
