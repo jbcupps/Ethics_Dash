@@ -116,7 +116,8 @@ jobs:
               --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
               --name ethicsdash-container \
               --image ethicsdashacr.azurecr.io/ethicsdash-app:${{ github.sha }} \
-              --registry-login-server ethicsdashacr.azurecr.io
+              --registry-login-server ethicsdashacr.azurecr.io \
+              --assign-identity ethicsdev
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
