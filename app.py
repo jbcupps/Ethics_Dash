@@ -412,12 +412,17 @@ def refresh_existing_memes(n_clicks, n_intervals):
         )
         return table
 
-@server.route('/api/memes', methods=['GET'])
 def proxy_get_memes():
-    """Proxy endpoint to fetch current meme list from backend for health checks."""
-    result, status_code = make_api_request('GET', '/memes/')
-    # Ensure proper JSON response regardless of list or dict
-    return jsonify(result), status_code
+    """Proxy GET /memes request to the backend API"""
+    try:
+        # Forward the request using the helper function
+        result, status_code = make_api_request('GET', '/memes')
+        return jsonify(result), status_code
+    except Exception as e:
+        # Log the detailed error server-side (Dash app log)
+        app.logger.error(f"Error in /api/memes proxy: {e}", exc_info=True) 
+        # FIX: Return a generic error message to the client
+        return jsonify({"error": "Error fetching memes from backend."}), 500
 
 # --- Run the App ---
 if __name__ == '__main__':

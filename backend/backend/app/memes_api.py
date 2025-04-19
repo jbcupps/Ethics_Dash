@@ -983,7 +983,7 @@ def upload_memes():
                 logger.info(f"Directly parsed {processed_count} records from JSON file.")
             except Exception as e:
                 logger.error(f"Failed to directly parse JSON file '{filename}': {e}", exc_info=True)
-                return jsonify({"error": f"Failed to parse JSON file: {e}"}), 400
+                return jsonify({"error": "Failed to parse uploaded file."}), 400
         else:
             # Handle other direct parsing (e.g., CSV) if needed, or return error
             logger.warning(f"Direct parsing for file type '{file_extension}' is not implemented. Use LLM or upload JSON.")
@@ -1030,7 +1030,7 @@ def upload_memes():
 
     except Exception as e:
         logger.error(f"Unexpected error processing file upload '{filename}': {e}", exc_info=True)
-        return jsonify({"error": f"An unexpected server error occurred during file processing: {e}"}), 500
+        return jsonify({"error": "An unexpected server error occurred during file processing."}), 500
 
     # --- Return Results --- 
     final_message = f"Processed file '{filename}'. {inserted_count}/{processed_count if processed_count > 0 else 'N/A'} records inserted."
@@ -1112,7 +1112,7 @@ def populate_memes():
                 errors.append(f"Validation failed for '{name}': {e.errors()}")
             except Exception as insert_err:
                 logger.error(f"Error processing or inserting predefined meme '{name}': {insert_err}", exc_info=True)
-                errors.append(f"Error processing '{name}': {insert_err}")
+                errors.append(f"Error processing '{name}'. See server logs for details.")
 
         status_code = 200 if not errors else 207 # Multi-status if errors occurred
         return jsonify({
@@ -1125,4 +1125,4 @@ def populate_memes():
         return jsonify({"error": "Internal server error reading predefined meme data"}), 500
     except Exception as e:
          logger.error(f"Error populating memes collection: {e}", exc_info=True)
-         return jsonify({"error": "Internal server error populating memes"}), 500 
+         return jsonify({"error": "Internal server error populating memes. See server logs for details."}), 500 

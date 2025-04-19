@@ -3,7 +3,7 @@ import React from 'react';
 // Helper function to capitalize the first letter
 const capitalize = (s) => {
   if (typeof s !== 'string') return ''
-  return s.charAt(0).toUpperCase() + s.slice(1).replace('_', ' ') // Replace underscore for display
+  return s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ')
 }
 
 const Results = ({ 
