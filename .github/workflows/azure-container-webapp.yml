@@ -96,10 +96,22 @@ jobs:
       - name: Log in to ACR
         run: az acr login --name ethicsdashacr
 
-      - name: Deploy to Azure Web App
-        id: deploy-to-webapp
-        uses: azure/webapps-deploy@v2
+      - name: Configure multi-container WebApp
+        uses: azure/cli@v1
         with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          images: 'ethicsdashacr.azurecr.io/ethicsdash-app:${{ github.sha }}'
+          azcliversion: latest
+          inlineScript: |
+            az group create \
+              --name ${{ secrets.AZURE_RESOURCE_GROUP }} \
+              --location eastus
+            az appservice plan create \
+              --name ethicsdash-plan \
+              --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+              --is-linux \
+              --sku B1
+            az webapp create \
+              --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+              --plan ethicsdash-plan \
+              --name ${{ env.AZURE_WEBAPP_NAME }} \
+              --multicontainer-config-type compose \
+              --multicontainer-config-file docker-compose.yml
