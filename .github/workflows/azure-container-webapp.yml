@@ -108,13 +108,31 @@ jobs:
             LOCATION=$(az group show --name "$RG" --query location -o tsv)
             # Ensure App Service Plan exists
             if ! az appservice plan show --name "$PLAN" --resource-group "$RG" > /dev/null 2>&1; then
-              echo "Creating App Service Plan: $PLAN"
-              az appservice plan create \
-                --location "$LOCATION" \
-                --name "$PLAN" \
-                --resource-group "$RG" \
-                --is-linux \
-                --sku B1
+              echo "Attempting to create App Service Plan: $PLAN"
+              # Fallback matrix of SKUs and regions in case of quota limitations
+              FALLBACK_SKUS=(B1 S1 F1)
+              FALLBACK_REGIONS=("$LOCATION" eastus eastus2 westus2 centralus)
+              PLAN_CREATED=false
+              for sku in "${FALLBACK_SKUS[@]}"; do
+                for region in "${FALLBACK_REGIONS[@]}"; do
+                  echo "Trying SKU $sku in region $region ..."
+                  if az appservice plan create \
+                        --name "$PLAN" \
+                        --resource-group "$RG" \
+                        --is-linux \
+                        --sku "$sku" \
+                        --location "$region" >/dev/null 2>&1; then
+                    echo "Successfully created plan in $region with SKU $sku";
+                    LOCATION="$region" # Persist chosen region for subsequent resources
+                    PLAN_CREATED=true
+                    break 2
+                  fi
+                done
+              done
+              if [ "$PLAN_CREATED" = false ]; then
+                echo "Failed to create App Service Plan with available quota. Please review Azure subscription quotas." >&2
+                exit 1
+              fi
             fi
             # Ensure Web App exists
             if ! az webapp show --name "$APP" --resource-group "$RG" > /dev/null 2>&1; then
