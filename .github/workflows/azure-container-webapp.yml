@@ -114,7 +114,7 @@ jobs:
                 --name "$PLAN" \
                 --resource-group "$RG" \
                 --is-linux \
-                --sku S1
+                --sku B1
             fi
             # Ensure Web App exists
             if ! az webapp show --name "$APP" --resource-group "$RG" > /dev/null 2>&1; then
