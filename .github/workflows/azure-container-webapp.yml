@@ -105,10 +105,12 @@ jobs:
             RG=${{ secrets.AZURE_RESOURCE_GROUP }}
             APP=${{ env.AZURE_WEBAPP_NAME }}
             PLAN=ethicsdash-plan
+            LOCATION=$(az group show --name "$RG" --query location -o tsv)
             # Ensure App Service Plan exists
             if ! az appservice plan show --name "$PLAN" --resource-group "$RG" > /dev/null 2>&1; then
               echo "Creating App Service Plan: $PLAN"
               az appservice plan create \
+                --location "$LOCATION" \
                 --name "$PLAN" \
                 --resource-group "$RG" \
                 --is-linux \
@@ -118,6 +120,7 @@ jobs:
             if ! az webapp show --name "$APP" --resource-group "$RG" > /dev/null 2>&1; then
               echo "Creating Web App: $APP"
               az webapp create \
+                --location "$LOCATION" \
                 --resource-group "$RG" \
                 --plan "$PLAN" \
                 --name "$APP"
