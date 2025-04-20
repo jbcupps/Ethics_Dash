@@ -97,16 +97,17 @@ jobs:
         run: az acr login --name ethicsdashacr
 
       - name: Deploy to Azure Container Instance
-        uses: azure/cli@v1
-        with:
-          azcliversion: 2.0.72
-          inlineScript: |
-            az container create \
-              --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-              --name ethicsdash-container \
-              --image ethicsdashacr.azurecr.io/ethicsdash-app:${{ github.sha }} \
-              --registry-login-server ethicsdashacr.azurecr.io \
-              --assign-identity ethicsdev
+        run: |
+          # Ensure the correct Azure subscription is selected
+          az account set --subscription ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          # Deploy or update the Azure Container Instance
+          az container create \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --name ethicsdash-container \
+            --image ethicsdashacr.azurecr.io/ethicsdash-app:${{ github.sha }} \
+            --registry-login-server ethicsdashacr.azurecr.io \
+            --assign-identity ethicsdev
+        shell: bash
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
