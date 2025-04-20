@@ -28,6 +28,8 @@ name: Build and deploy a container to an Azure Web App
 
 env:
   AZURE_WEBAPP_NAME: ethicsdash-cicd-app  # set this to the name of your Azure Web App
+  AZURE_LOCATION: ${{ secrets.AZURE_LOCATION }}  # e.g. 'eastus'
+  AZURE_SKU: ${{ secrets.AZURE_SKU }}              # e.g. 'B1'
 
 on:
   push:
@@ -77,6 +79,9 @@ jobs:
       contents: none
     runs-on: ubuntu-latest
     needs: build
+    env:
+      AZURE_LOCATION: ${{ secrets.AZURE_LOCATION }}  # e.g. 'eastus'
+      AZURE_SKU: ${{ secrets.AZURE_SKU }}              # e.g. 'B1'
 
     steps:
       - name: Login to Azure via OIDC
@@ -101,14 +106,16 @@ jobs:
         with:
           azcliversion: latest
           inlineScript: |
+            # Create or update the resource group
             az group create \
               --name ${{ secrets.AZURE_RESOURCE_GROUP }} \
-              --location eastus
+              --location ${{ env.AZURE_LOCATION }}
+            # Create or update the App Service plan
             az appservice plan create \
               --name ethicsdash-plan \
               --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
               --is-linux \
-              --sku B1
+              --sku S1
             az webapp create \
               --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
               --plan ethicsdash-plan \
