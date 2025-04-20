@@ -1,4 +1,4 @@
-#version: '3.8'
+version: '3.8'
 
 services:
   # Main Dash Application Service
@@ -23,7 +23,6 @@ services:
       context: .
       dockerfile: backend/backend/Dockerfile
     container_name: ai-ethical-work-backend-api
-    # Load both the root .env (testing keys, default model config) and service-specific overrides
     env_file:
       - .env                     # Load environment variables from root .env file
       - backend/backend.env      # Load overrides specific to AI backend service
@@ -68,6 +67,7 @@ services:
     environment: {}
     restart: unless-stopped
 
+  # Database initialization service
   db-init:
     build:
       context: .
