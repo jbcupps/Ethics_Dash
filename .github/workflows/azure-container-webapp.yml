@@ -96,24 +96,14 @@ jobs:
       - name: Log in to ACR
         run: az acr login --name ethicsdashacr
 
-      - name: Configure multi-container WebApp
+      - name: Update multi-container Web App configuration
         uses: azure/cli@v1
         with:
           azcliversion: latest
           inlineScript: |
-            # Create or update the resource group
-            az group create \
-              --name ${{ secrets.AZURE_RESOURCE_GROUP }} \
-              --location eastus
-            # Create or update the App Service plan
-            az appservice plan create \
-              --name ethicsdash-plan \
+            # Update the existing Web App to use the docker-compose.yml
+            az webapp config container set \
               --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-              --is-linux \
-              --sku S1
-            az webapp create \
-              --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-              --plan ethicsdash-plan \
               --name ${{ env.AZURE_WEBAPP_NAME }} \
               --multicontainer-config-type compose \
               --multicontainer-config-file docker-compose.yml
