@@ -124,7 +124,7 @@ function App() {
                 <button onClick={handleViewMemesClick}>View Library</button>
               </li>
               <li>
-                <a href="/dash/" target="_blank" rel="noopener noreferrer">Interact with Database</a>
+                <a href="/dash/db#meme-creation">Interact with Database</a>
               </li>
             </ul>
           )}

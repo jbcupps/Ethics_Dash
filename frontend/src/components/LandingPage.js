@@ -51,9 +51,23 @@ const LandingPage = ({ onEnter }) => {
         </div>
       </section>
 
+      {/* Featured Paper Section */}
+      <section className="featured-paper text-center mb-xl">
+        <h2>Featured Paper</h2>
+        <p>
+          <a href="/documents/Toward%20Decentralized%20Ethical%20AI%20Governance%20and%20Verification_%20A%20Strategic%20Roadmap.pdf" target="_blank" rel="noopener noreferrer">
+            Toward Decentralized Ethical AI Governance and Verification: A Strategic Roadmap
+          </a>
+        </p>
+        <p className="text-secondary" style={{ maxWidth: '800px', margin: '0 auto' }}>
+          This strategic roadmap outlines a decentralized, federated framework for ethical AI governance that leverages consensus mechanisms and memetic principles to create transparent, verifiable, and inclusive AI policies across distributed stakeholders.
+        </p>
+      </section>
+
+      {/* How It Works Section */}
       <section className="how-it-works text-center">
         <h2>How It Works</h2>
-        <ol>
+        <ul style={{ listStyleType: 'none', padding: 0, maxWidth: '700px', margin: '0 auto' }}>
           <li>Enter a prompt for an AI model (R1).</li>
           <li>Select the AI model (R1) to generate the initial response.</li>
           <li>Select a second AI model (R2) to perform the ethical review.</li>
@@ -61,7 +75,7 @@ const LandingPage = ({ onEnter }) => {
           <li>R2 analyzes both the prompt (P1) and the response (R1) using the defined <Link to="/documentation">Ethical Architecture</Link>.</li>
           <li>Results are displayed, including the ethical analysis summary and scores.</li>
           <li>(Optional) Populate or query the Ethical Memes Database via the API endpoints described in the documentation.</li>
-        </ol>
+        </ul>
       </section>
 
       <section className="ethical-framework text-center">

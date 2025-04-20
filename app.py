@@ -96,10 +96,15 @@ app.layout = dbc.Container([
     dcc.Location(id='url', refresh=False),
     # Auto-load memes once at startup
     dcc.Interval(id='init-load-memes', interval=1, n_intervals=0, max_intervals=1),
-    html.H1("Ethics Dash - Integrated"), # Updated Title
+    html.H1("Ethics Dash - Integrated"),
+    # Button to return to main site
+    html.Div(dbc.Button("Return Home", href="/", color="secondary"), className="mb-3"),
     html.Hr(),
     
-    dbc.Tabs([
+    dbc.Tabs(
+        id='tabs',
+        active_tab='tab-db-mgmt',
+        children=[
         dbc.Tab(label="Analysis Tool", tab_id="tab-analysis", children=[
             # Use an Iframe to embed the React app served from /react_app
             html.Iframe(
@@ -166,7 +171,7 @@ app.layout = dbc.Container([
                     
                     dbc.Button("Save New Meme", id="btn-save-meme", color="primary", className="me-2"),
                     dbc.Spinner(html.Div(id="save-meme-status"))
-                ])
+                ], id="meme-creation", className="mb-4")
             ]),
             # Section 3: Display existing memes
             dbc.Card([
@@ -423,6 +428,17 @@ def proxy_get_memes():
         app.logger.error(f"Error in /api/memes proxy: {e}", exc_info=True) 
         # FIX: Return a generic error message to the client
         return jsonify({"error": "Error fetching memes from backend."}), 500
+
+# Callback to sync active tab based on URL
+@callback(
+    Output('tabs', 'active_tab'),
+    Input('url', 'pathname')
+)
+def set_active_tab(pathname):
+    # If URL ends with /db, switch to Database Management tab
+    if pathname and pathname.rstrip('/').endswith('db'):
+        return 'tab-db-mgmt'
+    return 'tab-db-mgmt'
 
 # --- Run the App ---
 if __name__ == '__main__':
