@@ -19,6 +19,13 @@ variables:
   # Agent VM image name
   vmImageName: 'ubuntu-latest'
 
+  # Azure Resource Manager service connection for App Service
+  azureServiceConnection: '<YOUR_AZURE_RM_SERVICE_CONNECTION>'
+  # Resource group and App Service
+  resourceGroupName: 'ethicsdash-rg'
+  appName: 'ethicsdash-cicd-app'
+  composeFile: 'docker-compose.yml'
+
 stages:
 - stage: Build
   displayName: Build and push stage
@@ -28,12 +35,40 @@ stages:
     pool:
       vmImage: $(vmImageName)
     steps:
-    - task: Docker@2
-      displayName: Build and push an image to container registry
+    - checkout: self
+    - task: DockerCompose@0
+      displayName: 'Build & Push Services'
       inputs:
-        command: buildAndPush
-        repository: $(imageRepository)
-        dockerfile: $(dockerfilePath)
-        containerRegistry: $(dockerRegistryServiceConnection)
-        tags: |
-          $(tag)
+        containerregistrytype: 'Azure Container Registry'
+        azureSubscription: $(dockerRegistryServiceConnection)
+        azureContainerRegistry: $(containerRegistry)
+        dockerComposeFile: $(composeFile)
+        action: 'Build services'
+    - task: DockerCompose@0
+      displayName: 'Push Services'
+      inputs:
+        containerregistrytype: 'Azure Container Registry'
+        azureSubscription: $(dockerRegistryServiceConnection)
+        azureContainerRegistry: $(containerRegistry)
+        dockerComposeFile: $(composeFile)
+        action: 'Push services'
+
+- stage: Deploy
+  displayName: Deploy to App Service
+  dependsOn: Build
+  jobs:
+  - deployment: DeployWebApp
+    environment: 'production'
+    pool:
+      vmImage: $(vmImageName)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebAppContainer@1
+            displayName: Deploy multi-container compose
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              appName: $(appName)
+              resourceGroupName: $(resourceGroupName)
+              dockerComposeFile: $(composeFile)
