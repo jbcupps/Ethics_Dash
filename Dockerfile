@@ -36,8 +36,6 @@ RUN if [ ! -f requirements.txt ]; then echo 'requirements.txt not found, install
 # Copy necessary Python code first
 COPY app.py ./app.py
 COPY assets/ ./assets/
-RUN mkdir -p context # Ensure target directory exists
-COPY Context/ ./context/
 
 # Copy built frontend static files from the builder stage
 COPY --from=builder /frontend-build/build /app/static/react

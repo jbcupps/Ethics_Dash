@@ -69,25 +69,45 @@ Configure GitHub Actions secrets to allow the CI/CD pipeline to authenticate wit
 
 ## Local Development
 
-<!-- Instructions for setting up and running the project on a local machine using Docker. -->
+<!-- Simplify and clarify instructions for setting up environment files and running services. -->
+This project uses Docker Compose to run both frontend and backend services locally. Follow these steps:
 
-1.  **Create Environment File:** The application uses a `.env` file for local configuration. Copy the example file to create your own:
+1.  **Copy and configure environment files**:
     ```bash
-    # Use 'copy' on Windows Command Prompt if not using Git Bash/WSL
+    # Copy root configuration
     cp .env.example .env
+    # The file 'backend/backend.env' already contains placeholders for LLM API keys and models.
+    # Edit it in-place to fill in your OpenAI, Anthropic, and Gemini keys, and set DEFAULT_LLM_MODEL and ANALYSIS_LLM_MODEL.
     ```
-2.  **Configure Local Environment:** Open the `.env` file and update the variables with your specific local settings. This typically includes ACR credentials (if needed for pulling base images or local testing) and API configurations relevant to your development environment.
-3.  **Build and Run with Docker Compose:** Use Docker Compose to manage the application's services.
-    ```bash
-    # Build the Docker images defined in docker-compose.yml
-    docker-compose build
 
-    # Start the application containers in detached mode (run in background)
-    docker-compose up -d
-    # To view logs: docker-compose logs -f
-    # To stop: docker-compose down
+2.  **Build Docker images**:
+    ```bash
+    # Use Docker Compose v2 syntax
+    docker compose build
     ```
-    <!-- Reminder: The user prefers to handle Docker builds manually. `docker-compose build` followed by `docker-compose up` aligns with this. -->
+
+3.  **Start all services**:
+    ```bash
+    docker compose up -d
+    ```
+
+4.  **View service logs** (for troubleshooting):
+    ```bash
+    docker compose logs -f ai-backend
+    docker compose logs -f ai-frontend
+    docker compose logs -f app
+    ```
+
+5.  **Stop and remove containers**:
+    ```bash
+    docker compose down
+    ```
+
+6.  **Optional: Rebuild a single service**:
+    ```bash
+    docker compose build ai-backend
+    docker compose up -d ai-backend
+    ```
 
 ## Configuration
 

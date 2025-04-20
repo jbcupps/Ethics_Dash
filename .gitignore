@@ -202,4 +202,7 @@ Context/
 *.env
 .env.*
 !.env.example
-deploy_to_acr.ps1 
+deploy_to_acr.ps1
+
+# Ignore backend-specific env overrides
+backend/backend.env 

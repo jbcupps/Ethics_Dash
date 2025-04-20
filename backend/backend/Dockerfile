@@ -50,6 +50,7 @@ EXPOSE 5000
 # Copy and setup entrypoint script
 COPY --chown=app:app backend/backend/entrypoint.sh /app/backend/entrypoint.sh
 RUN chmod +x /app/backend/entrypoint.sh
+RUN sed -i 's/\r$//' /app/backend/entrypoint.sh  # Normalize line endings to Unix LF for entrypoint script
 
 # Use custom entrypoint to populate DB and start server
-ENTRYPOINT ["/app/backend/entrypoint.sh"] 
+ENTRYPOINT ["sh", "-c", "sed -i 's/\\r$//' /app/backend/entrypoint.sh && exec sh /app/backend/entrypoint.sh"] 

@@ -54,7 +54,7 @@ GEMINI_MODELS = [
 
 ANTHROPIC_MODELS = [
     "claude-3-opus-20240229",
-    "claude-3-sonnet-20240229",
+    "claude-3-sonnet-20240229",  # Ensure Claude 3 Sonnet is in supported Anthropic models
     "claude-3-haiku-20240307",
 ]
 

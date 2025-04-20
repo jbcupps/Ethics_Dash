@@ -1,4 +1,4 @@
-version: '3.8'
+#version: '3.8'
 
 services:
   # Main Dash Application Service
@@ -25,8 +25,8 @@ services:
     container_name: ai-ethical-work-backend-api
     # Load both the root .env (testing keys, default model config) and service-specific overrides
     env_file:
-      - ./.env
-      - ./backend/backend.env
+      - .env                     # Load environment variables from root .env file
+      - backend/backend.env      # Load overrides specific to AI backend service
     ports:
       - "5000:5000" # AI backend API port
     volumes:
