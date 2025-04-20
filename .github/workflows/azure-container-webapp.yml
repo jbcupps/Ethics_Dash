@@ -111,7 +111,7 @@ jobs:
               echo "Attempting to create App Service Plan: $PLAN"
               # Fallback matrix of SKUs and regions in case of quota limitations
               FALLBACK_SKUS=(B1 S1 F1)
-              FALLBACK_REGIONS=("$LOCATION" eastus eastus2 westus2 centralus)
+              FALLBACK_REGIONS=("$LOCATION" eastus eastus2 westus2 westus centralus canadacentral canadaeast)
               PLAN_CREATED=false
               for sku in "${FALLBACK_SKUS[@]}"; do
                 for region in "${FALLBACK_REGIONS[@]}"; do
