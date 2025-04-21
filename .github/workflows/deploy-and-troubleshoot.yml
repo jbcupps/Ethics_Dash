@@ -22,7 +22,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Login to Azure via OIDC
         uses: azure/login@v1
@@ -61,7 +63,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
-          file: Dockerfile
+          file: ./frontend/Dockerfile
           push: true
           tags: |
             ${{ env.ACR_LOGIN_SERVER }}/frontend:${{ env.IMAGE_TAG }}
@@ -82,7 +84,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Login to Azure via OIDC
         uses: azure/login@v1
