@@ -3,9 +3,9 @@
 import requests
 import logging
 import os
-from dash import Input, Output, callback
+from dash import Input, Output
 from bson.json_util import loads
-from bson import ObjectId 
+# from bson import ObjectId # Removed unused import
 
 logger = logging.getLogger(__name__)
 

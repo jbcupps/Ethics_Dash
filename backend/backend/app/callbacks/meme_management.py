@@ -1,15 +1,17 @@
 import base64
 import io
 import json
-import requests # Need to add to requirements.txt
-import logging # Import logging
-from dash import html, dcc, callback, Output, Input, State, ctx
-import dash_bootstrap_components as dbc
+import requests
+import logging
 from dash.exceptions import PreventUpdate
-from flask import current_app # Import current_app for logging
+from dash.dependencies import Input, Output, State
+import os
 
-# TODO: Get API URL dynamically?
-API_BASE_URL = "http://localhost:5000/api/memes" 
+logger = logging.getLogger(__name__)
+
+# Get API URL dynamically (consistent with other files)
+_base_api_url = os.getenv("BACKEND_API_URL", "http://ai-backend:5000/api").rstrip("/")
+API_BASE_URL = f"{_base_api_url}/memes"
 
 MAX_UPLOAD_SIZE_MB = 10
 MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024
@@ -65,12 +67,12 @@ def register_meme_management_callbacks(app):
         
         # --- Basic File Validation --- 
         if not filename or not isinstance(filename, str):
-            current_app.logger.warning("Upload attempt with no filename.")
+            logger.warning("Upload attempt with no filename.")
             return "```\nError: No filename provided.\n```"
             
         file_ext = f".{filename.split('.')[-1].lower()}" if '.' in filename else None
         if file_ext not in ALLOWED_EXTENSIONS:
-            current_app.logger.warning(f"Upload attempt with invalid file type: {filename}")
+            logger.warning(f"Upload attempt with invalid file type: {filename}")
             return f"```\nError: Invalid file type. Only {', '.join(ALLOWED_EXTENSIONS)} files are allowed.\n```"
 
         # Decode the base64 string and check size
@@ -79,21 +81,21 @@ def register_meme_management_callbacks(app):
             content_type, content_data = content_string.split(',')
             decoded_bytes = base64.b64decode(content_data)
             if len(decoded_bytes) > MAX_UPLOAD_SIZE_BYTES:
-                current_app.logger.warning(f"Upload attempt failed: File '{filename}' exceeds size limit of {MAX_UPLOAD_SIZE_MB} MB.")
+                logger.warning(f"Upload attempt failed: File '{filename}' exceeds size limit of {MAX_UPLOAD_SIZE_MB} MB.")
                 return f"```\nError: File size exceeds the limit of {MAX_UPLOAD_SIZE_MB} MB.\n```"
             decoded = decoded_bytes # Store if valid
         except (ValueError, TypeError) as e:
-             current_app.logger.error(f"Error decoding base64 content for file '{filename}': {e}", exc_info=True)
+             logger.error(f"Error decoding base64 content for file '{filename}': {e}", exc_info=True)
              return "```\nError: Could not decode file content. Ensure the file is properly encoded.\n```"
         except Exception as e: # Catch other potential decoding errors
-            current_app.logger.error(f"Unexpected error during base64 decoding for file '{filename}': {e}", exc_info=True)
+            logger.error(f"Unexpected error during base64 decoding for file '{filename}': {e}", exc_info=True)
             return f"```\nError: An unexpected error occurred while reading the file content: {e}\n```"
 
         if decoded is None: # Should not happen if checks above are correct, but safety check
              return "```\nError: Failed to process file content after decoding.\n```"
 
         use_llm = 'USE_LLM' in llm_toggle_value if isinstance(llm_toggle_value, list) else False
-        current_app.logger.info(f"Processing upload for file: '{filename}', Size: {len(decoded)} bytes, Use LLM: {use_llm}")
+        logger.info(f"Processing upload for file: '{filename}', Size: {len(decoded)} bytes, Use LLM: {use_llm}")
         
         # Prepare data for POST request
         files = {'file': (filename, io.BytesIO(decoded), content_type)}

@@ -6,26 +6,28 @@ import google.generativeai as genai
 import anthropic
 import openai # Added OpenAI import
 import httpx # Import httpx
-from typing import Optional, Dict, List, Any, Tuple, TypedDict
+from typing import Optional, Dict, List, Any, Tuple # Removed TypedDict
 from google.api_core import exceptions as google_exceptions # For specific error handling
 from anthropic import APIError as AnthropicAPIError, APIConnectionError as AnthropicConnectionError, APITimeoutError as AnthropicTimeoutError # For specific error handling
 from openai import OpenAIError, APIConnectionError as OpenAIConnectionError, APITimeoutError as OpenAITimeoutError, AuthenticationError as OpenAIAuthError, RateLimitError as OpenAIRateLimitError # Added OpenAI errors
 from urllib.parse import urlparse
 import json # Added for structured logging potentially
 import re    # Import regex for parsing in select_relevant_memes
-from bson import ObjectId # Added for fetching memes by ID
-from bson.errors import InvalidId # Added for error handling
-from pymongo.database import Database # Type hint for db object
-import traceback # Import traceback for detailed error logging
+# Removed unused bson/pymongo imports
+# from bson import ObjectId
+# from bson.errors import InvalidId
+# from pymongo.database import Database
+# import traceback # Removed unused import
 
 # --- NEW: Import for Meme Selection --- 
 from ..models import MemeSelectionResponse # For parsing meme selection output
 from pydantic import ValidationError
 
 # Define SafetySettingDict to match the structure expected by the API
-class SafetySettingDict(TypedDict):
-    category: str
-    threshold: str
+# Removed unused TypedDict definition
+# class SafetySettingDict(TypedDict):
+#     category: str
+#     threshold: str
 
 # --- Constants ---
 MODEL_TYPE_OPENAI = "openai"
@@ -67,7 +69,7 @@ XAI_MODELS = [
 # Note: ALL_MODELS is not strictly needed within this module
 
 # Default safety settings for Gemini (BLOCK_MEDIUM_AND_ABOVE)
-DEFAULT_GEMINI_SAFETY_SETTINGS: List[SafetySettingDict] = [
+DEFAULT_GEMINI_SAFETY_SETTINGS: List[Dict[str, str]] = [
     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
     {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
     {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
@@ -82,7 +84,7 @@ if not logger.hasHandlers():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # --- NEW: Prompt Template Loading Helper ---
-# PROMPT_DIR_IN_CONTAINER = "/app/context/prompts" # Removed as prompts are now relative to app code
+# Obsolete comment removed
 
 def _load_prompt_template(filename: str) -> Optional[str]:
     """Loads a prompt template relative to the application structure."""
@@ -144,7 +146,7 @@ def _call_gemini(
     api_key: str,
     model_name: str,
     api_endpoint: Optional[str],
-    safety_settings: Optional[List[SafetySettingDict]] = None,
+    safety_settings: Optional[List[Dict[str, str]]] = None,
     generation_config: Optional[Dict[str, Any]] = None
 ) -> Optional[str]:
     """Handles the specific logic for calling the Gemini API with robust error handling."""
@@ -164,7 +166,6 @@ def _call_gemini(
         )
 
         # Handle potential blocking or empty response explicitly
-        # Check finish_reason if available, otherwise check parts
         finish_reason = getattr(response, 'prompt_feedback', None)
         content_blocked = False
         block_reason = "Unknown or not provided by API."
@@ -193,18 +194,14 @@ def _call_gemini(
 
         # Safely extract text content
         try:
-             # Check candidates first (newer API versions)
              if hasattr(response, 'candidates') and response.candidates:
-                 # Check content and parts exist
                  if response.candidates[0].content and response.candidates[0].content.parts:
                      return response.candidates[0].content.parts[0].text
                  else:
                       logger.warning(f"Gemini response candidate missing content/parts for model {model_name}. Response: {response}")
-                      return None # Or handle as empty/blocked based on context
-             # Fallback to direct text attribute
+                      return None
              elif hasattr(response, 'text'):
                  return response.text
-             # Fallback to parts attribute
              elif hasattr(response, 'parts') and response.parts:
                   return response.parts[0].text
              else:
@@ -215,7 +212,6 @@ def _call_gemini(
              return None
 
 
-    # Specific Google API exceptions (more specific catches)
     except google_exceptions.InvalidArgument as e:
          logger.error(f"Gemini API Invalid Argument error for model {model_name}: {e}. Check safety settings or prompt format. Prompt (start): {log_prompt_start}...", exc_info=True)
          return None
@@ -228,14 +224,9 @@ def _call_gemini(
     except google_exceptions.DeadlineExceeded as e:
          logger.error(f"Gemini API Deadline Exceeded (timeout) error for model {model_name}: {e}. Prompt (start): {log_prompt_start}...", exc_info=True)
          return None
-    except google_exceptions.GoogleAPIError as e: # Catch other generic Google API errors
+    except google_exceptions.GoogleAPIError as e:
         logger.error(f"General Gemini API error for model {model_name}: {e}. Prompt (start): {log_prompt_start}...", exc_info=True)
         return None
-    # Catch potential network/connection errors if not covered by GoogleAPIError subtypes
-    # except RequestException as e: # Example if requests was used
-    #     logger.error(f"Network error during Gemini call for model {model_name}: {e}", exc_info=True)
-    #     return None
-    # Catch-all for other unexpected errors during Gemini call
     except Exception as e:
         logger.error(f"Unexpected exception during Gemini call for model {model_name}: {e}. Prompt (start): {log_prompt_start}...", exc_info=True)
         return None
@@ -250,70 +241,41 @@ def _call_anthropic(
     """Handles the specific logic for calling the Anthropic API with robust error handling."""
     log_prompt_start = prompt[:100] # For logging
     try:
-        # Get API version from environment or use default - updated to newest version
-        api_version = os.getenv(ANTHROPIC_API_VERSION_ENV) or "2023-06-01"
+        api_version = os.getenv(ANTHROPIC_API_VERSION_ENV) or DEFAULT_ANTHROPIC_VERSION
         
-        # Check if the API version is appropriate for Claude 3 models
         if "claude-3" in model_name and api_version < "2023-06-01":
             logger.warning(f"Using updated API version for Claude 3 model. Original: {api_version}, Updated: 2023-06-01")
             api_version = "2023-06-01"
         
-        # Log API version for debugging
         logger.info(f"Using Anthropic API version: {api_version} for model: {model_name}")
         
-        # Prepare headers for Anthropic client
-        headers = {
-            "anthropic-version": api_version,
-            "Content-Type": "application/json"
-        }
+        headers = {"anthropic-version": api_version, "Content-Type": "application/json"}
 
-        # Initialize Anthropic client directly
         logger.info(f"Initializing Anthropic client. Base URL: {api_endpoint}, Version Header: {api_version}")
         client = anthropic.Anthropic(
-            api_key=api_key,
-            base_url=api_endpoint, # Handles None correctly
-            timeout=120.0, # Increased timeout for potentially slower responses
-            default_headers=headers
+            api_key=api_key, base_url=api_endpoint, timeout=120.0, default_headers=headers
         )
 
-        # Log before API call for debugging
         logger.info(f"About to call Anthropic model: {model_name} with version: {api_version}")
-        
-        # Use appropriate system prompt for Claude
         system_prompt = "You are a helpful, harmless, and honest AI assistant."
         
         logger.debug(f"Calling Anthropic model {model_name}...")
         message = client.messages.create(
-            model=model_name,
-            max_tokens=max_tokens,
-            system=system_prompt,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
+            model=model_name, max_tokens=max_tokens, system=system_prompt,
+            messages=[{"role": "user", "content": prompt}]
         )
 
-        # Check stop reason and content carefully
         if message.stop_reason == 'max_tokens':
             logger.warning(f"Anthropic response truncated due to max_tokens ({max_tokens}). Model: {model_name}, Prompt (start): {log_prompt_start}...")
-            # Proceed with truncated content if available
         elif message.stop_reason == 'error':
              logger.error(f"Anthropic API reported an error stop_reason. Model: {model_name}, Prompt (start): {log_prompt_start}...")
-             return None # Explicit error from API
-        elif message.stop_reason == 'stop_sequence':
-             logger.debug(f"Anthropic call finished due to stop sequence. Model: {model_name}")
-             # Normal completion, proceed
-        elif message.stop_reason == 'tool_use':
-             logger.debug(f"Anthropic call finished due to tool use. Model: {model_name}")
-             # Normal completion for tool use, proceed (though we expect text here)
-        elif message.stop_reason != 'end_turn': # 'end_turn' is normal
+             return None
+        elif message.stop_reason != 'end_turn' and message.stop_reason != 'stop_sequence' and message.stop_reason != 'tool_use':
              logger.warning(f"Anthropic response ended with unexpected reason: {message.stop_reason}. Model: {model_name}, Prompt (start): {log_prompt_start}...")
-             # Decide if this should be treated as an error or just a warning
 
-        # Check for empty or missing content block after checking stop reason
         response_text = None
         try:
             if message.content and isinstance(message.content, list) and len(message.content) > 0:
-                # Check if it has text attribute or content attribute
                 if hasattr(message.content[0], 'text') and message.content[0].text:
                     response_text = message.content[0].text
                 elif hasattr(message.content[0], 'value') and message.content[0].value:
@@ -321,36 +283,29 @@ def _call_anthropic(
                 else:
                     logger.warning(f"Anthropic response has content but missing text/value. Model: {model_name}, Content: {message.content}")
             else:
-                # This case might overlap with 'error' stop_reason, but catch explicit empty content too
                 logger.warning(f"Anthropic response blocked, empty, or malformed content block. Model: {model_name}, Stop Reason: {message.stop_reason}, Prompt (start): {log_prompt_start}...")
-                return None # Indicate failure/blockage
+                return None
 
         except (AttributeError, IndexError, TypeError) as content_err:
              logger.error(f"Error extracting text content from Anthropic response: {content_err}. Model: {model_name}, Response: {message}", exc_info=True)
              return None
 
-
         logger.debug(f"Anthropic response generated successfully for model {model_name}.")
         return response_text
 
-    # Specific Anthropic API exceptions
     except AnthropicTimeoutError as e:
          logger.error(f"Anthropic API Timeout error for model {model_name}: {e}. Prompt (start): {log_prompt_start}...", exc_info=True)
          return None
     except AnthropicConnectionError as e:
          logger.error(f"Anthropic API Connection error for model {model_name}: {e}. Prompt (start): {log_prompt_start}...", exc_info=True)
          return None
-    except AnthropicAPIError as e: # General Anthropic API errors
+    except AnthropicAPIError as e:
         logger.error(f"Anthropic API error for model {model_name}: {e}. Prompt (start): {log_prompt_start}...", exc_info=True)
-        # You might check e.status_code here for specific handling (e.g., 401 for auth, 429 for rate limits)
-        # Example: if e.status_code == 429: logger.warning(...)
         return None
-    # Catch-all for other unexpected errors
     except Exception as e:
         logger.error(f"Unexpected exception during Anthropic call for model {model_name}: {e}. Prompt (start): {log_prompt_start}...", exc_info=True)
         return None
 
-# --- NEW: Helper function for OpenAI --- 
 def _call_openai(
     prompt: str,
     api_key: str,
@@ -361,36 +316,20 @@ def _call_openai(
     """Handles the specific logic for calling the OpenAI API with robust error handling."""
     log_prompt_start = prompt[:100] # For logging
     try:
-        # Initialize OpenAI client
-        # Pass api_key and base_url (if provided) directly to the client
-        client = openai.OpenAI(
-            api_key=api_key,
-            base_url=api_endpoint # base_url handles None correctly
-        )
-        
+        client = openai.OpenAI(api_key=api_key, base_url=api_endpoint)
         logger.debug(f"Calling OpenAI model {model_name}...")
         
-        # Use the Chat Completions endpoint (standard for current models)
         chat_completion = client.chat.completions.create(
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt,
-                }
-            ],
-            model=model_name,
-            max_tokens=max_tokens,
+            messages=[{"role": "user", "content": prompt,}],
+            model=model_name, max_tokens=max_tokens,
         )
 
-        # Check for valid response and content
         if chat_completion.choices and chat_completion.choices[0].message and chat_completion.choices[0].message.content:
             response_text = chat_completion.choices[0].message.content
             finish_reason = chat_completion.choices[0].finish_reason
             
-            if finish_reason == 'length':
-                logger.warning(f"OpenAI response truncated due to max_tokens ({max_tokens}). Model: {model_name}, Prompt (start): {log_prompt_start}...")
-            elif finish_reason != 'stop':
-                 logger.warning(f"OpenAI response finished with unexpected reason: {finish_reason}. Model: {model_name}, Prompt (start): {log_prompt_start}...")
+            if finish_reason == 'length': logger.warning(f"OpenAI response truncated due to max_tokens ({max_tokens}). Model: {model_name}, Prompt (start): {log_prompt_start}...")
+            elif finish_reason != 'stop': logger.warning(f"OpenAI response finished with unexpected reason: {finish_reason}. Model: {model_name}, Prompt (start): {log_prompt_start}...")
             
             logger.debug(f"OpenAI response generated successfully for model {model_name}.")
             return response_text
@@ -398,7 +337,6 @@ def _call_openai(
             logger.warning(f"OpenAI response missing choices or content. Model: {model_name}, Prompt (start): {log_prompt_start}..., Response: {chat_completion}")
             return None
 
-    # Specific OpenAI API exceptions
     except OpenAIAuthError as e:
          logger.error(f"OpenAI API Authentication Error (check API Key) for model {model_name}: {e}. Prompt (start): {log_prompt_start}...", exc_info=True)
          return None
@@ -411,10 +349,9 @@ def _call_openai(
     except OpenAIConnectionError as e:
          logger.error(f"OpenAI API Connection error for model {model_name}: {e}. Prompt (start): {log_prompt_start}...", exc_info=True)
          return None
-    except OpenAIError as e: # General OpenAI API errors
+    except OpenAIError as e:
         logger.error(f"General OpenAI API error for model {model_name}: {e}. Prompt (start): {log_prompt_start}...", exc_info=True)
         return None
-    # Catch-all for other unexpected errors
     except Exception as e:
         logger.error(f"Unexpected exception during OpenAI call for model {model_name}: {e}. Prompt (start): {log_prompt_start}...", exc_info=True)
         return None
@@ -429,17 +366,9 @@ def _call_xai(
     """Handles the specific logic for calling the xAI (Grok) API with robust error handling."""
     log_prompt_start = prompt[:100] # For logging
     try:
-        # Use httpx for the API call if no specific SDK is available
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        base_url = api_endpoint or "https://api.x.ai/v1" # Changed Grok URL
         
-        # Use custom endpoint if provided or default to a placeholder
-        base_url = api_endpoint or "https://api.grok.x.ai/v1"  # Updated to the correct xAI API URL
-        
-        # Prepare the request payload based on expected xAI API format
-        # Grok API follows OpenAI's API structure
         payload = {
             "model": model_name,
             "messages": [{"role": "user", "content": prompt}],
@@ -449,24 +378,14 @@ def _call_xai(
         
         logger.info(f"Calling xAI model {model_name} via API...")
         
-        # Make the API request
-        response = httpx.post(
-            f"{base_url}/chat/completions",
-            headers=headers,
-            json=payload,
-            timeout=120.0  # 2-minute timeout
-        )
+        response = httpx.post(f"{base_url}/chat/completions", headers=headers, json=payload, timeout=120.0)
         
-        # Check response status
         if response.status_code != 200:
             logger.error(f"xAI API returned error status code: {response.status_code}, Response: {response.text[:500]}...")
             return None
             
-        # Parse the response JSON
         response_data = response.json()
         
-        # Extract the content based on expected response format
-        # This will need to be updated when actual xAI API response format is known
         if "choices" in response_data and len(response_data["choices"]) > 0:
             choice = response_data["choices"][0]
             if "message" in choice and "content" in choice["message"]:
@@ -487,26 +406,26 @@ def _call_xai(
         logger.error(f"Unexpected exception during xAI call for model {model_name}: {e}. Prompt (start): {log_prompt_start}...", exc_info=True)
         return None
 
-# --- Optional Meme Pre-filter Configuration ---
-MEME_PREFILTER_ENABLED = os.getenv("MEME_PREFILTER_ENABLED", "true").lower() in ("1","true","yes")
-MEME_PREFILTER_TOP_K = int(os.getenv("MEME_PREFILTER_TOP_K", "50"))
-
-def _prefilter_memes(query_text: str, memes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Pre-filter memes by simple token overlap, keeping top K if enabled."""
-    if not MEME_PREFILTER_ENABLED:
-        return memes
-    query_tokens = set(re.findall(r'\\w+', query_text.lower()))
-    scored: List[Tuple[int, Dict[str, Any]]] = []
-    for meme in memes:
-        meme_text = f"{meme.get('name','')} {meme.get('description','')}"
-        meme_tokens = set(re.findall(r'\\w+', meme_text.lower()))
-        overlap = len(query_tokens & meme_tokens)
-        scored.append((overlap, meme))
-    scored.sort(key=lambda x: x[0], reverse=True)
-    top_k = [m for score, m in scored[:MEME_PREFILTER_TOP_K] if score > 0]
-    if not top_k:
-        top_k = [m for _, m in scored[:MEME_PREFILTER_TOP_K]]
-    return top_k
+# --- Optional Meme Pre-filter Configuration --- # REMOVED UNUSED FUNCTION
+# MEME_PREFILTER_ENABLED = os.getenv("MEME_PREFILTER_ENABLED", "true").lower() in ("1","true","yes")
+# MEME_PREFILTER_TOP_K = int(os.getenv("MEME_PREFILTER_TOP_K", "50"))
+#
+# def _prefilter_memes(query_text: str, memes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+#     """Pre-filter memes by simple token overlap, keeping top K if enabled."""
+#     if not MEME_PREFILTER_ENABLED:
+#         return memes
+#     query_tokens = set(re.findall(r'\w+', query_text.lower()))
+#     scored: List[Tuple[int, Dict[str, Any]]] = []
+#     for meme in memes:
+#         meme_text = f"{meme.get('name','')} {meme.get('description','')}"
+#         meme_tokens = set(re.findall(r'\w+', meme_text.lower()))
+#         overlap = len(query_tokens & meme_tokens)
+#         scored.append((overlap, meme))
+#     scored.sort(key=lambda x: x[0], reverse=True)
+#     top_k = [m for score, m in scored[:MEME_PREFILTER_TOP_K] if score > 0]
+#     if not top_k:
+#         top_k = [m for _, m in scored[:MEME_PREFILTER_TOP_K]]
+#     return top_k
 
 # --- NEW: Meme Selection Function ---
 MEME_SELECTOR_MODEL = "claude-3-haiku-20240307" # Use Haiku by default
@@ -537,12 +456,12 @@ def select_relevant_memes(
         logger.warning("select_relevant_memes: No available memes provided. Skipping selection.")
         return None
 
-    # Apply optional pre-filter based on token overlap
+    # Removed call to unused _prefilter_memes
     original_count = len(available_memes)
-    query_text = f"{prompt} {r1_response}"
-    available_memes = _prefilter_memes(query_text, available_memes)
-    if len(available_memes) < original_count:
-        logger.info(f"Meme prefilter applied: {original_count} -> {len(available_memes)}")
+    # query_text = f"{prompt} {r1_response}"
+    # available_memes = _prefilter_memes(query_text, available_memes)
+    # if len(available_memes) < original_count:
+    #     logger.info(f"Meme prefilter applied: {original_count} -> {len(available_memes)}")
 
     # Format the list of available memes for the prompt
     meme_list_str = "\n".join([
@@ -576,11 +495,15 @@ Respond *only* with the JSON object.
     logger.info(f"Calling meme selector LLM ({MEME_SELECTOR_MODEL}) to select relevant memes...")
 
     # --- Determine Model Type and Call Appropriate Function ---
-    # Assuming Haiku is Anthropic for now. Could generalize if MEME_SELECTOR_MODEL changes.
     model_type = None
     if MEME_SELECTOR_MODEL in ANTHROPIC_MODELS:
         model_type = MODEL_TYPE_ANTHROPIC
-    # Add elif for other providers if MEME_SELECTOR_MODEL might change
+    elif MEME_SELECTOR_MODEL in GEMINI_MODELS:
+        model_type = MODEL_TYPE_GEMINI
+    elif MEME_SELECTOR_MODEL in OPENAI_MODELS:
+        model_type = MODEL_TYPE_OPENAI
+    elif MEME_SELECTOR_MODEL in XAI_MODELS:
+        model_type = MODEL_TYPE_XAI
     else:
         logger.error(f"Unsupported model type for MEME_SELECTOR_MODEL: {MEME_SELECTOR_MODEL}. Cannot select memes.")
         return None
@@ -588,14 +511,13 @@ Respond *only* with the JSON object.
     raw_response = None
     try:
         if model_type == MODEL_TYPE_ANTHROPIC:
-            raw_response = _call_anthropic(
-                prompt=selector_prompt, 
-                api_key=selector_api_key, 
-                model_name=MEME_SELECTOR_MODEL, 
-                api_endpoint=selector_api_endpoint, 
-                max_tokens=max_tokens
-            )
-        # Add elif for other providers here if needed
+            raw_response = _call_anthropic(prompt=selector_prompt, api_key=selector_api_key, model_name=MEME_SELECTOR_MODEL, api_endpoint=selector_api_endpoint, max_tokens=max_tokens)
+        elif model_type == MODEL_TYPE_GEMINI:
+            raw_response = _call_gemini(prompt=selector_prompt, api_key=selector_api_key, model_name=MEME_SELECTOR_MODEL, api_endpoint=selector_api_endpoint)
+        elif model_type == MODEL_TYPE_OPENAI:
+            raw_response = _call_openai(prompt=selector_prompt, api_key=selector_api_key, model_name=MEME_SELECTOR_MODEL, api_endpoint=selector_api_endpoint, max_tokens=max_tokens)
+        elif model_type == MODEL_TYPE_XAI:
+            raw_response = _call_xai(prompt=selector_prompt, api_key=selector_api_key, model_name=MEME_SELECTOR_MODEL, api_endpoint=selector_api_endpoint, max_tokens=max_tokens)
 
         if not raw_response:
             logger.warning(f"Meme selector LLM ({MEME_SELECTOR_MODEL}) returned no response.")
@@ -604,20 +526,21 @@ Respond *only* with the JSON object.
         # --- Parse the LLM Response --- 
         logger.debug(f"Raw response from meme selector ({MEME_SELECTOR_MODEL}): {raw_response[:500]}...")
         
-        # Attempt to extract JSON (sometimes LLMs wrap it in markdown)
         json_match = re.search(r'```json\s*({.*?})\s*```', raw_response, re.DOTALL)
         json_str = None
         if json_match:
             json_str = json_match.group(1)
         else:
-             # Look for JSON directly if not in a code block
              try:
-                 # Basic check if it looks like JSON before attempting full parse
                  if raw_response.strip().startswith('{') and raw_response.strip().endswith('}'):
-                      json.loads(raw_response.strip()) # Test parse
-                      json_str = raw_response.strip()
+                      test_parse = json.loads(raw_response.strip())
+                      # Basic check if parsed result looks like expected structure
+                      if isinstance(test_parse, dict) and "selected_memes" in test_parse and "reasoning" in test_parse:
+                          json_str = raw_response.strip()
+                      else:
+                          logger.warning(f"Meme selector response parsed as JSON but missing keys. Raw: {raw_response}")
                  else:
-                      logger.warning(f"Meme selector response doesn't appear to be valid JSON or JSON code block. Raw: {raw_response}")
+                      logger.warning(f"Meme selector response doesn't look like JSON or JSON code block. Raw: {raw_response}")
              except json.JSONDecodeError:
                  logger.warning(f"Meme selector response is not valid JSON. Raw: {raw_response}")
 
@@ -657,30 +580,17 @@ def generate_response(prompt: str, api_key: str, model_name: str, api_endpoint: 
     """
     logger.info(f"Generating response using model: {model_name}")
     
-    # Determine model type based on known lists (now defined locally)
     model_type = None
-    if model_name in OPENAI_MODELS: # Should now work
-        model_type = MODEL_TYPE_OPENAI
-    elif model_name in GEMINI_MODELS: # Should now work
-        model_type = MODEL_TYPE_GEMINI
-    elif model_name in ANTHROPIC_MODELS: # Should now work
-        model_type = MODEL_TYPE_ANTHROPIC
-    elif model_name in XAI_MODELS: # Added check for xAI models
-        model_type = MODEL_TYPE_XAI
+    if model_name in OPENAI_MODELS: model_type = MODEL_TYPE_OPENAI
+    elif model_name in GEMINI_MODELS: model_type = MODEL_TYPE_GEMINI
+    elif model_name in ANTHROPIC_MODELS: model_type = MODEL_TYPE_ANTHROPIC
+    elif model_name in XAI_MODELS: model_type = MODEL_TYPE_XAI
         
-    # Route to the correct helper function
-    if model_type == MODEL_TYPE_OPENAI:
-        return _call_openai(prompt, api_key, model_name, api_endpoint, max_tokens=2048)
-    elif model_type == MODEL_TYPE_GEMINI:
-        return _call_gemini(prompt, api_key, model_name, api_endpoint)
-    elif model_type == MODEL_TYPE_ANTHROPIC:
-        return _call_anthropic(prompt, api_key, model_name, api_endpoint, max_tokens=2048)
-    elif model_type == MODEL_TYPE_XAI:
-        return _call_xai(prompt, api_key, model_name, api_endpoint, max_tokens=2048)
-    else:
-        # This case might be reachable if api.py allows models not defined here
-        logger.error(f"Unsupported or unknown model specified in generate_response: {model_name}")
-        return None
+    if model_type == MODEL_TYPE_OPENAI: return _call_openai(prompt, api_key, model_name, api_endpoint, max_tokens=2048)
+    elif model_type == MODEL_TYPE_GEMINI: return _call_gemini(prompt, api_key, model_name, api_endpoint)
+    elif model_type == MODEL_TYPE_ANTHROPIC: return _call_anthropic(prompt, api_key, model_name, api_endpoint, max_tokens=2048)
+    elif model_type == MODEL_TYPE_XAI: return _call_xai(prompt, api_key, model_name, api_endpoint, max_tokens=2048)
+    else: logger.error(f"Unsupported model specified in generate_response: {model_name}"); return None
 
 def perform_ethical_analysis(
     initial_prompt: str,
@@ -707,125 +617,61 @@ def perform_ethical_analysis(
     """
     logger.info(f"Performing ethical analysis using analysis model: {analysis_model_name}")
 
-    # --- Load the Analysis Prompt Template ---
     template_filename = "ethical_analysis_prompt.txt"
     analysis_prompt_template = _load_prompt_template(template_filename)
-
-    if not analysis_prompt_template:
-        logger.error(f"Could not load analysis prompt template: {template_filename}. Aborting analysis.")
-        return None # Indicate failure
+    if not analysis_prompt_template: logger.error(f"Could not load analysis prompt template: {template_filename}. Aborting."); return None
     
-    # --- Add Selected Memes to Context (if available) ---
     meme_context = ""
     if selected_meme_names:
         meme_context = "\n\n**Potentially Relevant Ethical Memes Identified:**\n- " + "\n- ".join(selected_meme_names)
         logger.info(f"Adding {len(selected_meme_names)} selected memes to analysis context.")
-        # Truncate meme_context to max length to avoid oversized prompts
         if len(meme_context) > R2_MEME_CONTEXT_MAX_CHARS:
             meme_context = meme_context[:R2_MEME_CONTEXT_MAX_CHARS] + "\n[... truncated meme context ...]"
             logger.info(f"Truncated meme context to {R2_MEME_CONTEXT_MAX_CHARS} characters.")
 
-    # --- Format the Analysis Prompt ---
     formatted_prompt = analysis_prompt_template.format(
-        initial_prompt=initial_prompt,
-        generated_response=generated_response,
-        ontology=ontology,
-        meme_context=meme_context # Add meme context here
+        initial_prompt=initial_prompt, generated_response=generated_response,
+        ontology=ontology, meme_context=meme_context
     )
 
-    log_prompt_start = formatted_prompt[:100]
-
-    # Determine analysis model type based on known lists (now defined locally)
     model_type = None
-    if analysis_model_name in OPENAI_MODELS: # Should now work
-        model_type = MODEL_TYPE_OPENAI
-    elif analysis_model_name in GEMINI_MODELS: # Should now work
-        model_type = MODEL_TYPE_GEMINI
-    elif analysis_model_name in ANTHROPIC_MODELS: # Should now work
-        model_type = MODEL_TYPE_ANTHROPIC
-    elif analysis_model_name in XAI_MODELS: # Added check for xAI models
-        model_type = MODEL_TYPE_XAI
+    if analysis_model_name in OPENAI_MODELS: model_type = MODEL_TYPE_OPENAI
+    elif analysis_model_name in GEMINI_MODELS: model_type = MODEL_TYPE_GEMINI
+    elif analysis_model_name in ANTHROPIC_MODELS: model_type = MODEL_TYPE_ANTHROPIC
+    elif analysis_model_name in XAI_MODELS: model_type = MODEL_TYPE_XAI
 
-    # Route to the correct helper function using analysis parameters
-    if model_type == MODEL_TYPE_OPENAI:
-        return _call_openai(
-            formatted_prompt, 
-            analysis_api_key, 
-            analysis_model_name, 
-            analysis_api_endpoint, 
-            max_tokens=4096 # Allow more tokens for analysis
-        )
-    elif model_type == MODEL_TYPE_GEMINI:
-        return _call_gemini(
-            formatted_prompt, 
-            analysis_api_key, 
-            analysis_model_name, 
-            analysis_api_endpoint
-            # Consider specific safety/generation config for analysis?
-        )
-    elif model_type == MODEL_TYPE_ANTHROPIC:
-        return _call_anthropic(
-            formatted_prompt, 
-            analysis_api_key, 
-            analysis_model_name, 
-            analysis_api_endpoint, 
-            max_tokens=4096 
-        )
-    elif model_type == MODEL_TYPE_XAI:
-        return _call_xai(
-            formatted_prompt, 
-            analysis_api_key, 
-            analysis_model_name, 
-            analysis_api_endpoint, 
-            max_tokens=4096
-        )
-    else:
-        # This case might be reachable if api.py allows models not defined here
-        logger.error(f"Unsupported or unknown model specified in perform_ethical_analysis: {analysis_model_name}")
-        return None
+    if model_type == MODEL_TYPE_OPENAI: return _call_openai(formatted_prompt, analysis_api_key, analysis_model_name, analysis_api_endpoint, max_tokens=4096)
+    elif model_type == MODEL_TYPE_GEMINI: return _call_gemini(formatted_prompt, analysis_api_key, analysis_model_name, analysis_api_endpoint)
+    elif model_type == MODEL_TYPE_ANTHROPIC: return _call_anthropic(formatted_prompt, analysis_api_key, analysis_model_name, analysis_api_endpoint, max_tokens=4096)
+    elif model_type == MODEL_TYPE_XAI: return _call_xai(formatted_prompt, analysis_api_key, analysis_model_name, analysis_api_endpoint, max_tokens=4096)
+    else: logger.error(f"Unsupported model specified in perform_ethical_analysis: {analysis_model_name}"); return None
 
 # Example usage (for testing this module directly)
 if __name__ == '__main__':
-    # Ensure logger is configured for direct script run
     if not logging.getLogger().hasHandlers():
         logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
     test_prompt = "Explain the concept of ethical memetics briefly."
-    test_ontology = "Example Ontology: Be good. Don't be bad." # Simple placeholder
 
     # --- Test Gemini --- 
     gemini_key = os.getenv("GEMINI_API_KEY")
-    gemini_model = "gemini-1.5-flash-latest" # Use a known model
-    if not gemini_key:
-        logger.warning("GEMINI_API_KEY environment variable not set. Skipping Gemini tests.")
+    gemini_model = "gemini-1.5-flash-latest"
+    if not gemini_key: logger.warning("GEMINI_API_KEY not set. Skipping Gemini tests.")
     else:
         logger.info(f"--- Testing Gemini ({gemini_model}) ---")
         r1_gemini = generate_response(test_prompt, gemini_key, gemini_model)
-        if r1_gemini:
-            logger.info(f"Gemini Response (R1):\n{r1_gemini}")
-            r2_gemini = perform_ethical_analysis(test_prompt, r1_gemini, gemini_model, {"provider": "Gemini", "key": gemini_key, "endpoint": None})
-            if r2_gemini:
-                logger.info(f"Gemini Analysis (R2):\n{r2_gemini}")
-            else:
-                logger.warning("Failed to get Gemini analysis (R2).")
-        else:
-            logger.warning("Failed to get Gemini response (R1).")
+        if r1_gemini: logger.info(f"Gemini Response (R1):\n{r1_gemini}")
+        else: logger.warning("Failed to get Gemini response (R1).")
+        # Removed incorrect analysis call
 
     # --- Test Anthropic --- 
     anthropic_key = os.getenv("ANTHROPIC_API_KEY")
-    anthropic_model = "claude-3-haiku-20240307" # Use a known model
-    if not anthropic_key:
-        logger.warning("ANTHROPIC_API_KEY environment variable not set. Skipping Anthropic tests.")
+    anthropic_model = "claude-3-haiku-20240307"
+    if not anthropic_key: logger.warning("ANTHROPIC_API_KEY not set. Skipping Anthropic tests.")
     else:
         logger.info(f"--- Testing Anthropic ({anthropic_model}) ---")
         r1_anthropic = generate_response(test_prompt, anthropic_key, anthropic_model)
-        if r1_anthropic:
-            logger.info(f"Anthropic Response (R1):\n{r1_anthropic}")
-            r2_anthropic = perform_ethical_analysis(test_prompt, r1_anthropic, anthropic_model, {"provider": "Anthropic", "key": anthropic_key, "endpoint": None})
-            if r2_anthropic:
-                logger.info(f"Anthropic Analysis (R2):\n{r2_anthropic}")
-            else:
-                logger.warning("Failed to get Anthropic analysis (R2).")
-        else:
-            logger.warning("Failed to get Anthropic response (R1).")
+        if r1_anthropic: logger.info(f"Anthropic Response (R1):\n{r1_anthropic}")
+        else: logger.warning("Failed to get Anthropic response (R1).")
+        # Removed incorrect analysis call
 

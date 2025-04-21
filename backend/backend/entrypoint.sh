@@ -1,23 +1,24 @@
-#!/usr/bin/env sh
+#!/bin/bash
 set -e
 
-# Wait for MongoDB
-echo "Waiting for MongoDB to be available..."
-while ! nc -z ai-mongo 27017; do
-  sleep 1
-  echo "Still waiting for MongoDB..."
-done
+# Optional: Wait for MongoDB to be available (Compose depends_on is preferred)
+# echo "Waiting for MongoDB to be available..."
+# until nc -z ai-mongo 27017; do
+#     sleep 1
+# done
+# echo "MongoDB is up."
 
-echo "MongoDB is up. Populating default memes..."
-
-echo "Populating default memes..."
+# Populate default memes if the script exists
 if [ -f "/app/scripts/populate_memes.py" ]; then
-  python3 /app/scripts/populate_memes.py
+    echo "Populating default memes..."
+    python /app/scripts/populate_memes.py /app/documents/memes.json
 else
-  echo "Error: populate_memes.py script not found at /app/scripts/populate_memes.py"
-  echo "Contents of /app/scripts:"
-  ls -l /app/scripts/
+    echo "Populate memes script not found at /app/scripts/populate_memes.py, skipping."
 fi
 
+# Start Gunicorn
 echo "Starting Gunicorn server..."
-exec gunicorn --workers 4 --bind 0.0.0.0:5000 backend.wsgi:app 
+
+# Run Gunicorn assuming wsgi.py is in /app and contains 'app'
+# Assumes WORKDIR /app is set in Dockerfile
+exec gunicorn --workers 4 --bind 0.0.0.0:5000 wsgi:app 

@@ -1,0 +1,98 @@
+name: Build and Deploy to GCP Artifact Registry and Cloud Run
+
+on:
+  push:
+    branches: [ main ] # Trigger on push to main branch
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  id-token: write # Required for OIDC login to GCP
+  contents: read
+
+env:
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }} # Store in GitHub secrets
+  GCP_ARTIFACT_REGISTRY_REGION: ${{ secrets.GCP_ARTIFACT_REGISTRY_REGION }} # e.g., us-central1
+  GCP_ARTIFACT_REGISTRY_REPO: ${{ secrets.GCP_ARTIFACT_REGISTRY_REPO }} # e.g., ethics-dash-repo
+  GCP_CLOUD_RUN_REGION: ${{ secrets.GCP_CLOUD_RUN_REGION }} # e.g., us-central1
+  BACKEND_SERVICE_NAME: ai-backend-service
+  FRONTEND_SERVICE_NAME: ai-frontend-service
+  # DB Init is usually run as a Job, not a Service, handle separately if needed
+
+jobs:
+  build-push-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud using OIDC
+      id: auth
+      uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }} # e.g., projects/123/locations/global/workloadIdentityPools/my-pool/providers/my-provider
+        service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }} # e.g., github-actions@my-project.iam.gserviceaccount.com
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Configure Docker for Artifact Registry
+      run: gcloud auth configure-docker ${{ env.GCP_ARTIFACT_REGISTRY_REGION }}-docker.pkg.dev --quiet
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    # --- Build and Push Backend ---
+    - name: Build and Push Backend Image
+      id: build-backend
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: ./backend/backend/Dockerfile
+        push: true
+        tags: ${{ env.GCP_ARTIFACT_REGISTRY_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_ARTIFACT_REGISTRY_REPO }}/ai-backend:${{ github.sha }}
+        platforms: linux/amd64
+
+    # --- Build and Push Frontend ---
+    - name: Build and Push Frontend Image
+      id: build-frontend
+      uses: docker/build-push-action@v6
+      with:
+        context: ./frontend
+        file: ./frontend/Dockerfile
+        push: true
+        tags: ${{ env.GCP_ARTIFACT_REGISTRY_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_ARTIFACT_REGISTRY_REPO }}/ai-frontend:${{ github.sha }}
+        platforms: linux/amd64
+
+    # Note: DB Init image build/push omitted for brevity, add similarly if needed for Jobs
+
+    # --- Deploy Backend to Cloud Run ---
+    - name: Deploy Backend to Cloud Run
+      id: deploy-backend
+      uses: google-github-actions/deploy-cloudrun@v2
+      with:
+        service: ${{ env.BACKEND_SERVICE_NAME }}
+        region: ${{ env.GCP_CLOUD_RUN_REGION }}
+        image: ${{ env.GCP_ARTIFACT_REGISTRY_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_ARTIFACT_REGISTRY_REPO }}/ai-backend:${{ github.sha }}
+        env_vars: | # Add necessary env vars for backend (keys, MONGO_URI for cloud DB, etc.)
+          MONGO_URI=${{ secrets.GCP_MONGO_URI }} # Example: Use secret for cloud DB connection
+          # Add LLM API Keys from GCP Secret Manager or GitHub Secrets
+          # OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+        flags: '--allow-unauthenticated --min-instances=0 --max-instances=2' # Example flags
+
+    # --- Deploy Frontend to Cloud Run ---
+    - name: Deploy Frontend to Cloud Run
+      id: deploy-frontend
+      uses: google-github-actions/deploy-cloudrun@v2
+      with:
+        service: ${{ env.FRONTEND_SERVICE_NAME }}
+        region: ${{ env.GCP_CLOUD_RUN_REGION }}
+        image: ${{ env.GCP_ARTIFACT_REGISTRY_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_ARTIFACT_REGISTRY_REPO }}/ai-frontend:${{ github.sha }}
+        env_vars: | # Nginx might need env vars to know backend URL if not hardcoded
+           BACKEND_API_URL=https://${{ steps.deploy-backend.outputs.url }} # Dynamically get backend URL
+        flags: '--allow-unauthenticated'
+
+    # Output the service URLs
+    - name: Show Deployed URLs
+      run: |
+        echo "Backend Service URL: ${{ steps.deploy-backend.outputs.url }}"
+        echo "Frontend Service URL: ${{ steps.deploy-frontend.outputs.url }}" 

@@ -9,10 +9,10 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from pydantic import ValidationError, TypeAdapter
 import os
-import io
-import csv
+# import io # Unused
+# import csv # Unused
 import json
-import base64
+# import base64 # Unused
 from werkzeug.utils import secure_filename
 from typing import List, Dict, Any
 
@@ -22,7 +22,7 @@ from .models import EthicalMemeCreate, EthicalMemeUpdate, EthicalMemeInDB
 # Import LLM function (adjust path/name if necessary)
 # Ensure relevant API keys/configs are loaded in create_app
 from .modules.llm_interface import generate_response # Only import what's needed
-# from .api import _get_api_config # Commented out - Reuse API config logic if appropriate (Currently not used here)
+# Obsolete commented import removed
 
 # Setup logger for this module
 logger = logging.getLogger(__name__)
@@ -32,13 +32,6 @@ memes_bp = Blueprint('memes_api', __name__, url_prefix='/api/memes')
 
 # Pydantic TypeAdapter for validating a list of memes
 EthicalMemeListValidator = TypeAdapter(List[EthicalMemeCreate])
-
-# --- Helper Function for ObjectId Conversion ---
-def _convert_objectid(doc):
-    """Converts MongoDB ObjectId to string for JSON serialization."""
-    if doc and '_id' in doc and isinstance(doc['_id'], ObjectId):
-        doc['_id'] = str(doc['_id'])
-    return doc
 
 # --- Helper Function for parsing datetime from ISODate string ---
 def parse_datetime(iso_str):

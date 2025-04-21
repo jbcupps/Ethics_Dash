@@ -1,8 +1,9 @@
 """Registers callbacks related to adding/managing dynamic inputs."""
 
-import requests
+# import requests # Unused
 import logging
-from dash import Input, Output, State, callback, ctx, MATCH, ALL
+# Removed ctx, MATCH from import
+from dash import Input, Output, State, callback, ALL
 
 # Import helpers 
 from .helpers import create_morphism_inputs, create_mapping_inputs 
@@ -18,12 +19,11 @@ def register_dynamic_input_callbacks(dash_app):
         Output('morphisms-container', 'children'),
         Input('add-morphism-button', 'n_clicks'),
         State('morphisms-container', 'children'),
-        State('analysis-p1-dropdown', 'options'), # Use analysis dropdown options as source
+        State('meme-merged-from', 'options'), # Use merged-from dropdown options
         prevent_initial_call=True
     )
     def add_morphism(n_clicks, existing_children, meme_options):
         """Adds a new set of morphism inputs to the container."""
-        # ... (Implementation from previous step) ...
         if not existing_children: existing_children = []
         new_index = len(existing_children)
         new_input_group = create_morphism_inputs(new_index, meme_options)
@@ -40,7 +40,6 @@ def register_dynamic_input_callbacks(dash_app):
     )
     def add_mapping(n_clicks, existing_children):
         """Adds a new set of mapping inputs to the container."""
-        # ... (Implementation from previous step) ...
         if not existing_children: existing_children = []
         new_index = len(existing_children)
         new_input_group = create_mapping_inputs(new_index)
@@ -125,7 +124,7 @@ def register_dynamic_input_callbacks(dash_app):
     @dash_app.callback(
         Output('morphisms-container', 'children'),
         Input('edit-meme-store', 'data'),
-        State('analysis-p1-dropdown', 'options'), # Need options for target dropdown
+        State('meme-merged-from', 'options'), # Need options for target dropdown
         prevent_initial_call=True
     )
     def populate_morphisms_on_edit(edit_data, meme_options):

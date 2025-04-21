@@ -15,8 +15,8 @@ load_dotenv()  # Load environment variables from .env file
 import dash
 import dash_bootstrap_components as dbc
 from dash import html # Correct import
-from backend.app.dash_layout import create_layout # Use absolute import from package
-from backend.app.callbacks import register_all_callbacks # Updated import to use the new callbacks package
+from .dash_layout import create_layout # Use relative import
+from .callbacks import register_all_callbacks # Use relative import
 
 # Setup logger for this module
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ def create_app():
     
     # Load sensitive/environment-specific config from environment variables
     # Use upper case by convention for Flask config keys
-    server.config['MONGO_URI'] = os.getenv("MONGO_URI", "mongodb://mongo:27017/") # Default for docker-compose
+    server.config['MONGO_URI'] = os.getenv("MONGO_URI", "mongodb://ai-mongo:27017/") # Use correct service name
     server.config['MONGO_DB_NAME'] = os.getenv("MONGO_DB_NAME", "ethical_memes_db")
     
     # Load API Keys and Model Config for Analysis

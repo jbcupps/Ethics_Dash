@@ -1,5 +1,5 @@
 """WSGI entry point for the Ethical Review Backend API"""
-from backend.app import create_app
+from app import create_app
 
 app = create_app()
 

@@ -6,12 +6,14 @@ from flask import Blueprint, request, jsonify, current_app
 import re # Import regex module for parsing
 import json # Import JSON module for parsing
 import logging # Import logging
-from json import JSONDecodeError
 from pydantic import ValidationError
+from bson import ObjectId
 
-from backend.app.modules.llm_interface import generate_response, perform_ethical_analysis, select_relevant_memes
-from backend.app.db import get_all_memes_for_selection
-from backend.app.models import AnalysisResultModel
+# Corrected relative import
+from .modules.llm_interface import generate_response, perform_ethical_analysis, select_relevant_memes
+# Corrected relative imports assuming db.py and models.py are in the same 'app' package
+from .db import get_all_memes_for_selection
+from .models import AnalysisResultModel
 
 # --- Blueprint Definition ---
 api_bp = Blueprint('api', __name__, url_prefix='/api')

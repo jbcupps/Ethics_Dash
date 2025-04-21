@@ -6,4 +6,8 @@ RUN pip install pymongo python-dotenv
 # Set the working directory
 WORKDIR /app
 
+# Copy scripts and documents for database initialization
+COPY scripts/ /scripts/
+COPY documents/ /documents/
+
 # Command will be specified in docker-compose.yml 

@@ -11,7 +11,7 @@ def create_layout():
         dcc.Store(id='meme-update-trigger-store'), # Triggers dropdown/table updates
         dcc.Interval(id='meme-initial-load', interval=1000, n_intervals=0, max_intervals=1), # Load memes once on startup
         dcc.Store(id='edit-meme-store', storage_type='memory'), # Holds data for meme being edited
-        html.H1("Ethical Memes Dashboard"),
+        html.H1("Ethical Memes Dashboard - Admin"),
         dbc.Alert(id='alert-message', color='warning', is_open=False), # For notifications
         dbc.Tabs([
             dbc.Tab(label="Meme Management", children=[
@@ -149,22 +149,7 @@ def create_layout():
                     )
                 ) # End Spinner
             ]),
-            dbc.Tab(label="Ethical Analysis (R2)", children=[
-                 html.H4("Perform Analysis"),
-                 # Add components for selecting P1, R1, and triggering analysis
-                 dbc.Row([
-                     dbc.Col(dbc.Label("Primary Meme (P1):"), width=2),
-                     dbc.Col(dcc.Dropdown(id='analysis-p1-dropdown'), width=10), # Needs dynamic options
-                 ]),
-                 dbc.Row([
-                     dbc.Col(dbc.Label("Response Meme (R1):"), width=2),
-                     dbc.Col(dcc.Dropdown(id='analysis-r1-dropdown'), width=10), # Needs dynamic options
-                 ]),
-                 dbc.Button("Run Analysis", id="run-analysis-button", color="success", n_clicks=0),
-                 html.Hr(),
-                 dbc.Spinner(dcc.Markdown(id='analysis-results-output', children="Analysis results will appear here."))
-            ]),
-             dbc.Tab(label="Ontology", children=[
+            dbc.Tab(label="Ontology", children=[
                  html.H4("Ethical Ontology"),
                  dbc.Spinner(dcc.Markdown(id='ontology-display')) # Load ontology.md here
              ]),

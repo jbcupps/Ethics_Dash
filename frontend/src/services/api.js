@@ -1,7 +1,9 @@
 import axios from 'axios';
 
 // Set the base URL for the API
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Default to relative path /api which will be proxied by Nginx in production/docker
+// process.env.REACT_APP_API_URL can override this for local dev if needed
+const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 // Create an axios instance
 const apiClient = axios.create({

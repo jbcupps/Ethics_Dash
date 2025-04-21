@@ -22,14 +22,11 @@ def register_data_loading_callbacks(dash_app):
     # Callback to update STATIC meme dropdowns (merged, analysis)
     @dash_app.callback(
         Output('meme-merged-from', 'options'),
-        Output('analysis-p1-dropdown', 'options'),
-        Output('analysis-r1-dropdown', 'options'),
         Input('meme-update-trigger-store', 'data'), # Triggered by successful saves
         prevent_initial_call=False
     )
     def update_static_meme_dropdowns(trigger_data):
-        """Fetches memes from the API and populates STATIC dropdown options (merged, analysis)."""
-        # ... (Implementation from meme_management.py) ...
+        """Fetches memes from the API and populates STATIC dropdown options (merged)."""
         logger.info(f"Updating STATIC meme dropdowns triggered by store update: {trigger_data}")
         options = []
         try:
@@ -42,7 +39,7 @@ def register_data_loading_callbacks(dash_app):
                            for meme in memes if meme.get('_id') and meme.get('name')]
         except Exception as e:
             logger.error(f"Error fetching memes for static dropdowns: {e}")
-        return options, options, options
+        return options
 
     # Callback to populate the meme data table
     @dash_app.callback(
@@ -52,7 +49,6 @@ def register_data_loading_callbacks(dash_app):
     )
     def update_meme_table(trigger_data):
         """Fetches memes from the API and populates the DataTable."""
-        # ... (Implementation from meme_management.py) ...
         logger.info(f"Updating meme table triggered by store update: {trigger_data}")
         memes_data = []
         try:

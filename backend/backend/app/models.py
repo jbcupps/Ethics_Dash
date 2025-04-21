@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator, HttpUrl
+from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any, Union, Literal, Annotated
 from datetime import datetime, timezone
 from bson import ObjectId
@@ -12,9 +12,6 @@ PyObjectId = Annotated[ObjectId, Field(validate_default=False)]
 class MemeSelectionResponse(BaseModel):
     selected_memes: List[str] = Field(description="List of names of the most relevant ethical memes.")
     reasoning: Optional[str] = Field(default=None, description="Explanation for why these memes were selected.")
-
-# Define ethical dimensions as Literals for type hinting and validation
-EthicalDimension = Literal["Deontology", "Teleology", "Areteology", "Memetics"]
 
 # --- Sub-models for Dimension Specific Attributes ---
 
@@ -123,7 +120,6 @@ class EthicalMemeInDB(EthicalMemeBase):
     }
 
 # --- Pydantic models for R2 analysis output validation ---
-from pydantic import BaseModel  # Ensure BaseModel is available
 
 class ScoreEntry(BaseModel):
     score: int

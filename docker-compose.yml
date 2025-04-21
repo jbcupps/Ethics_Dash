@@ -2,18 +2,20 @@ version: '3.8'
 
 services:
   # Main Dash Application Service
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: ai-ethical-review-app
-    ports:
-      - "8050:8050" # Default Dash port mapped to host
-    depends_on:
-      - ai-mongo
-    command: ["python", "app.py"]
+  # Code is built into the image via Dockerfile for portability.
+  # app:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: ai-ethical-review-app
+  #   ports:
+  #     - "8050:8050" # Default Dash port mapped to host
+  #   depends_on:
+  #     - ai-mongo # Waits for mongo to start
+  #   command: ["python", "app.py"]
 
   # AI Ethical Work Backend API Service
+  # Code is built into the image via backend/backend/Dockerfile for portability.
   ai-backend:
     build:
       context: .
@@ -21,15 +23,20 @@ services:
     container_name: ai-ethical-work-backend-api
     ports:
       - "5000:5000" # AI backend API port
+    env_file: # Added to load .env file
+      - .env   # Specifies the .env file in the project root
     healthcheck:
+      # Basic check: Port 5000 is listening
       test: ["CMD", "nc", "-z", "localhost", "5000"]
       interval: 30s
       timeout: 10s
       retries: 3
     depends_on:
-      - ai-mongo
+      ai-mongo: # Waits for mongo to start - Mongo healthcheck handles startup time
+        condition: service_healthy
 
   # AI Ethical Work Frontend Service (Nginx)
+  # Code is built into the image via frontend/Dockerfile for portability.
   ai-frontend:
     build:
       context: ./frontend
@@ -38,38 +45,55 @@ services:
     ports:
       - "80:80" # Standard HTTP port for AI frontend
     healthcheck:
+      # Basic check: Nginx is responding on port 80
       test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     depends_on:
       ai-backend:
-        condition: service_healthy
+        condition: service_healthy # Waits for backend API to be healthy
 
   # AI Ethical Work MongoDB Service
   ai-mongo:
     image: mongo:latest
     container_name: ai-ethical-review-mongodb
     ports:
-      - "27018:27017" # Default MongoDB port mapped to host 27018
+      - "27018:27017" # Map host 27018 to container 27017
     volumes:
-      - mongo_data:/data/db
-    environment: {}
+      - mongo_data:/data/db # Use named volume for persistence
+    environment: {} # No specific env vars needed for basic setup
     restart: unless-stopped
+    healthcheck:
+      # Use mongosh for healthcheck - more robust
+      test: |
+        mongosh --host localhost:27017 --eval \
+        'db.runCommand("ping").ok || quit(1)'
+      interval: 10s
+      timeout: 10s # Slightly increased timeout for mongosh
+      retries: 5
+      start_period: 30s # Give mongo some time to start up initially
 
-  # Database initialization service
-  db-init:
-    build:
-      context: .
-      dockerfile: Dockerfile.db-init
-    container_name: ai-ethical-db-init
-    depends_on:
-      ai-mongo:
-        condition: service_started
-    environment:
-      - MONGO_URI=mongodb://ai-ethical-review-mongodb:27017/ethics_db
-    command: ["python", "/scripts/populate_memes.py", "/documents/memes.json"]
+# Database initialization service - REMOVED as it's handled in backend entrypoint
+# db-init:
+#   build:
+#     context: .
+#     dockerfile: Dockerfile.db-init
+#   container_name: ai-ethical-db-init
+#   depends_on:
+#     ai-mongo:
+#       # Wait until mongo is fully healthy before trying to connect
+#       condition: service_healthy
+#   environment:
+#     # Use the service name 'ai-mongo' for connection within the Docker network
+#     - MONGO_URI=mongodb://ai-mongo:27017/ethics_db
+#   # Ensure the script and document paths exist within the image built by Dockerfile.db-init
+#   command: ["python", "/scripts/populate_memes.py", "/documents/memes.json"]
+#   # This service runs to completion, no restart needed, no healthcheck needed for others to depend on it.
 
 # Named volume for MongoDB data persistence
 volumes:
-  mongo_data:
+  mongo_data: {} # Define the named volume
 
 # You can add other services (like a database) here
 # volumes:

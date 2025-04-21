@@ -1,3 +1,6 @@
+import dash_bootstrap_components as dbc
+from dash import dcc
+
 # --- Helper Functions for Dynamic Inputs ---
 def create_morphism_inputs(index, meme_options):
     return dbc.Card([
