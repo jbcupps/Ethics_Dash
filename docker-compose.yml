@@ -9,8 +9,6 @@ services:
     container_name: ai-ethical-review-app
     ports:
       - "8050:8050" # Default Dash port mapped to host
-    env_file:
-      - .env       # Load environment variables from root .env file
     depends_on:
       - ai-mongo
     command: ["python", "app.py"]
@@ -21,9 +19,6 @@ services:
       context: .
       dockerfile: backend/backend/Dockerfile
     container_name: ai-ethical-work-backend-api
-    env_file:
-      - .env                     # Load environment variables from root .env file
-      - backend/backend.env      # Load overrides specific to AI backend service
     ports:
       - "5000:5000" # AI backend API port
     healthcheck:
