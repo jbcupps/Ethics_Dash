@@ -58,8 +58,13 @@ def register_data_loading_callbacks(dash_app):
             memes = response.json() # Assumes API returns simple JSON list for this
             if isinstance(memes, list):
                 for meme in memes:
+                    # Ensure all required string fields for the table exist
                     meme['ethical_dimension_str'] = ", ".join(meme.get('ethical_dimension', []) or [])
                     meme['tags_str'] = ", ".join(meme.get('tags', []) or [])
+                    # Format the boolean is_merged_token for display
+                    meme['is_merged_token'] = "Yes" if meme.get('is_merged_token', False) else "No" 
+                    # Ensure description exists (even if empty) for markdown rendering
+                    meme['description'] = meme.get('description', '') 
                 memes_data = memes
                 logger.info(f"Successfully fetched {len(memes_data)} memes for table.")
             else: logger.error(f"API returned non-list data for memes table: {type(memes)}")

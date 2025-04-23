@@ -16,7 +16,7 @@ def register_dynamic_input_callbacks(dash_app):
     # Callback to add new morphism input group
     # (Moved from original dash_callbacks.py)
     @dash_app.callback(
-        Output('morphisms-container', 'children'),
+        Output('morphisms-container', 'children', allow_duplicate=True),
         Input('add-morphism-button', 'n_clicks'),
         State('morphisms-container', 'children'),
         State('meme-merged-from', 'options'), # Use merged-from dropdown options
@@ -48,7 +48,7 @@ def register_dynamic_input_callbacks(dash_app):
 
     # Callback to REMOVE a morphism input group
     @dash_app.callback(
-        Output('morphisms-container', 'children'),
+        Output('morphisms-container', 'children', allow_duplicate=True),
         # Use ALL instead of MATCH for pattern matching
         Input({'type': 'remove-morphism-button', 'index': ALL}, 'n_clicks'),
         State('morphisms-container', 'children'),
@@ -122,7 +122,7 @@ def register_dynamic_input_callbacks(dash_app):
 
     # Callback to populate morphism inputs when editing
     @dash_app.callback(
-        Output('morphisms-container', 'children'),
+        Output('morphisms-container', 'children', allow_duplicate=True),
         Input('edit-meme-store', 'data'),
         State('meme-merged-from', 'options'), # Need options for target dropdown
         prevent_initial_call=True
