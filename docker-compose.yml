@@ -15,11 +15,11 @@ services:
   #   command: ["python", "app.py"]
 
   # AI Ethical Work Backend API Service
-  # Code is built into the image via backend/backend/Dockerfile for portability.
+  # Code is built into the image via backend/Dockerfile for portability.
   ai-backend:
     build:
       context: .
-      dockerfile: backend/backend/Dockerfile
+      dockerfile: backend/Dockerfile
     container_name: ai-ethical-work-backend-api
     ports:
       - "5000:5000" # AI backend API port

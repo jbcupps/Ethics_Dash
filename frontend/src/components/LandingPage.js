@@ -1,8 +1,19 @@
 import React from 'react';
-import { Link } from 'react-router-dom'; // Import Link
+import { Link, useNavigate } from 'react-router-dom'; // Import useNavigate
 import '../App.css'; // Assuming shared styles
 
 const LandingPage = ({ onEnter }) => {
+  const navigate = useNavigate(); // Get navigate function
+  
+  // Handle button click with both the provided onEnter function and direct navigation
+  const handleEnterClick = () => {
+    if (onEnter) {
+      onEnter(); // Call the provided onEnter function
+    }
+    // Also directly navigate to ensure routing works
+    navigate('/tool');
+  };
+  
   return (
     <div className="landing-page">
       {/* Hero Section */}
@@ -15,7 +26,7 @@ const LandingPage = ({ onEnter }) => {
         <p className="lead text-secondary mb-lg" style={{ maxWidth: '700px', margin: '0 auto var(--spacing-lg) auto' }}>
           Unlock deeper insights into AI responses with our advanced ethical review tool, integrating Deontology, Teleology, Areteology, and Memetics.
         </p>
-        <button onClick={onEnter} className="button button-large" >
+        <button onClick={handleEnterClick} className="button button-large" >
           Explore Ethical Analysis Now
         </button>
       </header>

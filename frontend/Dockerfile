@@ -8,10 +8,10 @@ RUN apk update && apk upgrade --no-cache
 WORKDIR /app
 
 # Copy package.json and package-lock.json
-COPY package*.json ./
+COPY package.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies (ignoring peer deps)
+RUN npm install --legacy-peer-deps
 
 # Copy the rest of the app's source code
 COPY . ./

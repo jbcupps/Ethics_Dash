@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Copy the requirements file into the container at /app
-COPY --chown=app:app backend/backend/requirements.txt requirements.txt
+COPY --chown=app:app backend/requirements.txt requirements.txt
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir --upgrade pip && \
@@ -32,18 +32,18 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir openai
 
 # Copy the application code into the container at /app
-COPY --chown=app:app backend/backend /app
+COPY --chown=app:app backend /app
 
 # Copy external documents (memes JSON and ontology)
 COPY --chown=app:app documents/ /app/documents/
 
 # Copy scripts
-# Scripts directory already created under /app by previous COPY if it exists in backend/backend
+# Scripts directory already created under /app by previous COPY if it exists in backend
 RUN mkdir -p /app/scripts
 COPY --chown=app:app scripts/ /app/scripts/
 
 # Copy and setup entrypoint script - Fix line endings during build
-COPY --chown=app:app backend/backend/entrypoint.sh /app/entrypoint.sh
+COPY --chown=app:app backend/entrypoint.sh /app/entrypoint.sh
 RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 
 # Switch to the non-root user

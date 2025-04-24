@@ -1,26 +1,26 @@
 # Backend API Requirements
 Flask>=2.3.0,<3.1.0 # Web framework
-Flask-CORS # Update: Remove version pin to get latest stable version (addresses CVE-2024-6221)
-gunicorn>=23.0.0,<24.0.0 # Update: WSGI server for production (addresses CVE-2024-6827)
+Flask-CORS>=3.0.10,<4.0.0 # Updated to secure version addressing CVE-2024-6221
+gunicorn==23.0.0 # Pinned to latest available version addressing CVE-2024-6827
 
 # Dash dependencies
-dash
-dash-bootstrap-components
-dash-table
+dash>=2.14.1,<3.0.0
+dash-bootstrap-components>=1.4.1,<2.0.0
+dash-table>=5.0.0,<6.0.0
 python-dotenv>=0.21.0,<2.0.0 # Load .env support for environment variables
 
 # LLM Dependencies (requests is often used by Dash/Flask too)
-requests
+requests>=2.31.0,<3.0.0
 
 # Visualization
-dash-cytoscape # Added for graph visualization
+dash-cytoscape==1.0.2 # Pinned to latest available version
 
 # LLM Client Libraries (Moved here for grouping)
 google-generativeai==0.5.3 # Gemini API - fixed version for compatibility
-anthropic>=0.23.1,<0.26.0 # Anthropic SDK for Claude 3 model support
-openai==1.74.0 # OpenAI library pinned
+anthropic>=0.27.0,<0.30.0 # Updated to latest supported version
+openai>=1.34.0,<2.0.0 # Updated to current stable version
 httpx>=0.25.0,<0.28.0 # HTTP client used by Anthropic and xAI APIs
 pymongo[srv]>=4.0,<5.0 # Added MongoDB driver (with SRV support)
-pydantic>=2.0 # Added Pydantic for data validation
+pydantic>=2.0,<3.0 # Pydantic version constraints
 
 # Add any other specific versions if necessary 

@@ -8,8 +8,10 @@ import DocumentationPage from './components/DocumentationPage';
 import ethicalReviewApi from './services/api';
 import { Tooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 
-function App() {
+function AppContent() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [availableModels, setAvailableModels] = useState([]);
@@ -40,17 +42,38 @@ function App() {
     fetchModels();
   }, []);
 
-  const handleEnterTool = () => setView('tool');
-  const handleViewMemes = () => setView('memes');
-  const handleViewDocs = () => setView('docs');
-  const handleViewLanding = () => setView('landing');
-  const handleViewTool = () => setView('tool');
+  // Make sure these handle functions navigate properly
+  const handleEnterTool = () => {
+    setView('tool');
+    navigate('/tool');
+  };
+  
+  const handleViewMemes = () => {
+    setView('memes'); 
+    navigate('/memes');
+  };
+  
+  const handleViewDocs = () => {
+    setView('docs');
+    navigate('/docs');
+  };
+  
+  const handleViewLanding = () => {
+    setView('landing');
+    navigate('/');
+  };
+  
+  const handleViewTool = () => {
+    setView('tool');
+    navigate('/tool');
+  };
 
   const handleToggleMemeDropdown = () => setShowMemeDropdown(!showMemeDropdown);
 
   const handleViewMemesClick = () => {
     setView('memes');
     setShowMemeDropdown(false);
+    navigate('/memes');
   };
 
   const handleSubmit = async (prompt, 
@@ -93,6 +116,7 @@ function App() {
       });
     } catch (err) {
       setError(err.message || 'An error occurred during analysis. Please check inputs or try again.');
+      console.error('Analysis error:', err);
     } finally {
       setLoading(false);
     }
@@ -124,7 +148,7 @@ function App() {
                 <button onClick={handleViewMemesClick}>View Library</button>
               </li>
               <li>
-                <a href="/dash/db#meme-creation">Interact with Database</a>
+                <a href="/dash/db" onClick={(e) => {e.preventDefault(); window.location.href = '/dash/db';}}>Interact with Database</a>
               </li>
             </ul>
           )}
@@ -202,6 +226,15 @@ function App() {
       <Tooltip id="form-tooltip" place="top" />
       <Tooltip id="results-tooltip" place="top" />
     </div>
+  );
+}
+
+// Main app component using top-level Router from index.js
+function App() {
+  return (
+    <Routes>
+      <Route path="/*" element={<AppContent />} />
+    </Routes>
   );
 }
 

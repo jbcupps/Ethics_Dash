@@ -52,7 +52,7 @@ jobs:
         uses: docker/build-push-action@v6 # Updated version
         with:
           context: .
-          file: backend/backend/Dockerfile
+          file: backend/Dockerfile
           push: true
           tags: |
             ${{ env.ACR_LOGIN_SERVER }}/backend:${{ env.IMAGE_TAG }}

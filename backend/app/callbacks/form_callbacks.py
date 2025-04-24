@@ -12,17 +12,16 @@ import os
 logger = logging.getLogger(__name__)
 
 # Config
-# Determine the base API URL from environment or default to the Docker Compose service
-# The `.env` file (and docker‑compose) sets BACKEND_API_URL to something like
-#     http://ai-backend:5000/api
-# We append the `/memes` segment here so that all subsequent calls can simply add
-# a trailing slash or additional path fragments as required.
-
-# Get the base URL for the backend (no trailing slash)
-_base_api_url = os.getenv("BACKEND_API_URL", "http://ai-backend:5000/api").rstrip("/")
-
-# Final URL pointing to the memes sub‑resource
+# Fix API URL construction - need to handle both internal Docker networking and local routes
+_base_api_url = os.getenv("BACKEND_API_URL", "/api")
+_base_api_url = _base_api_url.rstrip("/")  # Remove any trailing slash
+# If it's a relative path (e.g., '/api'), prefix with full local URL for internal requests
+if not _base_api_url.startswith("http"):
+    _base_api_url = f"http://localhost:5000{_base_api_url}"
+# Assemble full memes endpoint URL
 BACKEND_API_URL = f"{_base_api_url}/memes"
+
+logger.info(f"Form callbacks configured to use API URL: {BACKEND_API_URL}")
 
 MAX_NAME_LENGTH = 100
 MAX_DESC_LENGTH = 5000
@@ -64,7 +63,6 @@ def register_form_callbacks(dash_app):
         Output('meme-is-merged', 'value'),
         Output('meme-merged-from', 'value'),
         Output('meme-update-trigger-store', 'data'),
-        Output('dynamic-meme-attribute-inputs', 'children'),
         Output('edit-meme-store', 'data'),
         Input('save-meme-button', 'n_clicks'),
         Input('clear-form-button', 'n_clicks'),
@@ -99,6 +97,7 @@ def register_form_callbacks(dash_app):
             if not save_clicks:
                 return no_update, False, *([no_update]*12), None
 
+            logger.info(f"Save button clicked, validating form data for meme name: {name}")
             errors = []
             if not name or not isinstance(name, str): errors.append("Name is required.")
             elif len(name) > MAX_NAME_LENGTH: errors.append(f"Name exceeds {MAX_NAME_LENGTH} chars.")
@@ -200,17 +199,20 @@ def register_form_callbacks(dash_app):
                     response = None
                     if meme_id:
                         url = f"{BACKEND_API_URL}/{meme_id}"
+                        logger.info(f"Updating existing meme with ID {meme_id} at URL: {url}")
                         response = requests.put(url, data=payload_json_str, headers=headers, timeout=10)
                         action = "updated"
                     else:
                         url = BACKEND_API_URL + "/"
+                        logger.info(f"Creating new meme at URL: {url}")
                         response = requests.post(url, data=payload_json_str, headers=headers, timeout=10)
                         action = "created"
 
                     if response.ok:
                         alert_msg = f"Meme successfully {action}!"; alert_open = True
                         trigger_val = datetime.datetime.now().timestamp()
-                        return alert_msg, alert_open, *form_reset_values, trigger_val, *dynamic_outputs_reset
+                        logger.info(f"Meme '{name}' successfully {action}.")
+                        return alert_msg, alert_open, *form_reset_values, trigger_val, None
                     else:
                         error_detail = f"Status {response.status_code}"
                         try: error_data = response.json(); error_detail = error_data.get('error', error_detail)
@@ -229,8 +231,8 @@ def register_form_callbacks(dash_app):
             if not clear_clicks:
                 return no_update, False, *([no_update]*11), None
             logger.info("Clearing form fields.")
-            alert_msg = ""; alert_open = False
-            return alert_msg, alert_open, *form_reset_values, no_update, *dynamic_outputs_reset
+            alert_msg = "Form cleared successfully."; alert_open = True
+            return alert_msg, alert_open, *form_reset_values, no_update, None
 
         elif triggered_id == 'meme-database-table':
             if not active_cell or not table_data:
@@ -250,6 +252,7 @@ def register_form_callbacks(dash_app):
             full_meme_data = None
             try:
                 url = f"{BACKEND_API_URL}/{meme_id_to_load}"
+                logger.info(f"Requesting meme details from: {url}")
                 response = requests.get(url, timeout=5)
                 response.raise_for_status()
                 full_meme_data = response.json()
@@ -266,14 +269,6 @@ def register_form_callbacks(dash_app):
                 is_merged = ['IS_MERGED'] if full_meme_data.get('is_merged_token', False) else []
                 merged_from_ids = [str(oid) for oid in full_meme_data.get('merged_from_tokens', []) if oid]
 
-                dynamic_attrs_children = []
-                dim_attrs_data = full_meme_data.get('dimension_specific_attributes')
-                if dimensions and isinstance(dim_attrs_data, dict):
-                     if 'Deontology' in dimensions and 'deontology' in dim_attrs_data: dyn_data = dim_attrs_data['deontology'].get('details', ''); dynamic_attrs_children.extend([html.Label("Deontology Attrs:"), dcc.Textarea(id={'type': 'dynamic-meme-attr-input', 'index': 'deontology-attrs'}, value=dyn_data)])
-                     if 'Teleology' in dimensions and 'teleology' in dim_attrs_data: dyn_data = dim_attrs_data['teleology'].get('details', ''); dynamic_attrs_children.extend([html.Label("Teleology Attrs:"), dcc.Textarea(id={'type': 'dynamic-meme-attr-input', 'index': 'teleology-attrs'}, value=dyn_data)])
-                     if 'Areteology' in dimensions and 'areteology' in dim_attrs_data: dyn_data = dim_attrs_data['areteology'].get('details', ''); dynamic_attrs_children.extend([html.Label("Areteology Attrs:"), dcc.Textarea(id={'type': 'dynamic-meme-attr-input', 'index': 'areteology-attrs'}, value=dyn_data)])
-                     if 'Opt-Out' in dimensions and 'opt_out' in dim_attrs_data: dyn_data = dim_attrs_data['opt_out'].get('reason', ''); dynamic_attrs_children.extend([html.Label("Opt-Out Reason:"), dcc.Textarea(id={'type': 'dynamic-meme-attr-input', 'index': 'opt_out-reason'}, value=dyn_data)])
-
                 morphisms_children = []
                 mappings_children = []
 
@@ -282,17 +277,57 @@ def register_form_callbacks(dash_app):
                         morphisms_children, mappings_children,
                         is_merged, merged_from_ids,
                         no_update,
-                        dynamic_attrs_children,
                         full_meme_data
                        )
 
         # Default return if no relevant trigger
         return no_update, False, *([no_update]*11), None
 
-    # Callback to show/hide the merged_from dropdown
+    # Callback to populate dynamic attribute inputs when loading data for editing
+    @dash_app.callback(
+        Output({'type': 'dynamic-meme-attr-input', 'index': ALL}, 'value'),
+        Input('edit-meme-store', 'data'),
+        State({'type': 'dynamic-meme-attr-input', 'index': ALL}, 'id'),
+        prevent_initial_call=True
+    )
+    def populate_dynamic_inputs_on_load(loaded_meme_data, dynamic_input_ids):
+        """Populates dynamic attribute inputs when a meme is loaded for editing."""
+        if not loaded_meme_data or not dynamic_input_ids:
+            return [no_update] * len(dynamic_input_ids)
+        
+        # Map input IDs to expected values
+        values = []
+        dimension_attrs = loaded_meme_data.get('dimension_specific_attributes', {}) or {}
+        
+        for input_id_dict in dynamic_input_ids:
+            input_index = input_id_dict.get('index', '')
+            
+            # Determine which value to set based on the input ID index
+            if 'deontology-attrs' in input_index:
+                deontology_data = dimension_attrs.get('deontology', {})
+                values.append(deontology_data.get('details', ''))
+            elif 'teleology-attrs' in input_index:
+                teleology_data = dimension_attrs.get('teleology', {})
+                values.append(teleology_data.get('details', ''))
+            elif 'areteology-attrs' in input_index:
+                areteology_data = dimension_attrs.get('areteology', {})
+                values.append(areteology_data.get('details', ''))
+            elif 'opt_out-reason' in input_index:
+                opt_out_data = dimension_attrs.get('opt_out', {})
+                values.append(opt_out_data.get('reason', ''))
+            else:
+                # For any input ID we don't recognize
+                values.append('')
+        
+        return values
+
+    # Callback to toggle visibility of merged-from dropdown
     @dash_app.callback(
         Output('merged-from-row', 'style'),
         Input('meme-is-merged', 'value')
     )
     def toggle_merged_from_visibility(is_merged_value):
-        return {'display': 'flex'} if isinstance(is_merged_value, list) and 'IS_MERGED' in is_merged_value else {'display': 'none'}
+        """Shows or hides the merged-from tokens dropdown based on checkbox."""
+        if is_merged_value and 'IS_MERGED' in is_merged_value:
+            return {'display': 'flex'}  # Show the row
+        return {'display': 'none'}      # Hide the row

@@ -901,3 +901,13 @@ def analyze():
     else:
         logger.info(f"Successfully processed /analyze request.")
         return jsonify(result_payload), 200 
+
+@api_bp.route('/ontology', methods=['GET'])
+def get_ontology():
+    """Return the ethical ontology markdown content."""
+    ontology_text = load_ontology()
+    if ontology_text is None:
+        return jsonify({"error": "Ontology document not found."}), 404
+
+    # Wrap result in JSON to keep consistent API style
+    return jsonify({"ontology": ontology_text}), 200 

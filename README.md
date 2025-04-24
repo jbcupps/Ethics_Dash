@@ -38,7 +38,7 @@ This project uses Docker Compose to run both frontend and backend services local
     ```bash
     # Copy root configuration
     cp .env.example .env
-    # The file 'backend/backend.env' already contains placeholders for LLM API keys and models.
+    # The file 'backend.env' already contains placeholders for LLM API keys and models.
     # Edit it in-place to fill in your OpenAI, Anthropic, and Gemini keys, and set DEFAULT_LLM_MODEL and ANALYSIS_LLM_MODEL.
     ```
 

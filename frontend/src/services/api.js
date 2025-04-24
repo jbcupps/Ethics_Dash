@@ -92,7 +92,7 @@ export const ethicalReviewApi = {
   // --- NEW: Functions for Ethical Memes API ---
   getMemes: async () => {
     try {
-      const response = await apiClient.get('/memes'); // Use the correct endpoint /api/memes
+      const response = await apiClient.get('/memes/'); // Ensure trailing slash matches Flask route
       if (response.data && Array.isArray(response.data)) {
         return response.data;
       }
@@ -102,6 +102,21 @@ export const ethicalReviewApi = {
       console.error('Error fetching memes:', error.response || error.message || error);
       // Throw a user-friendly error
       throw new Error('Failed to load memes. Please check the connection or backend status.');
+    }
+  },
+
+  // Fetch ontology markdown
+  getOntology: async () => {
+    try {
+      const response = await apiClient.get('/ontology');
+      if (response.data && response.data.ontology) {
+        return response.data.ontology;
+      }
+      console.warn('Unexpected response format when fetching ontology:', response.data);
+      return '';
+    } catch (error) {
+      console.error('Error fetching ontology:', error.response || error.message || error);
+      throw new Error('Failed to load ontology.');
     }
   },
 

@@ -49,7 +49,7 @@ const DocumentationPage = () => {
           <li><strong>Memetics (Mem):</strong> Analyzes ethical ideas as memes, focusing on their properties like replication fidelity, persistence, and adaptability.</li>
         </ul>
         <p>
-          The detailed definitions, concepts, and analysis questions for each dimension are specified in the foundational ontology document located at: <code>backend/backend/app/ontology.md</code>.
+          The detailed definitions, concepts, and analysis questions for each dimension are specified in the foundational ontology document located at: <code>backend/app/ontology.md</code>.
           The R2 analysis prompt explicitly instructs the LLM to adhere strictly to this document.
         </p>
       </section>

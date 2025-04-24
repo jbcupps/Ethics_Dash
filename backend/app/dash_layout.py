@@ -11,6 +11,8 @@ def create_layout():
         dcc.Store(id='meme-update-trigger-store'), # Triggers dropdown/table updates
         dcc.Interval(id='meme-initial-load', interval=1000, n_intervals=0, max_intervals=1), # Load memes once on startup
         dcc.Store(id='edit-meme-store', storage_type='memory'), # Holds data for meme being edited
+        # Add client-side callback container
+        html.Div(id='client-side-callback-container', style={'display': 'none'}),
         html.H1("Ethical Memes Dashboard - Admin"),
         dbc.Alert(id='alert-message', color='warning', is_open=False), # For notifications
         dbc.Tabs([

@@ -12,13 +12,20 @@ const PromptForm = ({ onSubmit, isLoading, availableModels = [] }) => {
   
   const handleSubmit = (e) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling
+    
     if (!prompt.trim()) {
       setError('Please enter a prompt.');
       return;
     }
     
-    setError('');
-    onSubmit(prompt, originModel, analysisModel, originApiKey, analysisApiKey, originApiEndpoint, analysisApiEndpoint);
+    try {
+      setError('');
+      onSubmit(prompt, originModel, analysisModel, originApiKey, analysisApiKey, originApiEndpoint, analysisApiEndpoint);
+    } catch (err) {
+      console.error('Error submitting form:', err);
+      setError('Failed to submit: ' + (err.message || 'Unknown error'));
+    }
   };
   
   const cleanAvailableModels = Array.isArray(availableModels) 

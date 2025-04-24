@@ -47,7 +47,7 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         context: .
-        file: ./backend/backend/Dockerfile
+        file: ./backend/Dockerfile
         push: true
         tags: ${{ env.GCP_ARTIFACT_REGISTRY_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_ARTIFACT_REGISTRY_REPO }}/ai-backend:${{ github.sha }}
         platforms: linux/amd64

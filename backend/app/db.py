@@ -1,7 +1,19 @@
 from typing import List, Dict, Any
+import logging
+from flask import current_app
+
+logger = logging.getLogger(__name__)
+MEMES_COLLECTION_NAME = "ethical_memes"
+
+def get_db():
+    """Return the MongoDB database handle from the Flask app."""
+    db = getattr(current_app, "db", None)
+    if db is None:
+        logger.error("current_app.db is None – no database connection available")
+    return db
 
 def get_all_memes_for_selection() -> List[Dict[str, Any]]:
-    \"\"\"Fetches only necessary fields for meme selection prompt.\"\"\"
+    """Fetches only necessary fields for meme selection prompt."""
     db = get_db()
     try:
         # Corrected check
@@ -9,12 +21,12 @@ def get_all_memes_for_selection() -> List[Dict[str, Any]]:
             memes_collection = db[MEMES_COLLECTION_NAME]
             # Fetch only name and description, exclude _id unless needed later
             # Cast to list to ensure cursor is exhausted
-            memes = list(memes_collection.find({}, {\"_id\": 1, \"name\": 1, \"description\": 1}))
-            logger.info(f\"Fetched {len(memes)} memes for selection context.\")
+            memes = list(memes_collection.find({}, {"_id": 1, "name": 1, "description": 1}))
+            logger.info(f"Fetched {len(memes)} memes for selection context.")
             return memes
         else:
-            logger.error(\"Database connection is None in get_all_memes_for_selection.\")
+            logger.error("Database connection is None in get_all_memes_for_selection.")
             return []
     except Exception as e:
-        logger.error(f\"Error fetching memes for selection: {e}\", exc_info=True)
+        logger.error(f"Error fetching memes for selection: {e}", exc_info=True)
         return [] 

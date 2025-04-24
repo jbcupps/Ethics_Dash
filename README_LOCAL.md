@@ -19,9 +19,9 @@ This guide explains how to run the AIEthicsDash application locally using Docker
 2.  **Configure Environment Variables:**
     * Copy the example environment file for the backend:
         ```bash
-        cp backend/backend/.env.example backend/backend/.env
+        cp backend/.env.example backend/.env
         ```
-    * **Edit `backend/backend/.env`:** Fill in your API keys for OpenAI, Anthropic, Gemini, and xAI (Grok). Set the desired default models for R1 (`DEFAULT_LLM_MODEL`) and R2 (`ANALYSIS_LLM_MODEL`). Set `MONGO_URI=mongodb://ai-mongo:27017/` and `MONGO_DB_NAME=ethics_db` (these match the `docker-compose.yml` service names).
+    * **Edit `backend/.env`:** Fill in your API keys for OpenAI, Anthropic, Gemini, and xAI (Grok). Set the desired default models for R1 (`DEFAULT_LLM_MODEL`) and R2 (`ANALYSIS_LLM_MODEL`). Set `MONGO_URI=mongodb://ai-mongo:27017/` and `MONGO_DB_NAME=ethics_db` (these match the `docker-compose.yml` service names).
 
 3.  **Build Docker Images:**
     ```bash
