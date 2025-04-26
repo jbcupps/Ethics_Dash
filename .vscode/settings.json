@@ -3,5 +3,6 @@
   "azureAppService.defaultWebAppToDeploy": "/subscriptions/${{AZURE_SUBSCRIPTION_ID}}/resourceGroups/${{RESOURCE_GROUP}}/providers/Microsoft.Web/sites/${{AZURE_WEBAPP_NAME}}",
   "yaml.schemas": {
     "kubernetes://schema/v1@namespace+v1@secret+v1@configmap+v1@persistentvolumeclaim+apps/v1@deployment+v1@service+batch/v1@job+apps/v1@deployment+v1@service+apps/v1@deployment+v1@service+apps/v1@deployment+v1@service": "file:///e%3A/repo/ethics_dash/Ethics_Dash/k8s/k8s.yaml"
-  }
+  },
+  "azureAutomation.directory.basePath": "c:\\Users\\jbcup"
 }

@@ -38,7 +38,8 @@ def register_dynamic_input_callbacks(dash_app):
         Output('morphisms-container', 'children', allow_duplicate=True),
         Input('add-morphism-button', 'n_clicks'),
         State('morphisms-container', 'children'),
-        State('meme-options-store', 'data')
+        State('meme-options-store', 'data'),
+        prevent_initial_call=True
     )
     def add_morphism_input(n_clicks, children, meme_options):
         """Add new morphism input group when button is clicked."""
@@ -78,7 +79,8 @@ def register_dynamic_input_callbacks(dash_app):
     @dash_app.callback(
         Output('mappings-container', 'children', allow_duplicate=True),
         Input('add-mapping-button', 'n_clicks'),
-        State('mappings-container', 'children')
+        State('mappings-container', 'children'),
+        prevent_initial_call=True
     )
     def add_mapping_input(n_clicks, children):
         """Add new mapping input group when button is clicked."""
