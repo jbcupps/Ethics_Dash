@@ -95,10 +95,10 @@ jobs:
         with:
           azcliversion: latest
           inlineScript: |
-            az webapp config container set \\
-              --resource-group ${{ env.RESOURCE_GROUP }} \\
-              --name ${{ env.AZURE_WEBAPP_NAME }} \\
-              --multicontainer-config-type compose \\
+            az webapp config container set \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --name ${{ env.AZURE_WEBAPP_NAME }} \
+              --multicontainer-config-type compose \
               --multicontainer-config-file docker-compose.yml
 
       - name: Wait for Web App to start
@@ -118,13 +118,13 @@ jobs:
 
       - name: Download and display container logs
         run: |
-          az webapp log download \\
-            --resource-group ${{ env.RESOURCE_GROUP }} \\
-            --name ${{ env.AZURE_WEBAPP_NAME }} \\
+          az webapp log download \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
             --log-file logs.zip
           unzip logs.zip -d logs
           echo "==== Last 200 lines of logs ===="
-          find logs -type f -exec tail -n 200 {} \\; || true
+          find logs -type f -exec tail -n 200 {} \; || true
 
       - name: Display Application URL
         run: |
