@@ -1,7 +1,10 @@
 import os
 import json
+import time
+import sys
 from datetime import datetime
 from pymongo import MongoClient, UpdateOne
+from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 from dotenv import load_dotenv
 from bson import ObjectId, json_util
 import re
@@ -13,10 +16,12 @@ EXTERNAL_MEMES_PATH = os.path.normpath(os.path.join(SCRIPT_DIR, '..', 'documents
 # Load environment variables from .env file
 load_dotenv()
 
-# MongoDB connection details
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://ai-mongo:27017/")
+# MongoDB connection details - support both MONGO_URI and MONGODB_URI
+MONGO_URI = os.getenv("MONGO_URI") or os.getenv("MONGODB_URI", "mongodb://ai-mongo:27017/")
 DB_NAME = os.getenv("MONGO_DB_NAME", "ethics_db")
 COLLECTION_NAME = "ethical_memes"
+
+print(f"Using MongoDB connection: {MONGO_URI} (DB: {DB_NAME})")
 
 # --- Paste the generated JSON data here ---
 # Ensure each JSON object is a valid Python dictionary within the list
@@ -646,8 +651,36 @@ def deserialize_data(text):
         print(f"Error decoding JSON: {e}")
         return []
 
+def wait_for_mongodb(max_retries=30, retry_interval=2):
+    """Wait for MongoDB to become available"""
+    print(f"Checking MongoDB connection at {MONGO_URI}...")
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            # Create a client with a shorter timeout
+            client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+            # Test connection
+            client.admin.command('ping')
+            print(f"MongoDB connection successful on attempt {attempt}")
+            client.close()
+            return True
+        except (ConnectionFailure, ServerSelectionTimeoutError) as e:
+            print(f"MongoDB connection attempt {attempt}/{max_retries} failed: {e}")
+            if attempt < max_retries:
+                print(f"Retrying in {retry_interval} seconds...")
+                time.sleep(retry_interval)
+            else:
+                print("Max retries reached. MongoDB connection failed.")
+                return False
+
 def populate_db():
     """Connects to MongoDB and inserts the meme data."""
+    
+    # Wait for MongoDB to be available
+    if not wait_for_mongodb():
+        print("Exiting: Could not connect to MongoDB")
+        return
+    
     try:
         client = MongoClient(MONGO_URI)
         db = client[DB_NAME]
@@ -660,6 +693,7 @@ def populate_db():
             with open(EXTERNAL_MEMES_PATH, 'r', encoding='utf-8-sig') as f:
                 memes_data = deserialize_data(f.read())
         else:
+            print("External memes file not found. Using inline data.")
             memes_data = deserialize_data(MEMES_DATA_TEXT)
 
         if not memes_data:

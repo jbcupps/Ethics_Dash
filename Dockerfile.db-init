@@ -3,11 +3,12 @@ FROM python:3.9-slim
 # Install dependencies
 RUN pip install pymongo python-dotenv
 
-# Set the working directory
+# Create and set the working directory
 WORKDIR /app
 
 # Copy scripts and documents for database initialization
-COPY scripts/ /scripts/
+COPY scripts/populate_memes.py /scripts/
 COPY documents/ /documents/
 
-# Command will be specified in docker-compose.yml 
+# Default command - actual command will be overridden in docker-compose.yml
+CMD ["python", "/scripts/populate_memes.py"] 

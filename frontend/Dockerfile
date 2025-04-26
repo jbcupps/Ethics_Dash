@@ -24,7 +24,12 @@ FROM nginx:stable-alpine
 
 # Update packages in the final Nginx stage to patch vulnerabilities
 # This is the critical step for fixing the reported CVEs
-RUN apk update && apk upgrade --no-cache
+RUN apk update && apk upgrade --no-cache && \
+    apk add --no-cache netcat-openbsd wget bind-tools bash
+
+# Copy backend health check script
+COPY scripts/frontend-check.sh /docker-entrypoint.d/30-check-backend.sh
+RUN chmod +x /docker-entrypoint.d/30-check-backend.sh
 
 # Copy the build output from the previous stage
 COPY --from=build /app/build /usr/share/nginx/html

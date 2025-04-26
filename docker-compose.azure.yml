@@ -4,6 +4,7 @@ services:
   # Start MongoDB first since it's needed by all services
   ai-mongo:
     image: mongo:latest
+    container_name: ai-mongo
     ports:
       - "27017:27017"
     volumes:
@@ -24,10 +25,12 @@ services:
   # AI Ethical Work Backend API Service
   ai-backend:
     image: ethicsdashacr.azurecr.io/backend:latest
+    container_name: ai-backend
     ports:
       - "5000:5000"
     environment:
       - MONGODB_URI=mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password}@ai-mongo:27017/ethics_db?authSource=admin
+      - MONGO_URI=mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password}@ai-mongo:27017/ethics_db?authSource=admin
       - MONGO_DB_NAME=ethics_db
     restart: always
     depends_on:
@@ -39,6 +42,7 @@ services:
   # AI Ethical Work Frontend Service (Nginx)
   ai-frontend:
     image: ethicsdashacr.azurecr.io/frontend:latest
+    container_name: ai-frontend
     ports:
       - "80:80"
     restart: always
@@ -51,12 +55,13 @@ services:
   # Using 'init: true' signals this is an initialization container that can exit
   db-init:
     image: ethicsdashacr.azurecr.io/db-init:latest
+    container_name: ai-db-init
     environment:
       - MONGO_URI=mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password}@ai-mongo:27017/ethics_db?authSource=admin
       - MONGO_DB_NAME=ethics_db
     # Keep the container running after the script finishes
     command: >
-      sh -c "python /scripts/populate_memes.py /documents/memes.json && echo 'Initialization complete. Keeping container alive...' && tail -f /dev/null"
+      sh -c "python3 /scripts/populate_memes.py && echo 'Initialization complete. Keeping container alive...' && tail -f /dev/null"
     restart: "no"
     depends_on:
       ai-mongo:
@@ -80,4 +85,5 @@ volumes:
 # Network definition
 networks:
   ai-network:
-    driver: bridge 
+    driver: bridge
+    name: ethicsdash-network 

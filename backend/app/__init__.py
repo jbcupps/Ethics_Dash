@@ -2,11 +2,12 @@
 Backend API for Ethical Review Application
 """
 import os
+import time
 import logging
 from flask import Flask
 from flask_cors import CORS
 from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure
+from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv  # Load .env file for local development
 load_dotenv()  # Load environment variables from .env file
@@ -20,6 +21,27 @@ from .callbacks import register_all_callbacks # Use relative import
 
 # Setup logger for this module
 logger = logging.getLogger(__name__)
+
+def wait_for_mongodb(mongo_uri, max_retries=30, retry_interval=2):
+    """Wait for MongoDB to become available with retries"""
+    logger.info(f"Checking MongoDB connection at {mongo_uri}...")
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            # Create a client with a shorter timeout
+            client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
+            # Test connection
+            client.admin.command('ping')
+            logger.info(f"MongoDB connection successful on attempt {attempt}")
+            return client
+        except (ConnectionFailure, ServerSelectionTimeoutError) as e:
+            logger.warning(f"MongoDB connection attempt {attempt}/{max_retries} failed: {e}")
+            if attempt < max_retries:
+                logger.info(f"Retrying in {retry_interval} seconds...")
+                time.sleep(retry_interval)
+    
+    logger.error("Max retries reached. MongoDB connection failed.")
+    return None
 
 def create_app():
     """Factory pattern for creating Flask app with integrated Dash app"""
@@ -39,8 +61,16 @@ def create_app():
     
     # Load sensitive/environment-specific config from environment variables
     # Use upper case by convention for Flask config keys
-    server.config['MONGO_URI'] = os.getenv("MONGO_URI", "mongodb://ai-mongo:27017/") # Use correct service name
+    # Check for both MONGO_URI and MONGODB_URI
+    server.config['MONGO_URI'] = (
+        os.getenv("MONGO_URI") or 
+        os.getenv("MONGODB_URI", "mongodb://ai-mongo:27017/")
+    )
     server.config['MONGO_DB_NAME'] = os.getenv("MONGO_DB_NAME", "ethics_db")
+    
+    # Log the MongoDB config
+    logger.info(f"MongoDB URI: {server.config['MONGO_URI']}")
+    logger.info(f"MongoDB Database: {server.config['MONGO_DB_NAME']}")
     
     # Load API Keys and Model Config for Analysis
     # Use specific analysis keys if present, otherwise fall back to general keys
@@ -63,36 +93,32 @@ def create_app():
     mongo_uri = server.config['MONGO_URI'] # Use config value
     mongo_db_name = server.config['MONGO_DB_NAME'] # Use config value
 
-    try:
-        # Create the MongoDB client and attach to Flask server instance
-        server.mongo_client = MongoClient(mongo_uri)
-        # Test connection (optional, but good practice)
-        server.mongo_client.admin.command('ping') 
-        logger.info(f"Successfully connected to MongoDB at {mongo_uri}")
-        
-        # Get a handle to the specific database and attach to Flask server instance
-        server.db = server.mongo_client[mongo_db_name]
-        logger.info(f"Using MongoDB database: {mongo_db_name}")
-        
-        # --- Ensure Database Indexes Exist ---
+    # Try to connect to MongoDB with retries
+    server.mongo_client = wait_for_mongodb(mongo_uri)
+    
+    if server.mongo_client:
         try:
-            # Add index for 'name' field in 'ethical_memes' collection
-            # Consider if 'name' should be unique. If not, remove unique=True.
-            result = server.db.ethical_memes.create_index([('name', 1)], unique=True, name='name_unique_idx')
-            logger.info(f"Ensured index '{result}' on ethical_memes.name")
-            # Add other indexes here if needed, e.g.:
-            # server.db.ethical_memes.create_index([('tags', 1)], name='tags_idx')
-            # server.db.ethical_memes.create_index([('ethical_dimension', 1)], name='dimension_idx')
-        except Exception as idx_err:
-            logger.error(f"Error creating MongoDB index: {idx_err}", exc_info=True)
-            # Decide if this should be a fatal error
-
-    except ConnectionFailure as e:
-        logger.error(f"Could not connect to MongoDB at {mongo_uri}: {e}", exc_info=True)
-        server.mongo_client = None
-        server.db = None
-    except Exception as e: # Catch other potential errors during initialization
-        logger.error(f"An unexpected error occurred during MongoDB initialization: {e}", exc_info=True)
+            # Get a handle to the specific database and attach to Flask server instance
+            server.db = server.mongo_client[mongo_db_name]
+            logger.info(f"Using MongoDB database: {mongo_db_name}")
+            
+            # --- Ensure Database Indexes Exist ---
+            try:
+                # Add index for 'name' field in 'ethical_memes' collection
+                # Consider if 'name' should be unique. If not, remove unique=True.
+                result = server.db.ethical_memes.create_index([('name', 1)], unique=True, name='name_unique_idx')
+                logger.info(f"Ensured index '{result}' on ethical_memes.name")
+                # Add other indexes here if needed, e.g.:
+                # server.db.ethical_memes.create_index([('tags', 1)], name='tags_idx')
+                # server.db.ethical_memes.create_index([('ethical_dimension', 1)], name='dimension_idx')
+            except Exception as idx_err:
+                logger.error(f"Error creating MongoDB index: {idx_err}", exc_info=True)
+        except Exception as e:
+            logger.error(f"An error occurred with MongoDB database: {e}", exc_info=True)
+            server.mongo_client = None
+            server.db = None
+    else:
+        logger.error(f"Failed to connect to MongoDB at {mongo_uri}")
         server.mongo_client = None
         server.db = None
 
