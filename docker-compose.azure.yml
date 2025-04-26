@@ -36,7 +36,9 @@ services:
     image: ethicsdashacr.azurecr.io/db-init:latest
     environment:
       - MONGO_URI=mongodb://ai-mongo:27017/ethics_db
-    command: ["python", "/scripts/populate_memes.py", "/documents/memes.json"]
+    # Keep the container running after the script finishes
+    command: >
+      sh -c "python /scripts/populate_memes.py /documents/memes.json && echo 'Initialization complete. Keeping container alive...' && tail -f /dev/null"
     restart: "no"
     depends_on:
       - ai-mongo
