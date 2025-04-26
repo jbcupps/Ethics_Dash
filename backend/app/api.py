@@ -793,6 +793,29 @@ def _process_analysis_request(
 
 # --- API Routes ---
 
+@api_bp.route('/health', methods=['GET'])
+def health():
+    """Simple health check endpoint to verify the API is running"""
+    # Check if MongoDB connection is available
+    db_status = "ok" if current_app.db is not None else "error"
+    
+    # Check if API keys are available
+    has_openai_key = bool(os.getenv(OPENAI_API_KEY_ENV))
+    has_anthropic_key = bool(os.getenv(ANTHROPIC_API_KEY_ENV))
+    has_gemini_key = bool(os.getenv(GEMINI_API_KEY_ENV))
+    has_xai_key = bool(os.getenv(XAI_API_KEY_ENV))
+    
+    return jsonify({
+        "status": "healthy",
+        "database": db_status,
+        "services": {
+            "openai": "available" if has_openai_key else "unavailable",
+            "anthropic": "available" if has_anthropic_key else "unavailable",
+            "gemini": "available" if has_gemini_key else "unavailable",
+            "xai": "available" if has_xai_key else "unavailable"
+        }
+    }), 200
+
 @api_bp.route('/models', methods=['GET'])
 def get_models():
     """Return the list of available models"""

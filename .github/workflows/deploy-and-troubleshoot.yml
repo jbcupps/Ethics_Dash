@@ -47,6 +47,8 @@ jobs:
             ${{ env.ACR_LOGIN_SERVER }}/backend:${{ env.IMAGE_TAG }}
             ${{ env.ACR_LOGIN_SERVER }}/backend:latest
           platforms: linux/amd64 # Added platform
+          build-args: |
+            BUILDTIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v6 # Updated version
@@ -58,6 +60,8 @@ jobs:
             ${{ env.ACR_LOGIN_SERVER }}/frontend:${{ env.IMAGE_TAG }}
             ${{ env.ACR_LOGIN_SERVER }}/frontend:latest
           platforms: linux/amd64 # Added platform
+          build-args: |
+            BUILDTIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 
       - name: Build and push db-init image
         uses: docker/build-push-action@v6 # Updated version
@@ -98,6 +102,8 @@ jobs:
             LOG_LEVEL="info" \
             API_VERSION="v1" \
             WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
+            BACKEND_HOST="ai-backend" \
+            BACKEND_PORT="5000" \
             ANTHROPIC_API_KEY="${{ secrets.ANTHROPIC_API_KEY }}" \
             OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
             GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
