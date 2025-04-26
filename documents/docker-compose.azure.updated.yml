@@ -7,17 +7,8 @@ services:
     ports:
       - "27017:27017"
     volumes:
-      - mongo_data:/data/db
+      - ${WEBAPP_STORAGE_HOME}/data/db:/data/db
     restart: always
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME:-admin}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-password}
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh mongodb://localhost:27017/ethics_db --quiet
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
 
   # AI Ethical Work Backend API Service
   ai-backend:
@@ -25,11 +16,10 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - MONGO_URI=mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password}@ai-mongo:27017/ethics_db?authSource=admin
+      - MONGO_URI=mongodb://ai-mongo:27017/ethics_db
     restart: always
     depends_on:
-      ai-mongo:
-        condition: service_healthy
+      - ai-mongo
 
   # AI Ethical Work Frontend Service (Nginx)
   ai-frontend:
@@ -45,24 +35,17 @@ services:
   db-init:
     image: ethicsdashacr.azurecr.io/db-init:latest
     environment:
-      - MONGO_URI=mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password}@ai-mongo:27017/ethics_db?authSource=admin
+      - MONGO_URI=mongodb://ai-mongo:27017/ethics_db
     # Keep the container running after the script finishes
     command: >
       sh -c "python /scripts/populate_memes.py /documents/memes.json && echo 'Initialization complete. Keeping container alive...' && tail -f /dev/null"
     restart: "no"
     depends_on:
-      ai-mongo:
-        condition: service_healthy
+      - ai-mongo
     deploy:
       restart_policy:
         condition: none
     labels:
       - "com.microsoft.azure.app.type=init"
 
-volumes:
-  mongo_data:
-    driver: azure-file
-    driver_opts:
-      share_name: ethicsdash-mongo-data
-      storage_account_name: ${STORAGE_ACCOUNT_NAME}
-      storage_account_key: ${STORAGE_ACCOUNT_KEY} 
+# No volumes section needed here as we're using Azure File Share 
