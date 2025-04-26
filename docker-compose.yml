@@ -1,8 +1,7 @@
 version: '3.8'
 
 services:
-  # Main Dash Application Service
-  # Code is built into the image via Dockerfile for portability.
+  # Main Dash Application Service is actually part of the backend
   # app:
   #   build:
   #     context: .
@@ -17,9 +16,7 @@ services:
   # AI Ethical Work Backend API Service
   # Code is built into the image via backend/Dockerfile for portability.
   ai-backend:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
+    image: ${ACR_REGISTRY:-ethicsdashacr.azurecr.io}/backend:latest
     container_name: ai-ethical-work-backend-api
     ports:
       - "5000:5000" # AI backend API port
@@ -38,9 +35,7 @@ services:
   # AI Ethical Work Frontend Service (Nginx)
   # Code is built into the image via frontend/Dockerfile for portability.
   ai-frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: ${ACR_REGISTRY:-ethicsdashacr.azurecr.io}/frontend:latest
     container_name: ai-ethical-work-frontend-nginx
     ports:
       - "80:80" # Standard HTTP port for AI frontend
@@ -74,22 +69,20 @@ services:
       retries: 5
       start_period: 30s # Give mongo some time to start up initially
 
-# Database initialization service - REMOVED as it's handled in backend entrypoint
-# db-init:
-#   build:
-#     context: .
-#     dockerfile: Dockerfile.db-init
-#   container_name: ai-ethical-db-init
-#   depends_on:
-#     ai-mongo:
-#       # Wait until mongo is fully healthy before trying to connect
-#       condition: service_healthy
-#   environment:
-#     # Use the service name 'ai-mongo' for connection within the Docker network
-#     - MONGO_URI=mongodb://ai-mongo:27017/ethics_db
-#   # Ensure the script and document paths exist within the image built by Dockerfile.db-init
-#   command: ["python", "/scripts/populate_memes.py", "/documents/memes.json"]
-#   # This service runs to completion, no restart needed, no healthcheck needed for others to depend on it.
+  # Database initialization service 
+  db-init:
+    image: ${ACR_REGISTRY:-ethicsdashacr.azurecr.io}/db-init:latest
+    container_name: ai-ethical-db-init
+    depends_on:
+      ai-mongo:
+        # Wait until mongo is fully healthy before trying to connect
+        condition: service_healthy
+    environment:
+      # Use the service name 'ai-mongo' for connection within the Docker network
+      - MONGO_URI=mongodb://ai-mongo:27017/ethics_db
+    # Ensure the script and document paths exist within the image built by Dockerfile.db-init
+    command: ["python", "/scripts/populate_memes.py", "/documents/memes.json"]
+    # This service runs to completion, no restart needed, no healthcheck needed for others to depend on it.
 
 # Named volume for MongoDB data persistence
 volumes:
