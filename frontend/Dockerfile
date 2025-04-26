@@ -24,27 +24,16 @@ FROM nginx:stable-alpine
 
 # Update packages in the final Nginx stage to patch vulnerabilities
 # This is the critical step for fixing the reported CVEs
-RUN apk update && apk upgrade --no-cache && \
-    apk add --no-cache gettext
+RUN apk update && apk upgrade --no-cache
 
 # Copy the build output from the previous stage
 COPY --from=build /app/build /usr/share/nginx/html
 
-# Copy custom nginx config to a temporary location
-COPY nginx.conf /etc/nginx/conf.d/default.conf.template
-
-# Add entrypoint script to substitute environment variables
-RUN echo '#!/bin/sh \n\
-envsubst "\${BACKEND_HOST} \${BACKEND_PORT}" < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf \n\
-exec nginx -g "daemon off;"' > /docker-entrypoint.sh && \
-chmod +x /docker-entrypoint.sh
-
-# Set default environment variables (can be overridden at runtime)
-ENV BACKEND_HOST=ai-backend \
-    BACKEND_PORT=5000
+# Copy custom nginx config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port 80
 EXPOSE 80
 
-# Start Nginx with environment variable substitution
-CMD ["/docker-entrypoint.sh"] 
+# Start Nginx
+CMD ["nginx", "-g", "daemon off;"] 
