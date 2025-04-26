@@ -35,13 +35,12 @@ def register_dynamic_input_callbacks(dash_app):
 
     # --- Adding Morphism Inputs ---
     @dash_app.callback(
-        Output('morphism-container', 'children'),
-        [Input('add-morphism-button', 'n_clicks'),
-         Input('morphism-data-store', 'data')],
-        [State('morphism-container', 'children'),
-         State('meme-options-store', 'data')]
+        Output('morphisms-container', 'children', allow_duplicate=True),
+        Input('add-morphism-button', 'n_clicks'),
+        State('morphisms-container', 'children'),
+        State('meme-options-store', 'data')
     )
-    def add_morphism_input(n_clicks, morphism_data, children, meme_options):
+    def add_morphism_input(n_clicks, children, meme_options):
         """Add new morphism input group when button is clicked."""
         try:
             logger.debug(f"Add morphism callback triggered. n_clicks: {n_clicks}, context: {callback_context.triggered}")
@@ -70,19 +69,6 @@ def register_dynamic_input_callbacks(dash_app):
                 new_input = create_morphism_inputs(next_index, meme_options)
                 children.append(new_input)
             
-            # Initialize from stored data if exists 
-            elif triggered_id == 'morphism-data-store' and morphism_data:
-                try:
-                    if isinstance(morphism_data, str):
-                        morphism_data = json.loads(morphism_data)
-                    
-                    # Clear existing children to rebuild from stored data
-                    children = []
-                    for i, morphism in enumerate(morphism_data):
-                        children.append(create_morphism_inputs(i, meme_options))
-                except Exception as e:
-                    logger.error(f"Error loading morphism data from store: {e}")
-            
             return children
         except Exception as e:
             logger.error(f"Error in add_morphism_input callback: {e}")
@@ -90,12 +76,11 @@ def register_dynamic_input_callbacks(dash_app):
     
     # --- Adding Mapping Inputs ---
     @dash_app.callback(
-        Output('mapping-container', 'children'),
-        [Input('add-mapping-button', 'n_clicks'),
-         Input('mapping-data-store', 'data')],
-        [State('mapping-container', 'children')]
+        Output('mappings-container', 'children', allow_duplicate=True),
+        Input('add-mapping-button', 'n_clicks'),
+        State('mappings-container', 'children')
     )
-    def add_mapping_input(n_clicks, mapping_data, children):
+    def add_mapping_input(n_clicks, children):
         """Add new mapping input group when button is clicked."""
         try:
             logger.debug(f"Add mapping callback triggered. n_clicks: {n_clicks}, context: {callback_context.triggered}")
@@ -113,19 +98,6 @@ def register_dynamic_input_callbacks(dash_app):
                 logger.debug(f"Adding new mapping input with index {next_index}")
                 new_input = create_mapping_inputs(next_index)
                 children.append(new_input)
-            
-            # Initialize from stored data if exists 
-            elif triggered_id == 'mapping-data-store' and mapping_data:
-                try:
-                    if isinstance(mapping_data, str):
-                        mapping_data = json.loads(mapping_data)
-                    
-                    # Clear existing children to rebuild from stored data
-                    children = []
-                    for i, mapping in enumerate(mapping_data):
-                        children.append(create_mapping_inputs(i))
-                except Exception as e:
-                    logger.error(f"Error loading mapping data from store: {e}")
             
             return children
         except Exception as e:
