@@ -7,10 +7,10 @@ import logging
 from flask import Flask
 from flask_cors import CORS
 from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
+from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError, InvalidURI
 from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv  # Load .env file for local development
-load_dotenv()  # Load environment variables from .env file
+from urllib.parse import quote_plus, urlparse, urlunparse # Added imports
 
 # Dash Imports
 import dash
@@ -22,9 +22,30 @@ from .callbacks import register_all_callbacks # Use relative import
 # Setup logger for this module
 logger = logging.getLogger(__name__)
 
-def wait_for_mongodb(mongo_uri, max_retries=30, retry_interval=2):
-    """Wait for MongoDB to become available with retries"""
-    logger.info(f"Checking MongoDB connection at {mongo_uri}...")
+def escape_mongo_uri(uri):
+    """Escapes username and password in a MongoDB URI if present."""
+    try:
+        parsed = urlparse(uri)
+        if parsed.username and parsed.password:
+            escaped_username = quote_plus(parsed.username)
+            escaped_password = quote_plus(parsed.password)
+            # Reconstruct netloc with escaped credentials
+            netloc = f"{escaped_username}:{escaped_password}@{parsed.hostname}"
+            if parsed.port:
+                netloc += f":{parsed.port}"
+            # Rebuild the URI
+            escaped_uri = urlunparse((parsed.scheme, netloc, parsed.path, parsed.params, parsed.query, parsed.fragment))
+            return escaped_uri
+        return uri # Return original if no credentials
+    except Exception as e:
+        logger.error(f"Warning: Failed to parse or escape MongoDB URI '{uri}'. Using raw URI. Error: {e}", exc_info=True)
+        return uri # Fallback to raw URI on error
+
+def wait_for_mongodb(mongo_uri_raw, max_retries=30, retry_interval=2):
+    """Wait for MongoDB to become available with retries, using escaped URI."""
+    # Escape the URI before attempting connection
+    mongo_uri = escape_mongo_uri(mongo_uri_raw)
+    logger.info(f"Checking MongoDB connection using escaped URI: {mongo_uri}...")
     
     for attempt in range(1, max_retries + 1):
         try:
@@ -34,13 +55,17 @@ def wait_for_mongodb(mongo_uri, max_retries=30, retry_interval=2):
             client.admin.command('ping')
             logger.info(f"MongoDB connection successful on attempt {attempt}")
             return client
-        except (ConnectionFailure, ServerSelectionTimeoutError) as e:
+        except (ConnectionFailure, ServerSelectionTimeoutError, InvalidURI) as e:
             logger.warning(f"MongoDB connection attempt {attempt}/{max_retries} failed: {e}")
             if attempt < max_retries:
                 logger.info(f"Retrying in {retry_interval} seconds...")
                 time.sleep(retry_interval)
+            # If InvalidURI occurs, no point retrying with the same URI
+            if isinstance(e, InvalidURI):
+                 logger.error(f"Invalid MongoDB URI encountered after escaping: {mongo_uri}. Aborting wait.")
+                 break
     
-    logger.error("Max retries reached. MongoDB connection failed.")
+    logger.error("Max retries reached or invalid URI. MongoDB connection failed.")
     return None
 
 def create_app():
@@ -62,14 +87,17 @@ def create_app():
     # Load sensitive/environment-specific config from environment variables
     # Use upper case by convention for Flask config keys
     # Check for both MONGO_URI and MONGODB_URI
-    server.config['MONGO_URI'] = (
+    # Store the RAW URI first
+    mongo_uri_raw = (
         os.getenv("MONGO_URI") or 
         os.getenv("MONGODB_URI", "mongodb://ai-mongo:27017/")
     )
+    # Escape and store the potentially modified URI
+    server.config['MONGO_URI'] = escape_mongo_uri(mongo_uri_raw) 
     server.config['MONGO_DB_NAME'] = os.getenv("MONGO_DB_NAME", "ethics_db")
     
-    # Log the MongoDB config
-    logger.info(f"MongoDB URI: {server.config['MONGO_URI']}")
+    # Log the MongoDB config (use the potentially escaped version)
+    logger.info(f"MongoDB URI (escaped): {server.config['MONGO_URI']}")
     logger.info(f"MongoDB Database: {server.config['MONGO_DB_NAME']}")
     
     # Load API Keys and Model Config for Analysis
@@ -90,11 +118,12 @@ def create_app():
     CORS(server)
     
     # --- Initialize MongoDB Connection ---
-    mongo_uri = server.config['MONGO_URI'] # Use config value
+    # Use the *raw* URI for the wait function, as it handles escaping internally now
+    # mongo_uri_to_wait = server.config['MONGO_URI'] # Original URI from config
     mongo_db_name = server.config['MONGO_DB_NAME'] # Use config value
 
-    # Try to connect to MongoDB with retries
-    server.mongo_client = wait_for_mongodb(mongo_uri)
+    # Try to connect to MongoDB with retries using the raw URI
+    server.mongo_client = wait_for_mongodb(mongo_uri_raw)
     
     if server.mongo_client:
         try:
@@ -118,7 +147,7 @@ def create_app():
             server.mongo_client = None
             server.db = None
     else:
-        logger.error(f"Failed to connect to MongoDB at {mongo_uri}")
+        logger.error(f"Failed to connect to MongoDB using URI: {mongo_uri_raw}")
         server.mongo_client = None
         server.db = None
 

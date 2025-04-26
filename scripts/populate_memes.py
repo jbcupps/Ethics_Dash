@@ -4,10 +4,11 @@ import time
 import sys
 from datetime import datetime
 from pymongo import MongoClient, UpdateOne
-from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
+from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError, InvalidURI
 from dotenv import load_dotenv
 from bson import ObjectId, json_util
 import re
+from urllib.parse import quote_plus, urlparse, urlunparse
 
 # Path to external memes JSON file (fallback to inline if missing)
 SCRIPT_DIR = os.path.dirname(__file__)
@@ -17,11 +18,32 @@ EXTERNAL_MEMES_PATH = os.path.normpath(os.path.join(SCRIPT_DIR, '..', 'documents
 load_dotenv()
 
 # MongoDB connection details - support both MONGO_URI and MONGODB_URI
-MONGO_URI = os.getenv("MONGO_URI") or os.getenv("MONGODB_URI", "mongodb://ai-mongo:27017/")
+MONGO_URI_RAW = os.getenv("MONGO_URI") or os.getenv("MONGODB_URI", "mongodb://ai-mongo:27017/")
 DB_NAME = os.getenv("MONGO_DB_NAME", "ethics_db")
 COLLECTION_NAME = "ethical_memes"
 
-print(f"Using MongoDB connection: {MONGO_URI} (DB: {DB_NAME})")
+def escape_mongo_uri(uri):
+    """Escapes username and password in a MongoDB URI if present."""
+    try:
+        parsed = urlparse(uri)
+        if parsed.username and parsed.password:
+            escaped_username = quote_plus(parsed.username)
+            escaped_password = quote_plus(parsed.password)
+            # Reconstruct netloc with escaped credentials
+            netloc = f"{escaped_username}:{escaped_password}@{parsed.hostname}"
+            if parsed.port:
+                netloc += f":{parsed.port}"
+            # Rebuild the URI
+            escaped_uri = urlunparse((parsed.scheme, netloc, parsed.path, parsed.params, parsed.query, parsed.fragment))
+            return escaped_uri
+        return uri # Return original if no credentials
+    except Exception as e:
+        print(f"Warning: Failed to parse or escape MongoDB URI '{uri}'. Using raw URI. Error: {e}", file=sys.stderr)
+        return uri # Fallback to raw URI on error
+
+MONGO_URI = escape_mongo_uri(MONGO_URI_RAW)
+
+print(f"Using MongoDB connection (credentials escaped): {MONGO_URI} (DB: {DB_NAME})")
 
 # --- Paste the generated JSON data here ---
 # Ensure each JSON object is a valid Python dictionary within the list
