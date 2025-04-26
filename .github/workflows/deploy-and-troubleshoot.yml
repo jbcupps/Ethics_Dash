@@ -2,6 +2,8 @@
 name: Build, Deploy, and Troubleshoot to Azure Web App
 
 on:
+  push:
+    branches: [ main ]
   workflow_dispatch: # Only allow manual trigger
 
 env:
@@ -23,6 +25,7 @@ jobs:
         uses: actions/checkout@v4 # Updated version
         with:
           fetch-depth: 0
+          repository: jbcupps/Ethics_Dash
 
       - name: Login to Azure via OIDC
         uses: azure/login@v2 # Updated version

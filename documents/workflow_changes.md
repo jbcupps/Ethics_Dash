@@ -1,0 +1,32 @@
+# Workflow Changes Documentation
+
+## Frontend Docker Build Fix (2025-04-26)
+
+### Issue
+The frontend Docker build was failing with the following error:
+```
+ERROR: failed to solve: failed to compute cache key: failed to calculate checksum of ref tr1a7lgrwfzf79b9a0dprub4u::x1yuv84tno6odoc0wjpycw155: "/scripts/frontend-check.sh": not found
+```
+
+This occurred because the frontend Dockerfile was attempting to copy a file `scripts/frontend-check.sh` from within the frontend build context, but the file existed in the root scripts directory and not within the frontend directory.
+
+### Solution
+Modified the frontend `Dockerfile` to embed the health check script directly in the Dockerfile using a `RUN echo` command. This approach:
+
+1. Eliminates the dependency on the external script file
+2. Makes the Dockerfile more self-contained
+3. Removes the need for context preparation steps in the GitHub workflow
+
+### Files Changed
+1. `frontend/Dockerfile`: Modified to embed the health check script instead of copying it
+2. `.github/workflows/deploy-and-troubleshoot.yml`: Removed the "Prepare frontend context" step
+
+### Tests Performed
+- Verified the script content matches the original `scripts/frontend-check.sh`
+- Confirmed the Docker build process succeeds
+- Verified that the frontend container can properly check backend availability
+
+### Notes
+- This approach ensures that the frontend container can be built independently without relying on files outside its context
+- The embedded script maintains all the functionality of the original script
+- Future updates to the health check logic should be made directly in the Dockerfile 
