@@ -33,6 +33,12 @@ services:
       - MONGO_URI=mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password}@ai-mongo:27017/ethics_db?authSource=admin
       - MONGO_DB_NAME=ethics_db
     restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     depends_on:
       ai-mongo:
         condition: service_healthy
@@ -46,8 +52,14 @@ services:
     ports:
       - "80:80"
     restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     depends_on:
-      - ai-backend
+      ai-backend:
+        condition: service_healthy
     networks:
       - ai-network
 

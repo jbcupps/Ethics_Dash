@@ -5,16 +5,22 @@ services:
   ai-backend:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: backend/Dockerfile
     ports:
-      - "8000:8000"
+      - "5000:5000"
     environment:
       - MONGODB_URI=mongodb://ai-mongo:27017/ethics_db
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     depends_on:
-      - ai-mongo
+      ai-mongo:
+        condition: service_healthy
     volumes:
       - ./backend:/app/backend
       - ./documents:/app/documents
@@ -27,12 +33,15 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - "80:80"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     depends_on:
-      - ai-backend
+      ai-backend:
+        condition: service_healthy
     networks:
       - ai-network
 
@@ -53,8 +62,11 @@ services:
       dockerfile: Dockerfile.db-init
     environment:
       - MONGO_URI=mongodb://ai-mongo:27017/ethics_db
+    command: ["python", "/scripts/populate_memes.py", "/app/documents/memes.json"]
+    restart: "no"
     depends_on:
-      - ai-mongo
+      ai-mongo:
+        condition: service_healthy
     volumes:
       - ./documents:/app/documents
     networks:
