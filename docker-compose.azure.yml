@@ -1,0 +1,38 @@
+version: '3.4'
+
+services:
+  # AI Ethical Work Backend API Service
+  ai-backend:
+    image: ethicsdashacr.azurecr.io/backend:latest
+    ports:
+      - "5000:5000"
+    environment:
+      - MONGO_URI=mongodb://ai-mongo:27017/ethics_db
+    restart: always
+
+  # AI Ethical Work Frontend Service (Nginx)
+  ai-frontend:
+    image: ethicsdashacr.azurecr.io/frontend:latest
+    ports:
+      - "80:80"
+    restart: always
+
+  # AI Ethical Work MongoDB Service
+  ai-mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: always
+
+  # Database initialization service
+  db-init:
+    image: ethicsdashacr.azurecr.io/db-init:latest
+    environment:
+      - MONGO_URI=mongodb://ai-mongo:27017/ethics_db
+    command: ["python", "/scripts/populate_memes.py", "/documents/memes.json"]
+    restart: on-failure
+
+volumes:
+  mongo_data: 
