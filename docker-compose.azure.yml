@@ -85,5 +85,5 @@ volumes:
 # Network definition
 networks:
   ai-network:
-    driver: bridge
-    name: ethicsdash-network 
+    #driver: bridge  # Removed explicit driver
+    #name: ethicsdash-network # Removed explicit name 

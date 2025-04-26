@@ -30,49 +30,51 @@ RUN apk update && apk upgrade --no-cache && \
 # Create scripts directory
 RUN mkdir -p /docker-entrypoint.d
 
-# Create a simple health check script since original may not be available
-RUN echo '#!/bin/sh \n\
-set -e \n\
-\n\
-# Default backend service name and port \n\
-BACKEND_HOST=${BACKEND_HOST:-ai-backend} \n\
-BACKEND_PORT=${BACKEND_PORT:-5000} \n\
-\n\
-echo "Checking if backend service is available at $BACKEND_HOST:$BACKEND_PORT..." \n\
-\n\
-# Function to check if backend is reachable \n\
-check_backend() { \n\
-  if command -v nc > /dev/null; then \n\
-    nc -z -w2 $BACKEND_HOST $BACKEND_PORT \n\
-    return $? \n\
-  elif command -v wget > /dev/null; then \n\
-    wget --spider -q http://$BACKEND_HOST:$BACKEND_PORT/ \n\
-    return $? \n\
-  else \n\
-    # If no tools available, just try to connect directly \n\
-    (echo > /dev/tcp/$BACKEND_HOST/$BACKEND_PORT) >/dev/null 2>&1 \n\
-    return $? \n\
-  fi \n\
-} \n\
-\n\
-# Wait for backend to become available \n\
-count=0 \n\
-max_attempts=30 \n\
-until check_backend || [ $count -ge $max_attempts ]; do \n\
-  echo "Backend service is not available yet. Waiting... ($count/$max_attempts)" \n\
-  count=$((count+1)) \n\
-  sleep 5 \n\
-done \n\
-\n\
-if [ $count -ge $max_attempts ]; then \n\
-  echo "Warning: Backend service did not become available in time." \n\
-  echo "The frontend will still start, but some features may not work until the backend is ready." \n\
-else \n\
-  echo "Backend service is available! Starting the frontend server." \n\
-fi \n\
-\n\
-# Execute the original command \n\
-exec "$@"' > /docker-entrypoint.d/30-check-backend.sh
+# Create the health check script using Heredoc for reliability
+RUN <<EOF > /docker-entrypoint.d/30-check-backend.sh
+#!/bin/sh
+set -e
+
+# Default backend service name and port
+BACKEND_HOST=${BACKEND_HOST:-ai-backend}
+BACKEND_PORT=${BACKEND_PORT:-5000}
+
+echo "Checking if backend service is available at $BACKEND_HOST:$BACKEND_PORT..."
+
+# Function to check if backend is reachable
+check_backend() {
+  if command -v nc > /dev/null; then
+    nc -z -w2 $BACKEND_HOST $BACKEND_PORT
+    return $?
+  elif command -v wget > /dev/null; then
+    wget --spider -q http://$BACKEND_HOST:$BACKEND_PORT/
+    return $?
+  else
+    # If no tools available, just try to connect directly
+    (echo > /dev/tcp/$BACKEND_HOST/$BACKEND_PORT) >/dev/null 2>&1
+    return $?
+  fi
+}
+
+# Wait for backend to become available
+count=0
+max_attempts=30
+until check_backend || [ $count -ge $max_attempts ]; do
+  echo "Backend service is not available yet. Waiting... ($count/$max_attempts)"
+  count=$((count+1))
+  sleep 5
+done
+
+if [ $count -ge $max_attempts ]; then
+  echo "Warning: Backend service did not become available in time."
+  echo "The frontend will still start, but some features may not work until the backend is ready."
+else
+  echo "Backend service is available! Starting the frontend server."
+fi
+
+# Execute the original command
+exec "$@"
+EOF
 
 RUN chmod +x /docker-entrypoint.d/30-check-backend.sh
 

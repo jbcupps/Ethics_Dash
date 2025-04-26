@@ -10,5 +10,10 @@ WORKDIR /app
 COPY scripts/populate_memes.py /scripts/
 COPY documents/ /documents/
 
+# Ensure script has Unix line endings
+RUN apt-get update && apt-get install -y --no-install-recommends dos2unix && \
+    dos2unix /scripts/populate_memes.py && \
+    apt-get purge -y --auto-remove dos2unix && rm -rf /var/lib/apt/lists/*
+
 # Default command - actual command will be overridden in docker-compose.yml
 CMD ["python", "/scripts/populate_memes.py"] 
