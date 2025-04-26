@@ -46,7 +46,7 @@ XAI_API_ENDPOINT=https://api.grok.x
 ANALYSIS_XAI_API_ENDPOINT=https://api.grok.x
 
 # MongoDB Configuration
-MONGO_URI=mongodb://ai-ethical-review-mongodb:27017/ethics_db
+MONGO_URI=mongodb://ai-mongo:27017/ethics_db
 
 # Application Configuration
 NODE_ENV=development

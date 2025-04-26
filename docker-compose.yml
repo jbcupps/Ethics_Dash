@@ -1,50 +1,80 @@
-version: '3.4'
+version: '3.8'
 
 services:
-  # AI Ethical Work Backend API Service
+  # Fast API Backend
   ai-backend:
-    image: ${ACR_REGISTRY:-ethicsdashacr.azurecr.io}/backend:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
-      - "5000:5000"
+      - "8000:8000"
     environment:
       - MONGODB_URI=mongodb://ai-mongo:27017/ethics_db
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
       - ai-mongo
+    volumes:
+      - ./backend:/app/backend
+      - ./documents:/app/documents
+    networks:
+      - ai-network
 
-  # AI Ethical Work Frontend Service (Nginx)
+  # React Frontend
   ai-frontend:
-    image: ${ACR_REGISTRY:-ethicsdashacr.azurecr.io}/frontend:latest
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     ports:
-      - "80:80"
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     depends_on:
       - ai-backend
+    networks:
+      - ai-network
 
-  # AI Ethical Work MongoDB Service
+  # MongoDB Database
   ai-mongo:
     image: mongo:latest
     ports:
       - "27017:27017"
     volumes:
-      - mongo_data:/data/db
+      - mongodb_data:/data/db
+    networks:
+      - ai-network
 
-  # Database initialization service
+  # DB Initialization Service
   db-init:
-    image: ${ACR_REGISTRY:-ethicsdashacr.azurecr.io}/db-init:latest
-    depends_on:
-      - ai-mongo
+    build:
+      context: .
+      dockerfile: Dockerfile.db-init
     environment:
       - MONGO_URI=mongodb://ai-mongo:27017/ethics_db
-    command: ["python", "/scripts/populate_memes.py", "/documents/memes.json"]
+    depends_on:
+      - ai-mongo
+    volumes:
+      - ./documents:/app/documents
+    networks:
+      - ai-network
 
+# Additional services can be added here
+# For example, a service for model fine-tuning, etc.
+
+# Volume definitions
 volumes:
-  mongo_data:
+  mongodb_data:
+
+# Network definition
+networks:
+  ai-network:
+    driver: bridge
 
 # You can add other services (like a database) here
 # volumes:
 #   db-data:
-
-# networks:
-#   my-network:
 
 # Uncomment and configure these variables in .env file
 # ACR_REGISTRY=yourregistry.azurecr.io

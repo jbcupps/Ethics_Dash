@@ -40,7 +40,7 @@ def create_app():
     # Load sensitive/environment-specific config from environment variables
     # Use upper case by convention for Flask config keys
     server.config['MONGO_URI'] = os.getenv("MONGO_URI", "mongodb://ai-mongo:27017/") # Use correct service name
-    server.config['MONGO_DB_NAME'] = os.getenv("MONGO_DB_NAME", "ethical_memes_db")
+    server.config['MONGO_DB_NAME'] = os.getenv("MONGO_DB_NAME", "ethics_db")
     
     # Load API Keys and Model Config for Analysis
     # Use specific analysis keys if present, otherwise fall back to general keys

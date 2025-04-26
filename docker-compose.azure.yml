@@ -1,4 +1,4 @@
-version: '3.4'
+version: '3.8'
 
 services:
   # Start MongoDB first since it's needed by all services
@@ -7,7 +7,7 @@ services:
     ports:
       - "27017:27017"
     volumes:
-      - mongo_data:/data/db
+      - mongodb_data:/data/db
     restart: always
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME:-admin}
@@ -18,6 +18,8 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
+    networks:
+      - ai-network
 
   # AI Ethical Work Backend API Service
   ai-backend:
@@ -25,11 +27,14 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - MONGO_URI=mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password}@ai-mongo:27017/ethics_db?authSource=admin
+      - MONGODB_URI=mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password}@ai-mongo:27017/ethics_db?authSource=admin
+      - MONGO_DB_NAME=ethics_db
     restart: always
     depends_on:
       ai-mongo:
         condition: service_healthy
+    networks:
+      - ai-network
 
   # AI Ethical Work Frontend Service (Nginx)
   ai-frontend:
@@ -39,6 +44,8 @@ services:
     restart: always
     depends_on:
       - ai-backend
+    networks:
+      - ai-network
 
   # Database initialization service - configured as a non-essential init container
   # Using 'init: true' signals this is an initialization container that can exit
@@ -46,6 +53,7 @@ services:
     image: ethicsdashacr.azurecr.io/db-init:latest
     environment:
       - MONGO_URI=mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password}@ai-mongo:27017/ethics_db?authSource=admin
+      - MONGO_DB_NAME=ethics_db
     # Keep the container running after the script finishes
     command: >
       sh -c "python /scripts/populate_memes.py /documents/memes.json && echo 'Initialization complete. Keeping container alive...' && tail -f /dev/null"
@@ -58,11 +66,18 @@ services:
         condition: none
     labels:
       - "com.microsoft.azure.app.type=init"
+    networks:
+      - ai-network
 
 volumes:
-  mongo_data:
+  mongodb_data:
     driver: azure-file
     driver_opts:
       share_name: ethicsdash-mongo-data
       storage_account_name: ${STORAGE_ACCOUNT_NAME}
-      storage_account_key: ${STORAGE_ACCOUNT_KEY} 
+      storage_account_key: ${STORAGE_ACCOUNT_KEY}
+
+# Network definition
+networks:
+  ai-network:
+    driver: bridge 
