@@ -19,7 +19,7 @@ Modified the frontend `Dockerfile` to embed the health check script directly in 
 
 ### Files Changed
 1. `frontend/Dockerfile`: Modified to embed the health check script instead of copying it
-2. `.github/workflows/deploy-and-troubleshoot.yml`: Removed the "Prepare frontend context" step
+2. `.github/workflows/deploy-to-azure.yml`: Removed the "Prepare frontend context" step
 
 ### Tests Performed
 - Verified the script content matches the original `scripts/frontend-check.sh`
