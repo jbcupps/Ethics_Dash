@@ -4,100 +4,45 @@ services:
   # Start MongoDB first since it's needed by all services
   ai-mongo:
     image: mongo:latest
-    container_name: ai-mongo
     ports:
       - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-    restart: always
-    # REMOVED environment section for MONGO_INITDB credentials
-    # Authentication will be handled by connecting applications
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh mongodb://localhost:27017/ethics_db --quiet
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 60s # Increased start period
-    networks:
-      - ai-network
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
 
   # Database initialization service (Runs before backend)
   db-init:
     image: ${ACR_LOGIN_SERVER}/db-init:${IMAGE_TAG}
-    container_name: ai-db-init
+    command:
+      - "python3"
+      - "/scripts/populate_memes.py"
     environment:
-      # Required vars (set via App Service settings):
-      - MONGO_USERNAME=${MONGO_USERNAME}
-      - MONGO_PASSWORD=${MONGO_PASSWORD}
-      - MONGO_HOST=ai-mongo # Service name within the Compose network
-      - MONGO_DB_NAME=ethics_db
-    command: ["python3", "/scripts/populate_memes.py"]
-    restart: "no"
-    depends_on:
-      ai-mongo:
-        condition: service_healthy
-    deploy:
-      restart_policy:
-        condition: none
-    labels:
-      - "com.microsoft.azure.app.type=init"
-    networks:
-      - ai-network
+      MONGO_USERNAME: ${MONGO_USERNAME}
+      MONGO_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_HOST: ai-mongo
+      MONGO_DB_NAME: ethics_db
 
   # AI Ethical Work Backend API Service
   ai-backend:
     image: ${ACR_LOGIN_SERVER}/backend:${IMAGE_TAG}
-    container_name: ai-backend
     ports:
       - "5000:5000"
     environment:
-      # Required vars (set via App Service settings):
-      - MONGO_USERNAME=${MONGO_USERNAME}
-      - MONGO_PASSWORD=${MONGO_PASSWORD}
-      - MONGO_HOST=ai-mongo # Service name within the Compose network
-      - MONGO_DB_NAME=ethics_db
-      # Add other API keys here (should be set via App Service settings)
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      # Add other necessary env vars
-    restart: always
-    # REMOVED custom entrypoint with sleep
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 15s # Gunicorn needs time to boot
-    depends_on:
-      ai-mongo: # Depends on Mongo being healthy
-        condition: service_healthy
-      db-init: # Depends on DB init finishing successfully
-        condition: service_completed_successfully
-    networks:
-      - ai-network
+      MONGO_USERNAME: ${MONGO_USERNAME}
+      MONGO_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_HOST: ai-mongo
+      MONGO_DB_NAME: ethics_db
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      XAI_API_KEY: ${XAI_API_KEY}
 
   # AI Ethical Work Frontend Service (Nginx)
   ai-frontend:
     image: ${ACR_LOGIN_SERVER}/frontend:${IMAGE_TAG}
-    container_name: ai-frontend
     ports:
       - "80:80"
-    restart: always
-    # REMOVED custom entrypoint with sleep
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    depends_on:
-      ai-backend:
-        condition: service_healthy
-    networks:
-      - ai-network
-
-volumes:
-  mongodb_data:
 
 # Network definition
 networks:
