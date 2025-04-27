@@ -102,7 +102,6 @@ jobs:
             IMAGE_TAG="${{ env.IMAGE_TAG }}" \
             MONGO_USERNAME="${{ secrets.MONGO_USERNAME }}" \
             MONGO_PASSWORD="${{ secrets.MONGO_PASSWORD }}" \
-            MONGO_URI="mongodb://ai-mongo:27017/ethics_db" \
             NODE_ENV="production" \
             LOG_LEVEL="info" \
             API_VERSION="v1" \
