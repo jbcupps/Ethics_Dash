@@ -102,6 +102,8 @@ jobs:
           az webapp config appsettings set --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --settings \
             ACR_LOGIN_SERVER="${{ env.ACR_LOGIN_SERVER }}" \
             IMAGE_TAG="${{ env.IMAGE_TAG }}" \
+            MONGO_USERNAME="${{ secrets.MONGO_USERNAME }}" \
+            MONGO_PASSWORD="${{ secrets.MONGO_PASSWORD }}" \
             MONGO_URI="mongodb://ai-mongo:27017/ethics_db" \
             NODE_ENV="production" \
             LOG_LEVEL="info" \
