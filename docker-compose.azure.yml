@@ -88,11 +88,6 @@ services:
 
 volumes:
   mongodb_data:
-    driver: azure-file
-    driver_opts:
-      share_name: ethicsdash-mongo-data
-      storage_account_name: ${STORAGE_ACCOUNT_NAME}
-      storage_account_key: ${STORAGE_ACCOUNT_KEY}
 
 # Network definition
 networks:
