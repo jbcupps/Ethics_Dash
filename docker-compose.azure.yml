@@ -29,9 +29,17 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - MONGODB_URI=mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password}@ai-mongo:27017/ethics_db?authSource=admin
-      - MONGO_URI=mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password}@ai-mongo:27017/ethics_db?authSource=admin
+      # REMOVED: MONGO_URI/MONGODB_URI - URI will be constructed in app code
+      # Required vars (set via App Service settings):
+      - MONGO_USERNAME=${MONGO_USERNAME}
+      - MONGO_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_HOST=ai-mongo # Service name within the Compose network
       - MONGO_DB_NAME=ethics_db
+      # Add other API keys here (should be set via App Service settings)
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      # Add other necessary env vars
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
@@ -63,17 +71,19 @@ services:
     networks:
       - ai-network
 
-  # Database initialization service - configured as a non-essential init container
-  # Using 'init: true' signals this is an initialization container that can exit
+  # Database initialization service
   db-init:
     image: ethicsdashacr.azurecr.io/db-init:latest
     container_name: ai-db-init
     environment:
-      - MONGO_URI=mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password}@ai-mongo:27017/ethics_db?authSource=admin
+      # REMOVED: MONGO_URI - URI will be constructed in script code
+      # Required vars (set via App Service settings):
+      - MONGO_USERNAME=${MONGO_USERNAME}
+      - MONGO_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_HOST=ai-mongo # Service name within the Compose network
       - MONGO_DB_NAME=ethics_db
-    # Keep the container running after the script finishes
-    command: >
-      sh -c "python3 /scripts/populate_memes.py && echo 'Initialization complete. Keeping container alive...' && tail -f /dev/null"
+    # Simplified command - script handles exit
+    command: ["python3", "/scripts/populate_memes.py"]
     restart: "no"
     depends_on:
       ai-mongo:

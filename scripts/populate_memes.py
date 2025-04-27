@@ -17,33 +17,33 @@ EXTERNAL_MEMES_PATH = os.path.normpath(os.path.join(SCRIPT_DIR, '..', 'documents
 # Load environment variables from .env file
 load_dotenv()
 
-# MongoDB connection details - support both MONGO_URI and MONGODB_URI
-MONGO_URI_RAW = os.getenv("MONGO_URI") or os.getenv("MONGODB_URI", "mongodb://ai-mongo:27017/")
+# MongoDB connection details
+# Get credentials and host separately, construct URI in code
+MONGO_HOST = os.getenv("MONGO_HOST", "ai-mongo") # Default to service name
+MONGO_PORT = os.getenv("MONGO_PORT", "27017")
 DB_NAME = os.getenv("MONGO_DB_NAME", "ethics_db")
 COLLECTION_NAME = "ethical_memes"
+MONGO_USERNAME = os.getenv("MONGO_USERNAME")
+MONGO_PASSWORD = os.getenv("MONGO_PASSWORD")
+
+# Construct the URI safely
+if MONGO_USERNAME and MONGO_PASSWORD:
+    escaped_username = quote_plus(MONGO_USERNAME)
+    escaped_password = quote_plus(MONGO_PASSWORD)
+    # Assume authSource=admin if using root creds, adjust if needed
+    MONGO_URI_RAW = f"mongodb://{escaped_username}:{escaped_password}@{MONGO_HOST}:{MONGO_PORT}/{DB_NAME}?authSource=admin"
+else:
+    # Fallback for unauthenticated local dev (use with caution)
+    print("Warning: MONGO_USERNAME or MONGO_PASSWORD not set. Attempting unauthenticated connection.", file=sys.stderr)
+    MONGO_URI_RAW = f"mongodb://{MONGO_HOST}:{MONGO_PORT}/{DB_NAME}"
 
 def escape_mongo_uri(uri):
-    """Escapes username and password in a MongoDB URI if present."""
-    try:
-        parsed = urlparse(uri)
-        if parsed.username and parsed.password:
-            escaped_username = quote_plus(parsed.username)
-            escaped_password = quote_plus(parsed.password)
-            # Reconstruct netloc with escaped credentials
-            netloc = f"{escaped_username}:{escaped_password}@{parsed.hostname}"
-            if parsed.port:
-                netloc += f":{parsed.port}"
-            # Rebuild the URI
-            escaped_uri = urlunparse((parsed.scheme, netloc, parsed.path, parsed.params, parsed.query, parsed.fragment))
-            return escaped_uri
-        return uri # Return original if no credentials
-    except Exception as e:
-        print(f"Warning: Failed to parse or escape MongoDB URI '{uri}'. Using raw URI. Error: {e}", file=sys.stderr)
-        return uri # Fallback to raw URI on error
+    """No longer needed as URI is constructed with escaped components."""
+    return uri
 
-MONGO_URI = escape_mongo_uri(MONGO_URI_RAW)
+MONGO_URI = MONGO_URI_RAW # Use the constructed URI directly
 
-print(f"Using MongoDB connection (credentials escaped): {MONGO_URI} (DB: {DB_NAME})")
+print(f"Using MongoDB connection: {MONGO_URI} (DB: {DB_NAME})")
 
 # --- Paste the generated JSON data here ---
 # Ensure each JSON object is a valid Python dictionary within the list

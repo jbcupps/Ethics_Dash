@@ -72,32 +72,35 @@ def create_app():
     """Factory pattern for creating Flask app with integrated Dash app"""
     server = Flask(__name__) # Rename Flask instance to 'server'
     
-    # --- Apply ProxyFix Middleware --- 
-    # Trust X-Forwarded-Proto and X-Script-Name (prefix)
-    # These are the most critical for URL generation behind a proxy.
-    # We trust 1 hop as Nginx is the direct proxy.
+    # --- Apply ProxyFix Middleware ---
     server.wsgi_app = ProxyFix(
         server.wsgi_app, x_proto=1, x_prefix=1
     )
     
     # --- Load Configuration --- 
-    # Load general config (e.g., SECRET_KEY, DEBUG - not strictly needed here yet)
-    # server.config.from_object('backend.config.DefaultConfig') # Example if using a config file
     
-    # Load sensitive/environment-specific config from environment variables
-    # Use upper case by convention for Flask config keys
-    # Check for both MONGO_URI and MONGODB_URI
-    # Store the RAW URI first
-    mongo_uri_raw = (
-        os.getenv("MONGO_URI") or 
-        os.getenv("MONGODB_URI", "mongodb://ai-mongo:27017/")
-    )
-    # Escape and store the potentially modified URI
-    server.config['MONGO_URI'] = escape_mongo_uri(mongo_uri_raw) 
-    server.config['MONGO_DB_NAME'] = os.getenv("MONGO_DB_NAME", "ethics_db")
+    # MongoDB Configuration (Construct URI from parts)
+    mongo_host = os.getenv("MONGO_HOST", "ai-mongo")
+    mongo_port = os.getenv("MONGO_PORT", "27017")
+    mongo_user = os.getenv("MONGO_USERNAME")
+    mongo_pass = os.getenv("MONGO_PASSWORD")
+    mongo_db_name = os.getenv("MONGO_DB_NAME", "ethics_db")
+
+    if mongo_user and mongo_pass:
+        escaped_user = quote_plus(mongo_user)
+        escaped_pass = quote_plus(mongo_pass)
+        # Assume authSource=admin if using user/pass, adjust if needed
+        mongo_uri_raw = f"mongodb://{escaped_user}:{escaped_pass}@{mongo_host}:{mongo_port}/{mongo_db_name}?authSource=admin"
+        server.config['MONGO_URI'] = mongo_uri_raw # Store the constructed URI
+    else:
+        logger.warning("MONGO_USERNAME or MONGO_PASSWORD not set. Using unauthenticated connection.")
+        mongo_uri_raw = f"mongodb://{mongo_host}:{mongo_port}/{mongo_db_name}"
+        server.config['MONGO_URI'] = mongo_uri_raw
     
-    # Log the MongoDB config (use the potentially escaped version)
-    logger.info(f"MongoDB URI (escaped): {server.config['MONGO_URI']}")
+    server.config['MONGO_DB_NAME'] = mongo_db_name
+    
+    # Log the MongoDB config
+    logger.info(f"MongoDB URI (constructed): {server.config['MONGO_URI']}")
     logger.info(f"MongoDB Database: {server.config['MONGO_DB_NAME']}")
     
     # Load API Keys and Model Config for Analysis
@@ -118,11 +121,7 @@ def create_app():
     CORS(server)
     
     # --- Initialize MongoDB Connection ---
-    # Use the *raw* URI for the wait function, as it handles escaping internally now
-    # mongo_uri_to_wait = server.config['MONGO_URI'] # Original URI from config
-    mongo_db_name = server.config['MONGO_DB_NAME'] # Use config value
-
-    # Try to connect to MongoDB with retries using the raw URI
+    # Use the constructed raw URI for the wait function
     server.mongo_client = wait_for_mongodb(mongo_uri_raw)
     
     if server.mongo_client:
