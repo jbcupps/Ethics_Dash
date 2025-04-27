@@ -42,10 +42,4 @@ services:
   ai-frontend:
     image: ${ACR_LOGIN_SERVER}/frontend:${IMAGE_TAG}
     ports:
-      - "80:80"
-
-# Network definition
-networks:
-  ai-network:
-    #driver: bridge  # Removed explicit driver
-    #name: ethicsdash-network # Removed explicit name 
+      - "80:80" 
