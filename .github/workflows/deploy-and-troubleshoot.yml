@@ -112,16 +112,33 @@ jobs:
             GEMINI_API_ENDPOINT="https://generativelanguage.googleapis.com" \
             XAI_API_ENDPOINT="https://api.grok.x"
 
+      - name: Verify docker-compose.azure.yml exists
+        run: |
+          ls -la
+          cat docker-compose.azure.yml
+          echo "Current directory: $(pwd)"
+
+      - name: Prepare deployment configuration
+        run: |
+          # Update image tags in the docker-compose.azure.yml file
+          sed -i "s|\${IMAGE_TAG:-latest}|${{ env.IMAGE_TAG }}|g" docker-compose.azure.yml
+          sed -i "s|\${ACR_REGISTRY:-ethicsdashacr.azurecr.io}|${{ env.ACR_LOGIN_SERVER }}|g" docker-compose.azure.yml
+          
+          # Copy to a simplified file to avoid potential issues
+          cp docker-compose.azure.yml azure-deploy.yml
+          
+          # Print the final file
+          echo "=== FINAL CONFIGURATION FILE ==="
+          cat azure-deploy.yml
+          echo "================================"
+
       - name: Deploy multi-container Web App using Docker Compose
-        uses: azure/cli@v1
-        with:
-          azcliversion: latest
-          inlineScript: |
-            az webapp config container set \
-              --resource-group ${{ env.RESOURCE_GROUP }} \
-              --name ${{ env.AZURE_WEBAPP_NAME }} \
-              --multicontainer-config-type compose \
-              --multicontainer-config-file docker-compose.azure.yml
+        run: |
+          az webapp config container set \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --multicontainer-config-type compose \
+            --multicontainer-config-file azure-deploy.yml
 
       - name: Wait for Web App to start
         run: |
