@@ -70,14 +70,12 @@ def create_app():
     mongo_uri = None # Initialize mongo_uri
 
     if mongo_user and mongo_pass:
-        # Directly use credentials - quote_plus is generally NOT needed here
-        # if the library handles standard URI components correctly.
-        # PyMongo handles percent-encoding of username/password automatically.
-        logger.info("Constructing MongoDB URI with credentials.")
-        # Ensure user/pass are strings before formatting
-        mongo_user_str = str(mongo_user)
-        mongo_pass_str = str(mongo_pass)
-        mongo_uri = f"mongodb://{mongo_user_str}:{mongo_pass_str}@{mongo_host}:{mongo_port}/{mongo_db_name}?authSource=admin"
+        # URL-encode username and password to handle special characters properly
+        logger.info("Constructing MongoDB URI with URL-encoded credentials.")
+        # Ensure user/pass are strings and URL-encoded
+        mongo_user_encoded = quote_plus(str(mongo_user))
+        mongo_pass_encoded = quote_plus(str(mongo_pass))
+        mongo_uri = f"mongodb://{mongo_user_encoded}:{mongo_pass_encoded}@{mongo_host}:{mongo_port}/{mongo_db_name}?authSource=admin"
     else:
         logger.warning("MONGO_USERNAME or MONGO_PASSWORD not set. Using unauthenticated connection.")
         mongo_uri = f"mongodb://{mongo_host}:{mongo_port}/{mongo_db_name}"

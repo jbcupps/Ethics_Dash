@@ -30,12 +30,11 @@ MONGO_PASSWORD = os.getenv("MONGO_PASSWORD")
 
 # Construct the URI safely
 if MONGO_USERNAME and MONGO_PASSWORD:
-    print("Constructing MongoDB URI with credentials.")
-    # Ensure user/pass are strings before formatting
-    mongo_user_str = str(MONGO_USERNAME)
-    mongo_pass_str = str(MONGO_PASSWORD)
-    # MongoClient handles percent-encoding internally
-    MONGO_URI = f"mongodb://{mongo_user_str}:{mongo_pass_str}@{MONGO_HOST}:{MONGO_PORT}/{DB_NAME}?authSource=admin"
+    print("Constructing MongoDB URI with URL-encoded credentials.")
+    # Ensure user/pass are strings and URL-encoded
+    mongo_user_encoded = quote_plus(str(MONGO_USERNAME))
+    mongo_pass_encoded = quote_plus(str(MONGO_PASSWORD))
+    MONGO_URI = f"mongodb://{mongo_user_encoded}:{mongo_pass_encoded}@{MONGO_HOST}:{MONGO_PORT}/{DB_NAME}?authSource=admin"
 else:
     # Fallback for unauthenticated local dev (use with caution)
     print("Warning: MONGO_USERNAME or MONGO_PASSWORD not set. Attempting unauthenticated connection.", file=sys.stderr)
