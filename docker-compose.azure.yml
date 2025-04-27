@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # AI Ethical Work Backend API Service
+  ai-backend:
+    image: ${WEBSITES_CONTAINER_START_TIME_LIMIT=600}${ACR_REGISTRY:-ethicsdashacr.azurecr.io}/backend:${IMAGE_TAG:-latest}
+    container_name: ai-backend
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # AI Ethical Work Frontend Service (Nginx)
+  ai-frontend:
+    image: ${ACR_REGISTRY:-ethicsdashacr.azurecr.io}/frontend:${IMAGE_TAG:-latest}
+    container_name: ai-frontend
+    restart: always
+    depends_on:
+      - ai-backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # AI Ethical Work MongoDB Service
+  ai-mongo:
+    image: mongo:latest
+    container_name: ai-mongo
+    restart: always
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # Database initialization service
+  db-init:
+    image: ${ACR_REGISTRY:-ethicsdashacr.azurecr.io}/db-init:${IMAGE_TAG:-latest}
+    container_name: db-init
+    restart: "no"
+    depends_on:
+      ai-mongo:
+        condition: service_healthy
+    command: ["python", "/scripts/populate_memes.py", "/documents/memes.json"] 
