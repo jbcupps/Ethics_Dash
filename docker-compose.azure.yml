@@ -10,30 +10,27 @@ services:
     volumes:
       - mongodb_data:/data/db
     restart: always
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME:-admin}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-password}
+    # REMOVED environment section for MONGO_INITDB credentials
+    # Authentication will be handled by connecting applications
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh mongodb://localhost:27017/ethics_db --quiet
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 30s
+      start_period: 60s # Increased start period
     networks:
       - ai-network
 
-  # Database initialization service
+  # Database initialization service (Runs before backend)
   db-init:
     image: ${ACR_LOGIN_SERVER}/db-init:${IMAGE_TAG}
     container_name: ai-db-init
     environment:
-      # REMOVED: MONGO_URI - URI will be constructed in script code
       # Required vars (set via App Service settings):
       - MONGO_USERNAME=${MONGO_USERNAME}
       - MONGO_PASSWORD=${MONGO_PASSWORD}
       - MONGO_HOST=ai-mongo # Service name within the Compose network
       - MONGO_DB_NAME=ethics_db
-    # Simplified command - script handles exit
     command: ["python3", "/scripts/populate_memes.py"]
     restart: "no"
     depends_on:
@@ -54,7 +51,6 @@ services:
     ports:
       - "5000:5000"
     environment:
-      # REMOVED: MONGO_URI/MONGODB_URI - URI will be constructed in app code
       # Required vars (set via App Service settings):
       - MONGO_USERNAME=${MONGO_USERNAME}
       - MONGO_PASSWORD=${MONGO_PASSWORD}
@@ -66,17 +62,17 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       # Add other necessary env vars
     restart: always
-    entrypoint: ["/bin/sh", "-c", "sleep 90 && /app/entrypoint.sh"]
+    # REMOVED custom entrypoint with sleep
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 15s
+      start_period: 15s # Gunicorn needs time to boot
     depends_on:
-      ai-mongo:
+      ai-mongo: # Depends on Mongo being healthy
         condition: service_healthy
-      db-init:
+      db-init: # Depends on DB init finishing successfully
         condition: service_completed_successfully
     networks:
       - ai-network
@@ -88,7 +84,7 @@ services:
     ports:
       - "80:80"
     restart: always
-    entrypoint: ["/bin/sh", "-c", "sleep 90 && nginx -g 'daemon off;'"]
+    # REMOVED custom entrypoint with sleep
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost"]
       interval: 10s

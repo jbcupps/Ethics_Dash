@@ -45,3 +45,28 @@ Updated the `start-backend.sh` script to use a Python-based check for MongoDB av
 ### Notes
 - This change ensures that the backend can reliably check for MongoDB availability without requiring additional system utilities.
 - The `docker-compose.azure.yml` already has proper health checks and dependency conditions to ensure MongoDB is started before the backend. 
+
+## Docker Compose and Startup Fixes (2025-04-27)
+
+### Issue
+Multiple issues were causing deployment failures and container startup problems:
+1.  Azure deployment failed with a 'Bad Request' error due to incompatible custom `entrypoint` commands in `docker-compose.azure.yml`.
+2.  MongoDB authentication was failing because credentials were not being passed correctly to the `MONGO_INITDB_ROOT_*` variables within the `ai-mongo` service.
+3.  The backend application was missing the `dash-cytoscape` Python dependency.
+4.  Local `docker-compose.yml` was missing a healthcheck for MongoDB.
+
+### Solution
+1.  Removed custom `entrypoint` overrides (with `sleep`) from `ai-backend` and `ai-frontend` in `docker-compose.azure.yml`, relying instead on `depends_on`, healthchecks, and application-level wait logic.
+2.  Removed the `environment` section from the `ai-mongo` service in `docker-compose.azure.yml`. Authentication is now handled solely by the connecting applications (`ai-backend`, `db-init`) using credentials provided by Azure App Service settings.
+3.  Added `dash-cytoscape` to `backend/requirements.txt` (though it seems it was already present).
+4.  Added a MongoDB healthcheck to the local `docker-compose.yml`.
+5.  Ensured `db-init` runs after `ai-mongo` is healthy and before `ai-backend` starts in `docker-compose.azure.yml` using `depends_on` conditions.
+
+### Files Changed
+1.  `docker-compose.azure.yml`: Removed `ai-mongo` environment variables, removed custom `entrypoint` from `ai-backend` and `ai-frontend`, adjusted `depends_on` for `ai-backend`.
+2.  `docker-compose.yml`: Added `healthcheck` to `ai-mongo` service.
+3.  `backend/requirements.txt`: Ensured `dash-cytoscape` is present.
+
+### Notes
+- These changes ensure a more robust startup sequence, correct authentication handling, and fix the Azure deployment error.
+- The application relies on environment variables (`MONGO_USERNAME`, `MONGO_PASSWORD`, etc.) being correctly set in the Azure App Service configuration (via the `deploy-to-azure.yml` workflow) for services that need to connect to MongoDB. 
