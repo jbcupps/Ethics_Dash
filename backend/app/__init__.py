@@ -22,34 +22,15 @@ from .callbacks import register_all_callbacks # Use relative import
 # Setup logger for this module
 logger = logging.getLogger(__name__)
 
-def escape_mongo_uri(uri):
-    """Escapes username and password in a MongoDB URI if present."""
-    try:
-        parsed = urlparse(uri)
-        if parsed.username and parsed.password:
-            escaped_username = quote_plus(parsed.username)
-            escaped_password = quote_plus(parsed.password)
-            # Reconstruct netloc with escaped credentials
-            netloc = f"{escaped_username}:{escaped_password}@{parsed.hostname}"
-            if parsed.port:
-                netloc += f":{parsed.port}"
-            # Rebuild the URI
-            escaped_uri = urlunparse((parsed.scheme, netloc, parsed.path, parsed.params, parsed.query, parsed.fragment))
-            return escaped_uri
-        return uri # Return original if no credentials
-    except Exception as e:
-        logger.error(f"Warning: Failed to parse or escape MongoDB URI '{uri}'. Using raw URI. Error: {e}", exc_info=True)
-        return uri # Fallback to raw URI on error
+def wait_for_mongodb(mongo_uri, max_retries=30, retry_interval=2):
+    """Wait for MongoDB to become available with retries."""
+    # Use the URI directly
+    logger.info(f"Checking MongoDB connection using URI: {mongo_uri}...")
 
-def wait_for_mongodb(mongo_uri_raw, max_retries=30, retry_interval=2):
-    """Wait for MongoDB to become available with retries, using escaped URI."""
-    # Escape the URI before attempting connection
-    mongo_uri = escape_mongo_uri(mongo_uri_raw)
-    logger.info(f"Checking MongoDB connection using escaped URI: {mongo_uri}...")
-    
     for attempt in range(1, max_retries + 1):
         try:
             # Create a client with a shorter timeout
+            # MongoClient handles necessary escaping internally based on standard URI components
             client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
             # Test connection
             client.admin.command('ping')
@@ -62,9 +43,9 @@ def wait_for_mongodb(mongo_uri_raw, max_retries=30, retry_interval=2):
                 time.sleep(retry_interval)
             # If InvalidURI occurs, no point retrying with the same URI
             if isinstance(e, InvalidURI):
-                 logger.error(f"Invalid MongoDB URI encountered after escaping: {mongo_uri}. Aborting wait.")
+                 logger.error(f"Invalid MongoDB URI encountered: {mongo_uri}. Aborting wait.")
                  break
-    
+
     logger.error("Max retries reached or invalid URI. MongoDB connection failed.")
     return None
 
@@ -82,30 +63,26 @@ def create_app():
     # MongoDB Configuration (Construct URI from parts)
     mongo_host = os.getenv("MONGO_HOST", "ai-mongo")
     mongo_port = os.getenv("MONGO_PORT", "27017")
-    
-    # Look for pre-encoded credentials first (set by entrypoint.sh)
-    mongo_user = os.getenv("MONGO_USERNAME_ENCODED") or os.getenv("MONGO_USERNAME")
-    mongo_pass = os.getenv("MONGO_PASSWORD_ENCODED") or os.getenv("MONGO_PASSWORD")
+    mongo_user = os.getenv("MONGO_USERNAME") # Read raw username
+    mongo_pass = os.getenv("MONGO_PASSWORD") # Read raw password
     mongo_db_name = os.getenv("MONGO_DB_NAME", "ethics_db")
 
+    mongo_uri = None # Initialize mongo_uri
+
     if mongo_user and mongo_pass:
-        # If we got pre-encoded credentials, don't escape them again
-        if os.getenv("MONGO_USERNAME_ENCODED") and os.getenv("MONGO_PASSWORD_ENCODED"):
-            logger.info("Using pre-encoded MongoDB credentials from environment")
-            mongo_uri_raw = f"mongodb://{mongo_user}:{mongo_pass}@{mongo_host}:{mongo_port}/{mongo_db_name}?authSource=admin"
-        else:
-            # Otherwise manually escape them
-            logger.info("Escaping MongoDB credentials")
-            escaped_user = quote_plus(mongo_user)
-            escaped_pass = quote_plus(mongo_pass)
-            mongo_uri_raw = f"mongodb://{escaped_user}:{escaped_pass}@{mongo_host}:{mongo_port}/{mongo_db_name}?authSource=admin"
-        
-        server.config['MONGO_URI'] = mongo_uri_raw # Store the constructed URI
+        # Directly use credentials - quote_plus is generally NOT needed here
+        # if the library handles standard URI components correctly.
+        # PyMongo handles percent-encoding of username/password automatically.
+        logger.info("Constructing MongoDB URI with credentials.")
+        # Ensure user/pass are strings before formatting
+        mongo_user_str = str(mongo_user)
+        mongo_pass_str = str(mongo_pass)
+        mongo_uri = f"mongodb://{mongo_user_str}:{mongo_pass_str}@{mongo_host}:{mongo_port}/{mongo_db_name}?authSource=admin"
     else:
         logger.warning("MONGO_USERNAME or MONGO_PASSWORD not set. Using unauthenticated connection.")
-        mongo_uri_raw = f"mongodb://{mongo_host}:{mongo_port}/{mongo_db_name}"
-        server.config['MONGO_URI'] = mongo_uri_raw
-    
+        mongo_uri = f"mongodb://{mongo_host}:{mongo_port}/{mongo_db_name}"
+
+    server.config['MONGO_URI'] = mongo_uri # Store the final URI
     server.config['MONGO_DB_NAME'] = mongo_db_name
     
     # Log the MongoDB config
@@ -130,8 +107,8 @@ def create_app():
     CORS(server)
     
     # --- Initialize MongoDB Connection ---
-    # Use the constructed raw URI for the wait function
-    server.mongo_client = wait_for_mongodb(mongo_uri_raw)
+    # Pass the constructed URI directly
+    server.mongo_client = wait_for_mongodb(mongo_uri) # Use the final URI
     
     if server.mongo_client:
         try:
@@ -155,7 +132,7 @@ def create_app():
             server.mongo_client = None
             server.db = None
     else:
-        logger.error(f"Failed to connect to MongoDB using URI: {mongo_uri_raw}")
+        logger.error(f"Failed to connect to MongoDB using URI: {mongo_uri}")
         server.mongo_client = None
         server.db = None
 

@@ -24,35 +24,24 @@ MONGO_PORT = os.getenv("MONGO_PORT", "27017")
 DB_NAME = os.getenv("MONGO_DB_NAME", "ethics_db")
 COLLECTION_NAME = "ethical_memes"
 
-# Look for pre-encoded credentials first (set by entrypoint.sh)
-MONGO_USERNAME = os.getenv("MONGO_USERNAME_ENCODED") or os.getenv("MONGO_USERNAME")
-MONGO_PASSWORD = os.getenv("MONGO_PASSWORD_ENCODED") or os.getenv("MONGO_PASSWORD")
+# Get raw username and password
+MONGO_USERNAME = os.getenv("MONGO_USERNAME")
+MONGO_PASSWORD = os.getenv("MONGO_PASSWORD")
 
 # Construct the URI safely
 if MONGO_USERNAME and MONGO_PASSWORD:
-    # Check if we have pre-encoded credentials
-    if os.getenv("MONGO_USERNAME_ENCODED") and os.getenv("MONGO_PASSWORD_ENCODED"):
-        print("Using pre-encoded MongoDB credentials from environment")
-        MONGO_URI_RAW = f"mongodb://{MONGO_USERNAME}:{MONGO_PASSWORD}@{MONGO_HOST}:{MONGO_PORT}/{DB_NAME}?authSource=admin"
-    else:
-        # Escape the credentials
-        print("Escaping MongoDB credentials")
-        escaped_username = quote_plus(MONGO_USERNAME)
-        escaped_password = quote_plus(MONGO_PASSWORD)
-        # Assume authSource=admin if using root creds, adjust if needed
-        MONGO_URI_RAW = f"mongodb://{escaped_username}:{escaped_password}@{MONGO_HOST}:{MONGO_PORT}/{DB_NAME}?authSource=admin"
+    print("Constructing MongoDB URI with credentials.")
+    # Ensure user/pass are strings before formatting
+    mongo_user_str = str(MONGO_USERNAME)
+    mongo_pass_str = str(MONGO_PASSWORD)
+    # MongoClient handles percent-encoding internally
+    MONGO_URI = f"mongodb://{mongo_user_str}:{mongo_pass_str}@{MONGO_HOST}:{MONGO_PORT}/{DB_NAME}?authSource=admin"
 else:
     # Fallback for unauthenticated local dev (use with caution)
     print("Warning: MONGO_USERNAME or MONGO_PASSWORD not set. Attempting unauthenticated connection.", file=sys.stderr)
-    MONGO_URI_RAW = f"mongodb://{MONGO_HOST}:{MONGO_PORT}/{DB_NAME}"
+    MONGO_URI = f"mongodb://{MONGO_HOST}:{MONGO_PORT}/{DB_NAME}"
 
-def escape_mongo_uri(uri):
-    """No longer needed as URI is constructed with escaped components."""
-    return uri
-
-MONGO_URI = MONGO_URI_RAW # Use the constructed URI directly
-
-print(f"Using MongoDB connection: {MONGO_URI} (DB: {DB_NAME})")
+print(f"Using MongoDB connection (credentials may be redacted by library): {MONGO_URI} (DB: {DB_NAME})")
 
 # --- Paste the generated JSON data here ---
 # Ensure each JSON object is a valid Python dictionary within the list
@@ -684,8 +673,9 @@ def deserialize_data(text):
 
 def wait_for_mongodb(max_retries=30, retry_interval=2):
     """Wait for MongoDB to become available"""
+    # Use the globally constructed MONGO_URI
     print(f"Checking MongoDB connection at {MONGO_URI}...")
-    
+
     for attempt in range(1, max_retries + 1):
         try:
             # Create a client with a shorter timeout
@@ -695,8 +685,12 @@ def wait_for_mongodb(max_retries=30, retry_interval=2):
             print(f"MongoDB connection successful on attempt {attempt}")
             client.close()
             return True
-        except (ConnectionFailure, ServerSelectionTimeoutError) as e:
+        except (ConnectionFailure, ServerSelectionTimeoutError, InvalidURI) as e: # Added InvalidURI
             print(f"MongoDB connection attempt {attempt}/{max_retries} failed: {e}")
+            # If InvalidURI occurs, no point retrying with the same URI
+            if isinstance(e, InvalidURI):
+                 print(f"Invalid MongoDB URI encountered: {MONGO_URI}. Aborting wait.")
+                 return False # Exit if URI is invalid
             if attempt < max_retries:
                 print(f"Retrying in {retry_interval} seconds...")
                 time.sleep(retry_interval)
