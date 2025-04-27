@@ -23,15 +23,24 @@ MONGO_HOST = os.getenv("MONGO_HOST", "ai-mongo") # Default to service name
 MONGO_PORT = os.getenv("MONGO_PORT", "27017")
 DB_NAME = os.getenv("MONGO_DB_NAME", "ethics_db")
 COLLECTION_NAME = "ethical_memes"
-MONGO_USERNAME = os.getenv("MONGO_USERNAME")
-MONGO_PASSWORD = os.getenv("MONGO_PASSWORD")
+
+# Look for pre-encoded credentials first (set by entrypoint.sh)
+MONGO_USERNAME = os.getenv("MONGO_USERNAME_ENCODED") or os.getenv("MONGO_USERNAME")
+MONGO_PASSWORD = os.getenv("MONGO_PASSWORD_ENCODED") or os.getenv("MONGO_PASSWORD")
 
 # Construct the URI safely
 if MONGO_USERNAME and MONGO_PASSWORD:
-    escaped_username = quote_plus(MONGO_USERNAME)
-    escaped_password = quote_plus(MONGO_PASSWORD)
-    # Assume authSource=admin if using root creds, adjust if needed
-    MONGO_URI_RAW = f"mongodb://{escaped_username}:{escaped_password}@{MONGO_HOST}:{MONGO_PORT}/{DB_NAME}?authSource=admin"
+    # Check if we have pre-encoded credentials
+    if os.getenv("MONGO_USERNAME_ENCODED") and os.getenv("MONGO_PASSWORD_ENCODED"):
+        print("Using pre-encoded MongoDB credentials from environment")
+        MONGO_URI_RAW = f"mongodb://{MONGO_USERNAME}:{MONGO_PASSWORD}@{MONGO_HOST}:{MONGO_PORT}/{DB_NAME}?authSource=admin"
+    else:
+        # Escape the credentials
+        print("Escaping MongoDB credentials")
+        escaped_username = quote_plus(MONGO_USERNAME)
+        escaped_password = quote_plus(MONGO_PASSWORD)
+        # Assume authSource=admin if using root creds, adjust if needed
+        MONGO_URI_RAW = f"mongodb://{escaped_username}:{escaped_password}@{MONGO_HOST}:{MONGO_PORT}/{DB_NAME}?authSource=admin"
 else:
     # Fallback for unauthenticated local dev (use with caution)
     print("Warning: MONGO_USERNAME or MONGO_PASSWORD not set. Attempting unauthenticated connection.", file=sys.stderr)

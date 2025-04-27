@@ -82,15 +82,24 @@ def create_app():
     # MongoDB Configuration (Construct URI from parts)
     mongo_host = os.getenv("MONGO_HOST", "ai-mongo")
     mongo_port = os.getenv("MONGO_PORT", "27017")
-    mongo_user = os.getenv("MONGO_USERNAME")
-    mongo_pass = os.getenv("MONGO_PASSWORD")
+    
+    # Look for pre-encoded credentials first (set by entrypoint.sh)
+    mongo_user = os.getenv("MONGO_USERNAME_ENCODED") or os.getenv("MONGO_USERNAME")
+    mongo_pass = os.getenv("MONGO_PASSWORD_ENCODED") or os.getenv("MONGO_PASSWORD")
     mongo_db_name = os.getenv("MONGO_DB_NAME", "ethics_db")
 
     if mongo_user and mongo_pass:
-        escaped_user = quote_plus(mongo_user)
-        escaped_pass = quote_plus(mongo_pass)
-        # Assume authSource=admin if using user/pass, adjust if needed
-        mongo_uri_raw = f"mongodb://{escaped_user}:{escaped_pass}@{mongo_host}:{mongo_port}/{mongo_db_name}?authSource=admin"
+        # If we got pre-encoded credentials, don't escape them again
+        if os.getenv("MONGO_USERNAME_ENCODED") and os.getenv("MONGO_PASSWORD_ENCODED"):
+            logger.info("Using pre-encoded MongoDB credentials from environment")
+            mongo_uri_raw = f"mongodb://{mongo_user}:{mongo_pass}@{mongo_host}:{mongo_port}/{mongo_db_name}?authSource=admin"
+        else:
+            # Otherwise manually escape them
+            logger.info("Escaping MongoDB credentials")
+            escaped_user = quote_plus(mongo_user)
+            escaped_pass = quote_plus(mongo_pass)
+            mongo_uri_raw = f"mongodb://{escaped_user}:{escaped_pass}@{mongo_host}:{mongo_port}/{mongo_db_name}?authSource=admin"
+        
         server.config['MONGO_URI'] = mongo_uri_raw # Store the constructed URI
     else:
         logger.warning("MONGO_USERNAME or MONGO_PASSWORD not set. Using unauthenticated connection.")

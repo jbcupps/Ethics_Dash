@@ -1,6 +1,20 @@
 #!/bin/bash
 set -e
 
+# Function to URL-encode string
+urlencode() {
+  python3 -c "import urllib.parse; print(urllib.parse.quote_plus('$1'))"
+}
+
+# If MongoDB credentials exist, ensure they are URL-encoded
+if [ -n "$MONGO_USERNAME" ] && [ -n "$MONGO_PASSWORD" ]; then
+  export MONGO_USERNAME_ENCODED=$(urlencode "$MONGO_USERNAME")
+  export MONGO_PASSWORD_ENCODED=$(urlencode "$MONGO_PASSWORD")
+  echo "MongoDB credentials encoded for connection string"
+else
+  echo "Warning: MongoDB credentials not found in environment variables"
+fi
+
 # Wait for MongoDB to be available - necessary in Azure App Service
 echo "Waiting for MongoDB to be available..."
 max_attempts=60
