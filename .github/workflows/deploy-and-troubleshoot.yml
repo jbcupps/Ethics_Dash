@@ -2,9 +2,7 @@
 name: Build, Deploy, and Troubleshoot to Azure Web App
 
 on:
-  push:
-    branches: [ main ]
-  workflow_dispatch: # Only allow manual trigger
+  workflow_dispatch: # Manual trigger only
 
 env:
   AZURE_WEBAPP_NAME: ethicsdash-cicd-app

@@ -1,9 +1,7 @@
 name: Build and Deploy to GCP Artifact Registry and Cloud Run
 
 on:
-  push:
-    branches: [ main ] # Trigger on push to main branch
-  workflow_dispatch: # Allow manual trigger
+  workflow_dispatch: # Manual trigger only
 
 permissions:
   id-token: write # Required for OIDC login to GCP
