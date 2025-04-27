@@ -111,7 +111,7 @@ jobs:
             ANTHROPIC_API_KEY="${{ secrets.ANTHROPIC_API_KEY }}" \
             OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
             GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
-            GOOGLE_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
+            GOOGLE_API_KEY="${{ secrets.GOOGLE_API_KEY }}" \
             XAI_API_KEY="${{ secrets.XAI_API_KEY }}" \
             DEFAULT_LLM_MODEL="gpt-4" \
             ANALYSIS_LLM_MODEL="claude-3-opus-20240229" \
@@ -121,7 +121,7 @@ jobs:
             XAI_API_ENDPOINT="https://api.grok.x"
 
       - name: Deploy multi-container Web App using Docker Compose
-        uses: azure/cli@v1 # Kept version, seems current
+        uses: azure/cli@v1  # Use Azure CLI action for multi-container deployment
         with:
           azcliversion: latest
           inlineScript: |
