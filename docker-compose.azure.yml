@@ -24,7 +24,7 @@ services:
 
   # AI Ethical Work Backend API Service
   ai-backend:
-    image: ethicsdashacr.azurecr.io/backend:latest
+    image: ${ACR_LOGIN_SERVER}/backend:${IMAGE_TAG}
     container_name: ai-backend
     ports:
       - "5000:5000"
@@ -55,7 +55,7 @@ services:
 
   # AI Ethical Work Frontend Service (Nginx)
   ai-frontend:
-    image: ethicsdashacr.azurecr.io/frontend:latest
+    image: ${ACR_LOGIN_SERVER}/frontend:${IMAGE_TAG}
     container_name: ai-frontend
     ports:
       - "80:80"
@@ -73,7 +73,7 @@ services:
 
   # Database initialization service
   db-init:
-    image: ethicsdashacr.azurecr.io/db-init:latest
+    image: ${ACR_LOGIN_SERVER}/db-init:${IMAGE_TAG}
     container_name: ai-db-init
     environment:
       # REMOVED: MONGO_URI - URI will be constructed in script code
