@@ -13,9 +13,9 @@ else
   echo "Extracted MongoDB host: $MONGO_HOST"
 fi
 
-# Function to check if MongoDB is available
+# Function to check if MongoDB is available using Python
 check_mongo() {
-  nc -z -w5 $MONGO_HOST 27017
+  python -c "import pymongo; client = pymongo.MongoClient(host='$MONGO_HOST', port=27017, serverSelectionTimeoutMS=5000); client.server_info(); client.close();"
   return $?
 }
 

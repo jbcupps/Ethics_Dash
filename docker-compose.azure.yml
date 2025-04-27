@@ -22,55 +22,6 @@ services:
     networks:
       - ai-network
 
-  # AI Ethical Work Backend API Service
-  ai-backend:
-    image: ${ACR_LOGIN_SERVER}/backend:${IMAGE_TAG}
-    container_name: ai-backend
-    ports:
-      - "5000:5000"
-    environment:
-      # REMOVED: MONGO_URI/MONGODB_URI - URI will be constructed in app code
-      # Required vars (set via App Service settings):
-      - MONGO_USERNAME=${MONGO_USERNAME}
-      - MONGO_PASSWORD=${MONGO_PASSWORD}
-      - MONGO_HOST=ai-mongo # Service name within the Compose network
-      - MONGO_DB_NAME=ethics_db
-      # Add other API keys here (should be set via App Service settings)
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      # Add other necessary env vars
-    restart: always
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
-    depends_on:
-      ai-mongo:
-        condition: service_healthy
-    networks:
-      - ai-network
-
-  # AI Ethical Work Frontend Service (Nginx)
-  ai-frontend:
-    image: ${ACR_LOGIN_SERVER}/frontend:${IMAGE_TAG}
-    container_name: ai-frontend
-    ports:
-      - "80:80"
-    restart: always
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-    depends_on:
-      ai-backend:
-        condition: service_healthy
-    networks:
-      - ai-network
-
   # Database initialization service
   db-init:
     image: ${ACR_LOGIN_SERVER}/db-init:${IMAGE_TAG}
@@ -93,6 +44,59 @@ services:
         condition: none
     labels:
       - "com.microsoft.azure.app.type=init"
+    networks:
+      - ai-network
+
+  # AI Ethical Work Backend API Service
+  ai-backend:
+    image: ${ACR_LOGIN_SERVER}/backend:${IMAGE_TAG}
+    container_name: ai-backend
+    ports:
+      - "5000:5000"
+    environment:
+      # REMOVED: MONGO_URI/MONGODB_URI - URI will be constructed in app code
+      # Required vars (set via App Service settings):
+      - MONGO_USERNAME=${MONGO_USERNAME}
+      - MONGO_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_HOST=ai-mongo # Service name within the Compose network
+      - MONGO_DB_NAME=ethics_db
+      # Add other API keys here (should be set via App Service settings)
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      # Add other necessary env vars
+    restart: always
+    entrypoint: ["/bin/sh", "-c", "sleep 90 && /app/entrypoint.sh"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      ai-mongo:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+    networks:
+      - ai-network
+
+  # AI Ethical Work Frontend Service (Nginx)
+  ai-frontend:
+    image: ${ACR_LOGIN_SERVER}/frontend:${IMAGE_TAG}
+    container_name: ai-frontend
+    ports:
+      - "80:80"
+    restart: always
+    entrypoint: ["/bin/sh", "-c", "sleep 90 && nginx -g 'daemon off;'"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      ai-backend:
+        condition: service_healthy
     networks:
       - ai-network
 

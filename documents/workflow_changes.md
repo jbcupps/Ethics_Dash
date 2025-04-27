@@ -30,3 +30,18 @@ Modified the frontend `Dockerfile` to embed the health check script directly in 
 - This approach ensures that the frontend container can be built independently without relying on files outside its context
 - The embedded script maintains all the functionality of the original script
 - Future updates to the health check logic should be made directly in the Dockerfile 
+
+## Backend MongoDB Availability Check Fix (2025-04-27)
+
+### Issue
+The backend container was failing to start properly due to the `nc` (netcat) command not being found in the container environment. This command was used in `start-backend.sh` to check if MongoDB was available before starting the application.
+
+### Solution
+Updated the `start-backend.sh` script to use a Python-based check for MongoDB availability using the `pymongo` library, which is already a dependency of the backend application. This approach is more reliable in container environments where additional utilities like `nc` might not be available.
+
+### Files Changed
+1. `scripts/start-backend.sh`: Changed the MongoDB availability check from `nc` to a Python script using `pymongo`.
+
+### Notes
+- This change ensures that the backend can reliably check for MongoDB availability without requiring additional system utilities.
+- The `docker-compose.azure.yml` already has proper health checks and dependency conditions to ensure MongoDB is started before the backend. 

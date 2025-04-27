@@ -1,5 +1,5 @@
 # Workflow for building, deploying, and troubleshooting the Ethics Dashboard
-name: Build, Deploy, and Troubleshoot to Azure Web App
+name: Build and Deploy to Azure Web App
 
 on:
   workflow_dispatch: # Manual trigger only
