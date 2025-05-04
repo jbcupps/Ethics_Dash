@@ -15,6 +15,7 @@ import json
 # import base64 # Unused
 from werkzeug.utils import secure_filename
 from typing import List, Dict, Any
+from pymongo import UpdateOne
 
 # Import Pydantic models
 from .models import EthicalMemeCreate, EthicalMemeUpdate, EthicalMemeInDB
@@ -1119,3 +1120,86 @@ def populate_memes():
     except Exception as e:
          logger.error(f"Error populating memes collection: {e}", exc_info=True)
          return jsonify({"error": "Internal server error populating memes. See server logs for details."}), 500 
+
+@memes_bp.route('/batch', methods=['POST'])
+def batch_upload_memes():
+    """Accepts a JSON payload with a list of memes and inserts/updates them in bulk.
+
+    Expected JSON schema::
+        {
+            "memes": [ {<EthicalMemeCreate>}, ... ],
+            "use_llm_processing": false
+        }
+    The *use_llm_processing* key is accepted for forward-compatibility but currently ignored because the
+    Dash admin UI already performs LLM-based pre-processing if requested.  
+    The route performs *upsert* semantics using the **name** field as a natural key so that repeated calls
+    do not create duplicates.
+    """
+    if current_app.db is None:
+        return jsonify({"error": "Database connection not available"}), 503
+
+    try:
+        payload = request.get_json(force=True, silent=False)
+    except Exception as err:
+        logger.error(f"batch_upload_memes: invalid JSON payload – {err}")
+        return jsonify({"error": "Request body must be valid JSON."}), 400
+
+    if not payload or "memes" not in payload or not isinstance(payload["memes"], list):
+        return jsonify({"error": "Payload must contain a 'memes' array."}), 400
+
+    memes_raw = payload["memes"]
+    validated_docs = []
+    validation_errors = []
+    now = datetime.now(timezone.utc)
+
+    for idx, meme_data in enumerate(memes_raw):
+        record_name = meme_data.get("name", f"index_{idx}")
+        try:
+            meme_obj = EthicalMemeCreate(**meme_data)
+            meme_doc = meme_obj.model_dump(by_alias=True)
+            # ensure metadata exists
+            meme_doc.setdefault("metadata", {})
+            meme_doc["metadata"].update({"created_at": now, "updated_at": now, "version": 1})
+            validated_docs.append(meme_doc)
+        except ValidationError as ve:
+            validation_errors.append({
+                "record_index": idx,
+                "record_name": record_name,
+                "errors": ve.errors()
+            })
+        except Exception as ex:
+            logger.error(f"Unexpected validation error for record {idx}: {ex}", exc_info=True)
+            validation_errors.append({
+                "record_index": idx,
+                "record_name": record_name,
+                "errors": "Unexpected validation error"
+            })
+
+    inserted = 0
+    updated = 0
+
+    if validated_docs:
+        operations = []
+        for doc in validated_docs:
+            operations.append(
+                UpdateOne(
+                    {"name": doc.get("name")},
+                    {"$set": doc, "$setOnInsert": {"metadata.created_at": now}},
+                    upsert=True,
+                )
+            )
+        try:
+            result = current_app.db.ethical_memes.bulk_write(operations, ordered=False)
+            inserted = len(result.upserted_ids) if result.upserted_ids else 0
+            updated = result.modified_count
+            logger.info(f"batch_upload_memes: {inserted} inserted, {updated} updated, {len(validation_errors)} errors")
+        except Exception as db_err:
+            logger.error(f"Error during bulk_write in batch_upload_memes: {db_err}", exc_info=True)
+            return jsonify({"error": "Database error during batch operation."}), 500
+
+    return jsonify({
+        "processed": len(memes_raw),
+        "inserted": inserted,
+        "updated": updated,
+        "validation_errors": validation_errors,
+    }), 200 

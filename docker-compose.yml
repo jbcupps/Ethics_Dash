@@ -8,6 +8,8 @@ services:
       dockerfile: backend/Dockerfile
     ports:
       - "5000:5000"
+    env_file:
+      - .env  # Load local environment variables into container
     environment:
       - MONGODB_URI=mongodb://ai-mongo:27017/ethics_db
       - OPENAI_API_KEY=${OPENAI_API_KEY}
