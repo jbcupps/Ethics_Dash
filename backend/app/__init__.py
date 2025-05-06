@@ -22,6 +22,8 @@ from .callbacks import register_all_callbacks # Use relative import
 # Setup logger for this module
 logger = logging.getLogger(__name__)
 
+load_dotenv()  # Load environment variables from .env into os.environ immediately
+
 def wait_for_mongodb(mongo_uri, max_retries=30, retry_interval=2):
     """Wait for MongoDB to become available with retries."""
     # Use the URI directly

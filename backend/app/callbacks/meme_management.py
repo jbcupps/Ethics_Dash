@@ -106,7 +106,7 @@ def register_meme_mgmt_callbacks(dash_app):
                 
                 try:
                     # Send to the batch endpoint on the backend
-                    url = f"{BACKEND_API_URL}/batch"
+                    url = f"{BACKEND_API_URL}/batch"  # Matches new backend route
                     logger.info(f"Sending batch upload to: {url}")
                     
                     headers = {'Content-Type': 'application/json'}
