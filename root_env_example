@@ -47,6 +47,9 @@ ANALYSIS_XAI_API_ENDPOINT=https://api.grok.x
 
 # MongoDB Configuration
 MONGO_URI=mongodb://ai-mongo:27017/ethics_db
+# If using authentication, uncomment and set the following:
+# MONGO_USERNAME=your_mongo_username
+# MONGO_PASSWORD=your_mongo_password
 
 # Application Configuration
 NODE_ENV=development
@@ -55,4 +58,7 @@ API_VERSION=v1
 
 # Security (Replace with strong random values in production)
 API_KEY=replace_with_strong_api_key
-API_SECRET=replace_with_strong_api_secret 
+API_SECRET=replace_with_strong_api_secret
+
+# NOTE: For production, store secrets in Azure Key Vault or a secure secret manager.
+# This file is a template. Do not commit real secrets to version control. 

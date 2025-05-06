@@ -91,6 +91,24 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
 
+      - name: Get MongoDB Username from Azure Key Vault (for deploy job)
+        id: get-mongo-username-deploy
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            secret_value=$(az keyvault secret show --vault-name "ethicsdashkv" --name "mongo-db-username" --query value -o tsv)
+            echo "::set-output name=secret::$secret_value"
+
+      - name: Get MongoDB Password from Azure Key Vault (for deploy job)
+        id: get-mongo-password-deploy
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            secret_value=$(az keyvault secret show --vault-name "ethicsdashkv" --name "mongo-db-password" --query value -o tsv)
+            echo "::set-output name=secret::$secret_value"
+
       - name: Enable container logging
         run: |
           az webapp log config --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --docker-container-logging filesystem
@@ -100,8 +118,8 @@ jobs:
           az webapp config appsettings set --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --settings \
             ACR_LOGIN_SERVER="${{ env.ACR_LOGIN_SERVER }}" \
             IMAGE_TAG="${{ env.IMAGE_TAG }}" \
-            MONGO_USERNAME="${{ secrets.MONGO_USERNAME }}" \
-            MONGO_PASSWORD="${{ secrets.MONGO_PASSWORD }}" \
+            MONGO_USERNAME="${{ steps.get-mongo-username-deploy.outputs.secret }}" \
+            MONGO_PASSWORD="${{ steps.get-mongo-password-deploy.outputs.secret }}" \
             NODE_ENV="production" \
             LOG_LEVEL="info" \
             API_VERSION="v1" \

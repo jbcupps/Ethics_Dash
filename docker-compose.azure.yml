@@ -13,6 +13,8 @@ services:
   # Database initialization service (Runs before backend)
   db-init:
     image: ${ACR_LOGIN_SERVER}/db-init:${IMAGE_TAG}
+    depends_on:
+      - ai-mongo
     command:
       - "python3"
       - "/scripts/populate_memes.py"
@@ -25,6 +27,9 @@ services:
   # AI Ethical Work Backend API Service
   ai-backend:
     image: ${ACR_LOGIN_SERVER}/backend:${IMAGE_TAG}
+    depends_on:
+      - ai-mongo
+      - db-init
     ports:
       - "5000:5000"
     environment:
@@ -41,5 +46,7 @@ services:
   # AI Ethical Work Frontend Service (Nginx)
   ai-frontend:
     image: ${ACR_LOGIN_SERVER}/frontend:${IMAGE_TAG}
+    depends_on:
+      - ai-backend
     ports:
       - "80:80" 
