@@ -97,7 +97,7 @@ jobs:
         with:
           azcliversion: latest
           inlineScript: |
-            secret_value=$(az keyvault secret show --vault-name "ethicsdashkv" --name "mongo-db-username" --query value -o tsv)
+            secret_value=$(az keyvault secret show --vault-name "ethicsdash-kv-jc-01" --name "mongo-db-username" --query value -o tsv)
             echo "::set-output name=secret::$secret_value"
 
       - name: Get MongoDB Password from Azure Key Vault (for deploy job)
@@ -106,7 +106,52 @@ jobs:
         with:
           azcliversion: latest
           inlineScript: |
-            secret_value=$(az keyvault secret show --vault-name "ethicsdashkv" --name "mongo-db-password" --query value -o tsv)
+            secret_value=$(az keyvault secret show --vault-name "ethicsdash-kv-jc-01" --name "mongo-db-password" --query value -o tsv)
+            echo "::set-output name=secret::$secret_value"
+
+      - name: Get Anthropic API Key from Azure Key Vault
+        id: get-anthropic-api-key
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            secret_value=$(az keyvault secret show --vault-name "ethicsdash-kv-jc-01" --name "ANTHROPIC_API_KEY" --query value -o tsv)
+            echo "::set-output name=secret::$secret_value"
+
+      - name: Get OpenAI API Key from Azure Key Vault
+        id: get-openai-api-key
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            secret_value=$(az keyvault secret show --vault-name "ethicsdash-kv-jc-01" --name "OPENAI_API_KEY" --query value -o tsv)
+            echo "::set-output name=secret::$secret_value"
+
+      - name: Get Gemini API Key from Azure Key Vault
+        id: get-gemini-api-key
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            secret_value=$(az keyvault secret show --vault-name "ethicsdash-kv-jc-01" --name "GEMINI_API_KEY" --query value -o tsv)
+            echo "::set-output name=secret::$secret_value"
+
+      - name: Get Google API Key from Azure Key Vault
+        id: get-google-api-key
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            secret_value=$(az keyvault secret show --vault-name "ethicsdash-kv-jc-01" --name "GOOGLE_API_KEY" --query value -o tsv)
+            echo "::set-output name=secret::$secret_value"
+
+      - name: Get XAI API Key from Azure Key Vault
+        id: get-xai-api-key
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            secret_value=$(az keyvault secret show --vault-name "ethicsdash-kv-jc-01" --name "XAI_API_KEY" --query value -o tsv)
             echo "::set-output name=secret::$secret_value"
 
       - name: Enable container logging
@@ -126,11 +171,11 @@ jobs:
             WEBSITES_ENABLE_APP_SERVICE_STORAGE=false \
             BACKEND_HOST="ai-backend" \
             BACKEND_PORT="5000" \
-            ANTHROPIC_API_KEY="${{ secrets.ANTHROPIC_API_KEY }}" \
-            OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
-            GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
-            GOOGLE_API_KEY="${{ secrets.GOOGLE_API_KEY }}" \
-            XAI_API_KEY="${{ secrets.XAI_API_KEY }}" \
+            ANTHROPIC_API_KEY="${{ steps.get-anthropic-api-key.outputs.secret }}" \
+            OPENAI_API_KEY="${{ steps.get-openai-api-key.outputs.secret }}" \
+            GEMINI_API_KEY="${{ steps.get-gemini-api-key.outputs.secret }}" \
+            GOOGLE_API_KEY="${{ steps.get-google-api-key.outputs.secret }}" \
+            XAI_API_KEY="${{ steps.get-xai-api-key.outputs.secret }}" \
             DEFAULT_LLM_MODEL="gpt-4" \
             ANALYSIS_LLM_MODEL="claude-3-opus-20240229" \
             OPENAI_API_ENDPOINT="https://api.openai.com/v1" \
