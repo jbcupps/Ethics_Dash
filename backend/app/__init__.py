@@ -10,7 +10,22 @@ from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError, InvalidURI
 from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv  # Load .env file for local development
-from urllib.parse import quote_plus, urlparse, urlunparse # Added imports
+from urllib.parse import quote_plus, urlparse, urlunparse  # Added imports
+
+
+def _sanitize_mongo_uri(uri: str) -> str:
+    """Return a MongoDB URI with credentials removed for safe logging."""
+    if not uri:
+        return uri
+    try:
+        parsed = urlparse(uri)
+        netloc = parsed.hostname or ""
+        if parsed.port:
+            netloc += f":{parsed.port}"
+        sanitized = parsed._replace(netloc=netloc)
+        return urlunparse(sanitized)
+    except Exception:
+        return uri
 
 # Dash Imports
 import dash
@@ -26,8 +41,8 @@ load_dotenv()  # Load environment variables from .env into os.environ immediatel
 
 def wait_for_mongodb(mongo_uri, max_retries=30, retry_interval=2):
     """Wait for MongoDB to become available with retries."""
-    # Use the URI directly
-    logger.info(f"Checking MongoDB connection using URI: {mongo_uri}...")
+    sanitized = _sanitize_mongo_uri(mongo_uri)
+    logger.info(f"Checking MongoDB connection using URI: {sanitized}...")
 
     for attempt in range(1, max_retries + 1):
         try:
@@ -45,7 +60,9 @@ def wait_for_mongodb(mongo_uri, max_retries=30, retry_interval=2):
                 time.sleep(retry_interval)
             # If InvalidURI occurs, no point retrying with the same URI
             if isinstance(e, InvalidURI):
-                 logger.error(f"Invalid MongoDB URI encountered: {mongo_uri}. Aborting wait.")
+                 logger.error(
+                     f"Invalid MongoDB URI encountered: {_sanitize_mongo_uri(mongo_uri)}. Aborting wait."
+                 )
                  break
 
     logger.error("Max retries reached or invalid URI. MongoDB connection failed.")
@@ -101,7 +118,9 @@ def create_app():
     server.config['MONGO_DB_NAME'] = mongo_db_name
     
     # Log the MongoDB config
-    logger.info(f"MongoDB URI (constructed): {server.config['MONGO_URI']}")
+    logger.info(
+        f"MongoDB URI (constructed): {_sanitize_mongo_uri(server.config['MONGO_URI'])}"
+    )
     logger.info(f"MongoDB Database: {server.config['MONGO_DB_NAME']}")
     
     # Load API Keys and Model Config for Analysis
@@ -147,7 +166,9 @@ def create_app():
             server.mongo_client = None
             server.db = None
     else:
-        logger.error(f"Failed to connect to MongoDB using URI: {mongo_uri}")
+        logger.error(
+            f"Failed to connect to MongoDB using URI: {_sanitize_mongo_uri(mongo_uri)}"
+        )
         server.mongo_client = None
         server.db = None
 
