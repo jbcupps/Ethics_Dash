@@ -65,9 +65,12 @@ The Ethics Dashboard application uses MongoDB to store data including ethical me
    - `STORAGE_ACCOUNT_KEY`
 
 3. **Security Considerations:**
-   - Store these credentials in Azure Key Vault for production deployments
-   - Use Azure Private Endpoints for your storage account in production
-   - Regularly rotate the MongoDB credentials and storage account keys
+   - If you deploy using the provided Docker Compose setup, MongoDB runs inside
+     the container without authentication. The `MONGO_USERNAME` and
+     `MONGO_PASSWORD` variables can be left empty.
+   - Use Azure Private Endpoints for your storage account in production.
+   - Regularly rotate any credentials and storage account keys if you enable
+     authentication.
 
 For more detailed information, see `documents/azure_persistence_setup.md`.
 

@@ -16,11 +16,9 @@ services:
     command:
       - "python3"
       - "/scripts/populate_memes.py"
-    environment:
-      MONGO_USERNAME: ${MONGO_USERNAME}
-      MONGO_PASSWORD: ${MONGO_PASSWORD}
-      MONGO_HOST: ai-mongo
-      MONGO_DB_NAME: ethics_db
+      environment:
+        MONGO_HOST: ai-mongo
+        MONGO_DB_NAME: ethics_db
     restart: on-failure
 
   ai-backend:
@@ -30,11 +28,9 @@ services:
       - db-init
     ports:
       - "5000:5000"
-    environment:
-      MONGO_USERNAME: ${MONGO_USERNAME}
-      MONGO_PASSWORD: ${MONGO_PASSWORD}
-      MONGO_HOST: ai-mongo
-      MONGO_DB_NAME: ethics_db
+      environment:
+        MONGO_HOST: ai-mongo
+        MONGO_DB_NAME: ethics_db
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
