@@ -98,7 +98,7 @@ az keyvault secret set --vault-name "ethics-dash-kv" --name "LOG-LEVEL" --value 
 ### 6. Commit and Push the Workflow File
 
 ```powershell
-git add .github/workflows/azure-cicd-pipeline.yml
+git add .github/workflows/deploy-to-azure.yml
 git commit -m "Add GitHub Actions workflow for CICD pipeline"
 git push origin main
 ```
