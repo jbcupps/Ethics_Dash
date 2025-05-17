@@ -93,4 +93,4 @@ This workflow only pushes images to ACR. To deploy the application, you need to:
 
 2.  **Configure Deployment:** Update your chosen service to use the images tagged with the latest Git SHA from your ACR. This often involves updating service definitions, ARM templates, Bicep files, or Terraform configurations. You might extend the GitHub Actions workflow to include deployment steps using Azure CLI commands (`az webapp config container set`, `az container create`, `kubectl apply`, etc.).
 
-3.  **Manage Secrets:** Ensure your deployed application has secure access to necessary secrets (API keys, Database URI) using Azure Key Vault or App Service configuration. 
+3.  **Manage Secrets:** Ensure your deployed application has secure access to necessary secrets (API keys, Database URI). Store them as GitHub repository secrets and reference them in your workflow or App Service configuration.

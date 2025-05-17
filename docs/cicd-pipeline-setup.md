@@ -9,7 +9,7 @@ The CI/CD pipeline follows this flow:
 2. GitHub commit
 3. GitHub Actions workflow
 4. Azure Container Registry (ACR)
-5. Application build with secrets from Azure Key Vault
+5. Application build with secrets from GitHub Secrets
 
 ## Prerequisites
 
@@ -57,7 +57,6 @@ mkdir -p scripts
   -ResourceGroupName "ethics-dash-rg" `
   -Location "eastus" `
   -AcrName "ethicsdashacr" `
-  -KeyVaultName "ethics-dash-kv" `
   -GitHubRepoName "Ethics_Dash" `
   -GitHubOrgName "YourGitHubOrg"
 ```
@@ -75,26 +74,22 @@ The following secrets should be set:
 - AZURE_TENANT_ID
 - AZURE_SUBSCRIPTION_ID
 - ACR_REGISTRY_NAME
-- KEY_VAULT_NAME
+- ANTHROPIC_API_KEY
+- OPENAI_API_KEY
+- GEMINI_API_KEY
+- GOOGLE_API_KEY
+- XAI_API_KEY
 
-### 5. Update Key Vault Secrets
+### 5. Update GitHub Secrets
 
-Replace the placeholder secrets in Key Vault with your actual values:
+Replace the placeholder secrets in your repository with actual values:
 
-```powershell
-# Example: Update API key
-az keyvault secret set --vault-name "ethics-dash-kv" --name "API-KEY" --value "your-actual-api-key"
-
-# Example: Update API secret
-az keyvault secret set --vault-name "ethics-dash-kv" --name "API-SECRET" --value "your-actual-api-secret"
-
-# Update other secrets as needed
-az keyvault secret set --vault-name "ethics-dash-kv" --name "API-ENDPOINT" --value "https://your-actual-api-endpoint.com"
-az keyvault secret set --vault-name "ethics-dash-kv" --name "API-VERSION" --value "v2"
-az keyvault secret set --vault-name "ethics-dash-kv" --name "NODE-ENV" --value "production"
-az keyvault secret set --vault-name "ethics-dash-kv" --name "LOG-LEVEL" --value "info"
-
-```
+```bash
+gh secret set ANTHROPIC_API_KEY -b "your-actual-api-key"
+gh secret set OPENAI_API_KEY -b "your-actual-openai-api-key"
+gh secret set GEMINI_API_KEY -b "your-actual-gemini-api-key"
+gh secret set GOOGLE_API_KEY -b "your-actual-google-api-key"
+gh secret set XAI_API_KEY -b "your-actual-xai-api-key"
 
 ### 6. Commit and Push the Workflow File
 
@@ -138,13 +133,8 @@ You can trigger the workflow manually from the GitHub Actions tab in your reposi
    az role assignment create --assignee $AZURE_CLIENT_ID --scope "/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/ethics-dash-rg/providers/Microsoft.ContainerRegistry/registries/ethicsdashacr" --role "AcrPush"
    ```
 
-3. **Key Vault access issues:**
-   - Check Key Vault access policies or RBAC permissions
-
-   ```powershell
-   # Reassign Key Vault Secrets User role if needed
-   az role assignment create --assignee $AZURE_CLIENT_ID --scope "/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/ethics-dash-rg/providers/Microsoft.KeyVault/vaults/ethics-dash-kv" --role "Key Vault Secrets User"
-   ```
+3. **GitHub secret access issues:**
+   - Ensure your GitHub token has permission to read repository secrets.
 
 ## Testing the Pipeline
 
@@ -178,5 +168,5 @@ Test your changes locally before pushing to GitHub to trigger the CI/CD pipeline
 
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
 - [Azure Container Registry Documentation](https://docs.microsoft.com/en-us/azure/container-registry/)
-- [Azure Key Vault Documentation](https://docs.microsoft.com/en-us/azure/key-vault/)
+- [GitHub Secrets Documentation](https://docs.github.com/en/actions/security-guides/encrypted-secrets)
 - [GitHub OIDC with Azure](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-azure) 
