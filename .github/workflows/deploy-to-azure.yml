@@ -119,16 +119,16 @@ jobs:
             GEMINI_API_ENDPOINT="https://generativelanguage.googleapis.com" \
             XAI_API_ENDPOINT="https://api.grok.x"
 
-      - name: Deploy multi-container Web App using Docker Compose
-        uses: azure/cli@v1  # Use Azure CLI action for multi-container deployment
+      - name: Deploy multi-container Web App using sidecar config
+        uses: azure/cli@v1
         with:
           azcliversion: latest
           inlineScript: |
             az webapp config container set \
               --resource-group ${{ env.RESOURCE_GROUP }} \
               --name ${{ env.AZURE_WEBAPP_NAME }} \
-              --multicontainer-config-type compose \
-              --multicontainer-config-file docker-compose.azure.yml
+              --multicontainer-config-type sidecar \
+              --multicontainer-config-file sidecar.azure.yml
 
       - name: Wait for Web App to start
         run: |

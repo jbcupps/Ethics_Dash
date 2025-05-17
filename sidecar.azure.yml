@@ -1,0 +1,32 @@
+version: 1.0
+services:
+  ai-mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - ${WEBAPP_STORAGE_HOME}/data/db:/data/db
+  db-init:
+    image: ${ACR_LOGIN_SERVER}/db-init:${IMAGE_TAG}
+    command:
+      - "python3"
+      - "/scripts/populate_memes.py"
+    environment:
+      MONGO_HOST: ai-mongo
+      MONGO_DB_NAME: ethics_db
+  ai-backend:
+    image: ${ACR_LOGIN_SERVER}/backend:${IMAGE_TAG}
+    ports:
+      - "5000:5000"
+    environment:
+      MONGO_HOST: ai-mongo
+      MONGO_DB_NAME: ethics_db
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      XAI_API_KEY: ${XAI_API_KEY}
+  ai-frontend:
+    image: ${ACR_LOGIN_SERVER}/frontend:${IMAGE_TAG}
+    ports:
+      - "80:80"

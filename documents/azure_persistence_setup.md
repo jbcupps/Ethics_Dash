@@ -52,9 +52,9 @@ STORAGE_ACCOUNT_NAME=ethicsdashstorage
 STORAGE_ACCOUNT_KEY=your_storage_account_key
 ```
 
-### 3. Docker Compose Configuration
+### 3. Sidecar Configuration
 
-The `docker-compose.azure.yml` file has been configured with:
+The `sidecar.azure.yml` file has been configured with:
 
 - MongoDB authentication using environment variables
 - Azure File Storage driver for the `mongo_data` volume

@@ -42,7 +42,7 @@ This guide explains how to set up and use the GitHub Actions workflow (`.github/
 
 ## MongoDB Persistence Setup
 
-The Ethics Dashboard application uses MongoDB to store data including ethical memes. To ensure data persistence between container rebuilds, we've configured the `docker-compose.azure.yml` file to use Azure File Storage.
+The Ethics Dashboard application uses MongoDB to store data including ethical memes. To ensure data persistence between container rebuilds, we've configured the `sidecar.azure.yml` file to use Azure File Storage.
 
 ### Setting up Persistent Storage
 
@@ -65,9 +65,7 @@ The Ethics Dashboard application uses MongoDB to store data including ethical me
    - `STORAGE_ACCOUNT_KEY`
 
 3. **Security Considerations:**
-   - If you deploy using the provided Docker Compose setup, MongoDB runs inside
-     the container without authentication. The `MONGO_USERNAME` and
-     `MONGO_PASSWORD` variables can be left empty.
+   - If you deploy using the provided sidecar setup, MongoDB runs inside the container without authentication. The `MONGO_USERNAME` and `MONGO_PASSWORD` variables can be left empty.
    - Use Azure Private Endpoints for your storage account in production.
    - Regularly rotate any credentials and storage account keys if you enable
      authentication.
@@ -87,7 +85,7 @@ For more detailed information, see `documents/azure_persistence_setup.md`.
 This workflow only pushes images to ACR. To deploy the application, you need to:
 
 1.  **Choose an Azure Hosting Service:**
-    * **Azure App Service (Web App for Containers):** Suitable for web apps, supports multi-container using Docker Compose (ensure volume mounts are compatible or removed/adapted). You would configure App Service to pull images from your ACR. **Note:** The volume errors seen in logs suggest direct Docker Compose deployment with host binds might be problematic here; adapt the compose file or use alternative volume strategies.
+    * **Azure App Service (Web App for Containers):** Suitable for web apps and supports multi-container deployments. Use the provided `sidecar.azure.yml` with the `--multicontainer-config-type sidecar` option when configuring the App Service. **Note:** The volume errors seen in logs suggest direct Docker Compose deployment with host binds might be problematic, so the sidecar approach is recommended.
     * **Azure Container Instances (ACI):** Simple way to run containers without orchestration. You can deploy containers individually or using a YAML definition, pulling from ACR.
     * **Azure Kubernetes Service (AKS):** Full Kubernetes orchestration for complex deployments. (Recommended for production use with persistent storage)
 
