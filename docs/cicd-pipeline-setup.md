@@ -93,6 +93,7 @@ az keyvault secret set --vault-name "ethics-dash-kv" --name "API-ENDPOINT" --val
 az keyvault secret set --vault-name "ethics-dash-kv" --name "API-VERSION" --value "v2"
 az keyvault secret set --vault-name "ethics-dash-kv" --name "NODE-ENV" --value "production"
 az keyvault secret set --vault-name "ethics-dash-kv" --name "LOG-LEVEL" --value "info"
+
 ```
 
 ### 6. Commit and Push the Workflow File

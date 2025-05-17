@@ -69,8 +69,8 @@ The `docker-compose.azure.yml` file has been configured with:
 
 ### 5. Security Considerations
 
-- Use strong, unique passwords for MongoDB authentication
-- Store sensitive credentials in Azure Key Vault and reference them in your deployment
+- Use strong, unique passwords for MongoDB authentication if you choose to enable it.
+- When authentication is enabled, store credentials securely (for example, in Azure Key Vault) and reference them in your deployment.
 - Consider encrypting data at rest by enabling encryption on your storage account
 - Restrict network access to your storage account using firewall rules
 
