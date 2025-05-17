@@ -23,7 +23,6 @@ jobs:
         uses: actions/checkout@v4 # Updated version
         with:
           fetch-depth: 0
-          repository: jbcupps/Ethics_Dash
 
       - name: Login to Azure via OIDC
         uses: azure/login@v2 # Updated version
@@ -98,7 +97,7 @@ jobs:
           azcliversion: latest
           inlineScript: |
             secret_value=$(az keyvault secret show --vault-name "ethicsdash-kv-jc-01" --name "mongo-db-username" --query value -o tsv)
-            echo "::set-output name=secret::$secret_value"
+            echo "secret=$secret_value" >> $GITHUB_OUTPUT
 
       - name: Get MongoDB Password from Azure Key Vault (for deploy job)
         id: get-mongo-password-deploy
@@ -107,7 +106,7 @@ jobs:
           azcliversion: latest
           inlineScript: |
             secret_value=$(az keyvault secret show --vault-name "ethicsdash-kv-jc-01" --name "mongo-db-password" --query value -o tsv)
-            echo "::set-output name=secret::$secret_value"
+            echo "secret=$secret_value" >> $GITHUB_OUTPUT
 
       - name: Get Anthropic API Key from Azure Key Vault
         id: get-anthropic-api-key
@@ -116,7 +115,7 @@ jobs:
           azcliversion: latest
           inlineScript: |
             secret_value=$(az keyvault secret show --vault-name "ethicsdash-kv-jc-01" --name "ANTHROPIC_API_KEY" --query value -o tsv)
-            echo "::set-output name=secret::$secret_value"
+            echo "secret=$secret_value" >> $GITHUB_OUTPUT
 
       - name: Get OpenAI API Key from Azure Key Vault
         id: get-openai-api-key
@@ -125,7 +124,7 @@ jobs:
           azcliversion: latest
           inlineScript: |
             secret_value=$(az keyvault secret show --vault-name "ethicsdash-kv-jc-01" --name "OPENAI_API_KEY" --query value -o tsv)
-            echo "::set-output name=secret::$secret_value"
+            echo "secret=$secret_value" >> $GITHUB_OUTPUT
 
       - name: Get Gemini API Key from Azure Key Vault
         id: get-gemini-api-key
@@ -134,7 +133,7 @@ jobs:
           azcliversion: latest
           inlineScript: |
             secret_value=$(az keyvault secret show --vault-name "ethicsdash-kv-jc-01" --name "GEMINI_API_KEY" --query value -o tsv)
-            echo "::set-output name=secret::$secret_value"
+            echo "secret=$secret_value" >> $GITHUB_OUTPUT
 
       - name: Get Google API Key from Azure Key Vault
         id: get-google-api-key
@@ -143,7 +142,7 @@ jobs:
           azcliversion: latest
           inlineScript: |
             secret_value=$(az keyvault secret show --vault-name "ethicsdash-kv-jc-01" --name "GOOGLE_API_KEY" --query value -o tsv)
-            echo "::set-output name=secret::$secret_value"
+            echo "secret=$secret_value" >> $GITHUB_OUTPUT
 
       - name: Get XAI API Key from Azure Key Vault
         id: get-xai-api-key
@@ -152,7 +151,7 @@ jobs:
           azcliversion: latest
           inlineScript: |
             secret_value=$(az keyvault secret show --vault-name "ethicsdash-kv-jc-01" --name "XAI_API_KEY" --query value -o tsv)
-            echo "::set-output name=secret::$secret_value"
+            echo "secret=$secret_value" >> $GITHUB_OUTPUT
 
       - name: Enable container logging
         run: |

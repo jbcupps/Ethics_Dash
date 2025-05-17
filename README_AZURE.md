@@ -1,12 +1,12 @@
 # Azure Deployment Guide (ACR)
 
-This guide explains how to set up and use the GitHub Actions workflow (`.github/workflows/azure_deploy.yml`) to build Docker images and push them to Azure Container Registry (ACR). This workflow *only* handles the image push; deploying to a service like Azure App Service or Azure Container Instances requires additional steps or workflow modifications.
+This guide explains how to set up and use the GitHub Actions workflow (`.github/workflows/deploy-to-azure.yml`) to build Docker images and push them to Azure Container Registry (ACR). This workflow *only* handles the image push; deploying to a service like Azure App Service or Azure Container Instances requires additional steps or workflow modifications.
 
 ## Prerequisites
 
 -   Azure Subscription
 -   Azure CLI installed and configured
--   GitHub repository with the `azure_deploy.yml` workflow file
+-   GitHub repository with the `deploy-to-azure.yml` workflow file
 -   An Azure Container Registry (ACR) instance
 -   An Azure Service Principal or configuration for GitHub OIDC authentication with Azure
 -   Azure Storage Account for MongoDB persistence (see below)
@@ -32,7 +32,7 @@ This guide explains how to set up and use the GitHub Actions workflow (`.github/
     * `STORAGE_ACCOUNT_KEY`: Access key for your Azure Storage Account.
 
 3.  **Understand the Workflow:**
-    * The `.github/workflows/azure_deploy.yml` workflow triggers on pushes to the `main` branch or manually.
+    * The `.github/workflows/deploy-to-azure.yml` workflow triggers on pushes to the `main` branch or can be run manually.
     * It checks out the code.
     * It logs into Azure using the provided secrets (OIDC recommended).
     * It logs into ACR.

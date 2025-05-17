@@ -1,16 +1,14 @@
-version: '3.8'
+version: '3.4'
 
 services:
-  # Start MongoDB first since it's needed by all services
   ai-mongo:
     image: mongo:latest
     ports:
       - "27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - ${WEBAPP_STORAGE_HOME}/data/db:/data/db
+    restart: always
 
-  # Database initialization service (Runs before backend)
   db-init:
     image: ${ACR_LOGIN_SERVER}/db-init:${IMAGE_TAG}
     depends_on:
@@ -23,8 +21,8 @@ services:
       MONGO_PASSWORD: ${MONGO_PASSWORD}
       MONGO_HOST: ai-mongo
       MONGO_DB_NAME: ethics_db
+    restart: on-failure
 
-  # AI Ethical Work Backend API Service
   ai-backend:
     image: ${ACR_LOGIN_SERVER}/backend:${IMAGE_TAG}
     depends_on:
@@ -42,11 +40,12 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GOOGLE_API_KEY: ${GOOGLE_API_KEY}
       XAI_API_KEY: ${XAI_API_KEY}
+    restart: always
 
-  # AI Ethical Work Frontend Service (Nginx)
   ai-frontend:
     image: ${ACR_LOGIN_SERVER}/frontend:${IMAGE_TAG}
     depends_on:
       - ai-backend
     ports:
-      - "80:80" 
+      - "80:80"
+    restart: always
