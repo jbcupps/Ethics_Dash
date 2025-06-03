@@ -13,11 +13,9 @@ from openai import OpenAIError, APIConnectionError as OpenAIConnectionError, API
 from urllib.parse import urlparse
 import json # Added for structured logging potentially
 import re    # Import regex for parsing in select_relevant_memes
-# Removed unused bson/pymongo imports
-# from bson import ObjectId
-# from bson.errors import InvalidId
-# from pymongo.database import Database
-# import traceback # Removed unused import
+
+# Import the new centralized configuration
+from .. import config
 
 # --- NEW: Import for Meme Selection --- 
 from ..models import MemeSelectionResponse # For parsing meme selection output
@@ -84,40 +82,26 @@ if not logger.hasHandlers():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # --- NEW: Prompt Template Loading Helper ---
-# Obsolete comment removed
 
 def _load_prompt_template(filename: str) -> Optional[str]:
     """Loads a prompt template relative to the application structure."""
-    
-    # Determine the path to the prompts directory relative to this file
-    # Assumes llm_interface.py is in backend/app/modules/
-    # and prompts are in backend/app/prompts/
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    # Correct relative path: Go up one level from modules, then into prompts
-    prompts_dir = os.path.join(current_dir, '..', 'prompts') 
-    filepath = os.path.join(prompts_dir, filename)
+    # Determine the full path
+    if filename == config.ETHICAL_ANALYSIS_PROMPT_FILENAME:
+        filepath = config.ETHICAL_ANALYSIS_PROMPT_FILEPATH
+    else:
+        # For any other potential prompt files, assume they are in PROMPTS_DIR
+        filepath = os.path.join(config.PROMPTS_DIR, filename)
 
     logger.info(f"Attempting to load prompt template from: {filepath}")
 
     if not os.path.exists(filepath):
         logger.error(f"Prompt template file not found: {filepath}")
-        # Attempt fallback relative to app root (e.g., if prompts were in backend/prompts)
-        alt_prompts_dir = os.path.join(current_dir, '..', '..', 'prompts') # Go up two levels
-        alt_filepath = os.path.join(alt_prompts_dir, filename)
-        if os.path.exists(alt_filepath):
-             logger.info(f"Found prompt template at alternate path: {alt_filepath}")
-             filepath = alt_filepath # Use this path for reading
-        else:
-             logger.error(f"Also tried alternate path, not found: {alt_filepath}")
-             logger.error(f"Prompt template '{filename}' not found at primary ({filepath}) or alternate paths.")
-             return None
-
-    # Try reading from the determined path
+        return None
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             content = f.read()
-            logger.info(f"Successfully loaded prompt template: {filename} from {filepath}")
-            return content
+        logger.info(f"Successfully loaded prompt template: {filename} from {filepath}")
+        return content
     except Exception as e:
         logger.error(f"Error reading prompt template file {filepath}: {e}", exc_info=True)
         return None
@@ -156,7 +140,7 @@ def _call_gemini(
         genai.configure(api_key=api_key, client_options=client_options)
         model = genai.GenerativeModel(model_name)
 
-        effective_safety = safety_settings if safety_settings is not None else DEFAULT_GEMINI_SAFETY_SETTINGS
+        effective_safety = safety_settings if safety_settings is not None else config.DEFAULT_GEMINI_SAFETY_SETTINGS
 
         logger.debug(f"Calling Gemini model {model_name}...")
         response = model.generate_content(
@@ -241,7 +225,7 @@ def _call_anthropic(
     """Handles the specific logic for calling the Anthropic API with robust error handling."""
     log_prompt_start = prompt[:100] # For logging
     try:
-        api_version = os.getenv(ANTHROPIC_API_VERSION_ENV) or DEFAULT_ANTHROPIC_VERSION
+        api_version = os.getenv(config.ANTHROPIC_API_VERSION_ENV) or config.DEFAULT_ANTHROPIC_VERSION
         
         if "claude-3" in model_name and api_version < "2023-06-01":
             logger.warning(f"Using updated API version for Claude 3 model. Original: {api_version}, Updated: 2023-06-01")
@@ -496,13 +480,13 @@ Respond *only* with the JSON object.
 
     # --- Determine Model Type and Call Appropriate Function ---
     model_type = None
-    if MEME_SELECTOR_MODEL in ANTHROPIC_MODELS:
+    if MEME_SELECTOR_MODEL in config.ANTHROPIC_MODELS:
         model_type = MODEL_TYPE_ANTHROPIC
-    elif MEME_SELECTOR_MODEL in GEMINI_MODELS:
+    elif MEME_SELECTOR_MODEL in config.GEMINI_MODELS:
         model_type = MODEL_TYPE_GEMINI
-    elif MEME_SELECTOR_MODEL in OPENAI_MODELS:
+    elif MEME_SELECTOR_MODEL in config.OPENAI_MODELS:
         model_type = MODEL_TYPE_OPENAI
-    elif MEME_SELECTOR_MODEL in XAI_MODELS:
+    elif MEME_SELECTOR_MODEL in config.XAI_MODELS:
         model_type = MODEL_TYPE_XAI
     else:
         logger.error(f"Unsupported model type for MEME_SELECTOR_MODEL: {MEME_SELECTOR_MODEL}. Cannot select memes.")
@@ -581,10 +565,10 @@ def generate_response(prompt: str, api_key: str, model_name: str, api_endpoint: 
     logger.info(f"Generating response using model: {model_name}")
     
     model_type = None
-    if model_name in OPENAI_MODELS: model_type = MODEL_TYPE_OPENAI
-    elif model_name in GEMINI_MODELS: model_type = MODEL_TYPE_GEMINI
-    elif model_name in ANTHROPIC_MODELS: model_type = MODEL_TYPE_ANTHROPIC
-    elif model_name in XAI_MODELS: model_type = MODEL_TYPE_XAI
+    if model_name in config.OPENAI_MODELS: model_type = MODEL_TYPE_OPENAI
+    elif model_name in config.GEMINI_MODELS: model_type = MODEL_TYPE_GEMINI
+    elif model_name in config.ANTHROPIC_MODELS: model_type = MODEL_TYPE_ANTHROPIC
+    elif model_name in config.XAI_MODELS: model_type = MODEL_TYPE_XAI
         
     if model_type == MODEL_TYPE_OPENAI: return _call_openai(prompt, api_key, model_name, api_endpoint, max_tokens=2048)
     elif model_type == MODEL_TYPE_GEMINI: return _call_gemini(prompt, api_key, model_name, api_endpoint)
@@ -617,7 +601,7 @@ def perform_ethical_analysis(
     """
     logger.info(f"Performing ethical analysis using analysis model: {analysis_model_name}")
 
-    template_filename = "ethical_analysis_prompt.txt"
+    template_filename = config.ETHICAL_ANALYSIS_PROMPT_FILENAME
     analysis_prompt_template = _load_prompt_template(template_filename)
     if not analysis_prompt_template: logger.error(f"Could not load analysis prompt template: {template_filename}. Aborting."); return None
     
@@ -625,9 +609,9 @@ def perform_ethical_analysis(
     if selected_meme_names:
         meme_context = "\n\n**Potentially Relevant Ethical Memes Identified:**\n- " + "\n- ".join(selected_meme_names)
         logger.info(f"Adding {len(selected_meme_names)} selected memes to analysis context.")
-        if len(meme_context) > R2_MEME_CONTEXT_MAX_CHARS:
-            meme_context = meme_context[:R2_MEME_CONTEXT_MAX_CHARS] + "\n[... truncated meme context ...]"
-            logger.info(f"Truncated meme context to {R2_MEME_CONTEXT_MAX_CHARS} characters.")
+        if len(meme_context) > config.R2_MEME_CONTEXT_MAX_CHARS:
+            meme_context = meme_context[:config.R2_MEME_CONTEXT_MAX_CHARS] + "\n[... truncated meme context ...]"
+            logger.info(f"Truncated meme context to {config.R2_MEME_CONTEXT_MAX_CHARS} characters.")
 
     formatted_prompt = analysis_prompt_template.format(
         initial_prompt=initial_prompt, generated_response=generated_response,
@@ -635,10 +619,10 @@ def perform_ethical_analysis(
     )
 
     model_type = None
-    if analysis_model_name in OPENAI_MODELS: model_type = MODEL_TYPE_OPENAI
-    elif analysis_model_name in GEMINI_MODELS: model_type = MODEL_TYPE_GEMINI
-    elif analysis_model_name in ANTHROPIC_MODELS: model_type = MODEL_TYPE_ANTHROPIC
-    elif analysis_model_name in XAI_MODELS: model_type = MODEL_TYPE_XAI
+    if analysis_model_name in config.OPENAI_MODELS: model_type = MODEL_TYPE_OPENAI
+    elif analysis_model_name in config.GEMINI_MODELS: model_type = MODEL_TYPE_GEMINI
+    elif analysis_model_name in config.ANTHROPIC_MODELS: model_type = MODEL_TYPE_ANTHROPIC
+    elif analysis_model_name in config.XAI_MODELS: model_type = MODEL_TYPE_XAI
 
     if model_type == MODEL_TYPE_OPENAI: return _call_openai(formatted_prompt, analysis_api_key, analysis_model_name, analysis_api_endpoint, max_tokens=4096)
     elif model_type == MODEL_TYPE_GEMINI: return _call_gemini(formatted_prompt, analysis_api_key, analysis_model_name, analysis_api_endpoint)
@@ -662,7 +646,6 @@ if __name__ == '__main__':
         r1_gemini = generate_response(test_prompt, gemini_key, gemini_model)
         if r1_gemini: logger.info(f"Gemini Response (R1):\n{r1_gemini}")
         else: logger.warning("Failed to get Gemini response (R1).")
-        # Removed incorrect analysis call
 
     # --- Test Anthropic --- 
     anthropic_key = os.getenv("ANTHROPIC_API_KEY")
@@ -673,5 +656,4 @@ if __name__ == '__main__':
         r1_anthropic = generate_response(test_prompt, anthropic_key, anthropic_model)
         if r1_anthropic: logger.info(f"Anthropic Response (R1):\n{r1_anthropic}")
         else: logger.warning("Failed to get Anthropic response (R1).")
-        # Removed incorrect analysis call
 
