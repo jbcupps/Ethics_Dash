@@ -1,6 +1,6 @@
 # Backend API Requirements
 Flask>=2.3.0,<3.1.0 # Web framework
-Flask-CORS>=3.0.10,<4.0.0 # Updated to secure version addressing CVE-2024-6221
+Flask-CORS>=6.0.0,<7.0.0 # Updated to secure version 6.0.0+ addressing CVE-2024-6839, CVE-2024-6866, CVE-2024-6844, CVE-2024-6221, CVE-2024-1681
 gunicorn==23.0.0 # Pinned to latest available version addressing CVE-2024-6827
 
 # Dash dependencies
