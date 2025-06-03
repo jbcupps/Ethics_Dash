@@ -111,9 +111,9 @@ az webapp config storage-account add \
     --mount-path /data/db
 ```
 
-### 7. Update the Docker Compose Configuration
+### 7. Update the Sidecar Configuration
 
-Now, modify the `docker-compose.azure.yml` file to use the mounted storage path instead of a Docker volume:
+Now, modify the `sidecar.azure.yml` file to use the mounted storage path instead of a Docker volume:
 
 ```yaml
 version: '3.4'

@@ -1,5 +1,4 @@
-version: '3.4'
-
+version: 1.0
 services:
   ai-mongo:
     image: mongo:latest
@@ -7,41 +6,27 @@ services:
       - "27017:27017"
     volumes:
       - ${WEBAPP_STORAGE_HOME}/data/db:/data/db
-    restart: always
-
   db-init:
     image: ${ACR_LOGIN_SERVER}/db-init:${IMAGE_TAG}
-    depends_on:
-      - ai-mongo
     command:
       - "python3"
       - "/scripts/populate_memes.py"
-      environment:
-        MONGO_HOST: ai-mongo
-        MONGO_DB_NAME: ethics_db
-    restart: on-failure
-
+    environment:
+      MONGO_HOST: ai-mongo
+      MONGO_DB_NAME: ethics_db
   ai-backend:
     image: ${ACR_LOGIN_SERVER}/backend:${IMAGE_TAG}
-    depends_on:
-      - ai-mongo
-      - db-init
     ports:
       - "5000:5000"
-      environment:
-        MONGO_HOST: ai-mongo
-        MONGO_DB_NAME: ethics_db
+    environment:
+      MONGO_HOST: ai-mongo
+      MONGO_DB_NAME: ethics_db
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GOOGLE_API_KEY: ${GOOGLE_API_KEY}
       XAI_API_KEY: ${XAI_API_KEY}
-    restart: always
-
   ai-frontend:
     image: ${ACR_LOGIN_SERVER}/frontend:${IMAGE_TAG}
-    depends_on:
-      - ai-backend
     ports:
       - "80:80"
-    restart: always

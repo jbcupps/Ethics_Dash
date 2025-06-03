@@ -52,9 +52,9 @@ STORAGE_ACCOUNT_NAME=ethicsdashstorage
 STORAGE_ACCOUNT_KEY=your_storage_account_key
 ```
 
-### 3. Docker Compose Configuration
+### 3. Sidecar Configuration
 
-The `docker-compose.azure.yml` file has been configured with:
+The `sidecar.azure.yml` file has been configured with:
 
 - MongoDB authentication using environment variables
 - Azure File Storage driver for the `mongo_data` volume
@@ -69,8 +69,8 @@ The `docker-compose.azure.yml` file has been configured with:
 
 ### 5. Security Considerations
 
-- Use strong, unique passwords for MongoDB authentication
-- Store sensitive credentials in Azure Key Vault and reference them in your deployment
+- Use strong, unique passwords for MongoDB authentication if you choose to enable it.
+- When authentication is enabled, store credentials securely (for example, in GitHub Secrets) and reference them in your deployment.
 - Consider encrypting data at rest by enabling encryption on your storage account
 - Restrict network access to your storage account using firewall rules
 

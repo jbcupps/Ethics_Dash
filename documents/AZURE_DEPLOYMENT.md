@@ -13,9 +13,9 @@ The Ethics Dashboard application is deployed as a multi-container application wi
 3. **MongoDB** - Database for the application
 4. **DB-Init** - One-time service to initialize the database with required data
 
-## Docker Compose Configuration
+## Sidecar Configuration
 
-The deployment uses a special `docker-compose.azure.yml` file that is optimized for Azure Web App for Containers. This file:
+The deployment uses a `sidecar.azure.yml` file that is optimized for Azure Web App for Containers. This file:
 
 - Uses a simpler format compatible with Azure Web App
 - Removes advanced Docker Compose features like custom healthchecks which may not be supported
@@ -38,7 +38,7 @@ The following environment variables are configured in the Azure Web App:
 
 If you encounter a "Bad Request" error when deploying via GitHub Actions, check the following:
 
-1. **Docker Compose Format**: Ensure the docker-compose.azure.yml file uses a compatible version (3.4) and only includes features supported by Azure Web App
+1. **Sidecar Format**: Ensure the sidecar.azure.yml file uses the simplified sidecar schema supported by Azure Web App
 2. **Image References**: Make sure all image references are valid and accessible
 3. **Volume Configuration**: Check that volume definitions are simple and don't use custom options
 4. **Container Names**: Remove explicit container_name definitions
@@ -82,5 +82,5 @@ The GitHub Actions workflow handles CI/CD for the application. It:
 1. Builds container images for frontend, backend, and db-init services
 2. Pushes these images to Azure Container Registry
 3. Configures the Azure Web App with appropriate settings
-4. Deploys the application using the docker-compose.azure.yml file
+4. Deploys the application using the sidecar.azure.yml file
 5. Verifies the deployment and displays logs for troubleshooting 

@@ -1,12 +1,12 @@
 # Azure Deployment Guide (ACR)
 
-This guide explains how to set up and use the GitHub Actions workflow (`.github/workflows/azure_deploy.yml`) to build Docker images and push them to Azure Container Registry (ACR). This workflow *only* handles the image push; deploying to a service like Azure App Service or Azure Container Instances requires additional steps or workflow modifications.
+This guide explains how to set up and use the GitHub Actions workflow (`.github/workflows/deploy-to-azure.yml`) to build Docker images and push them to Azure Container Registry (ACR). This workflow *only* handles the image push; deploying to a service like Azure App Service or Azure Container Instances requires additional steps or workflow modifications.
 
 ## Prerequisites
 
 -   Azure Subscription
 -   Azure CLI installed and configured
--   GitHub repository with the `azure_deploy.yml` workflow file
+-   GitHub repository with the `deploy-to-azure.yml` workflow file
 -   An Azure Container Registry (ACR) instance
 -   An Azure Service Principal or configuration for GitHub OIDC authentication with Azure
 -   Azure Storage Account for MongoDB persistence (see below)
@@ -32,7 +32,7 @@ This guide explains how to set up and use the GitHub Actions workflow (`.github/
     * `STORAGE_ACCOUNT_KEY`: Access key for your Azure Storage Account.
 
 3.  **Understand the Workflow:**
-    * The `.github/workflows/azure_deploy.yml` workflow triggers on pushes to the `main` branch or manually.
+    * The `.github/workflows/deploy-to-azure.yml` workflow triggers on pushes to the `main` branch or can be run manually.
     * It checks out the code.
     * It logs into Azure using the provided secrets (OIDC recommended).
     * It logs into ACR.
@@ -42,7 +42,7 @@ This guide explains how to set up and use the GitHub Actions workflow (`.github/
 
 ## MongoDB Persistence Setup
 
-The Ethics Dashboard application uses MongoDB to store data including ethical memes. To ensure data persistence between container rebuilds, we've configured the `docker-compose.azure.yml` file to use Azure File Storage.
+The Ethics Dashboard application uses MongoDB to store data including ethical memes. To ensure data persistence between container rebuilds, we've configured the `sidecar.azure.yml` file to use Azure File Storage.
 
 ### Setting up Persistent Storage
 
@@ -65,9 +65,10 @@ The Ethics Dashboard application uses MongoDB to store data including ethical me
    - `STORAGE_ACCOUNT_KEY`
 
 3. **Security Considerations:**
-   - Store these credentials in Azure Key Vault for production deployments
-   - Use Azure Private Endpoints for your storage account in production
-   - Regularly rotate the MongoDB credentials and storage account keys
+   - If you deploy using the provided sidecar setup, MongoDB runs inside the container without authentication. The `MONGO_USERNAME` and `MONGO_PASSWORD` variables can be left empty.
+   - Use Azure Private Endpoints for your storage account in production.
+   - Regularly rotate any credentials and storage account keys if you enable
+     authentication.
 
 For more detailed information, see `documents/azure_persistence_setup.md`.
 
@@ -84,10 +85,10 @@ For more detailed information, see `documents/azure_persistence_setup.md`.
 This workflow only pushes images to ACR. To deploy the application, you need to:
 
 1.  **Choose an Azure Hosting Service:**
-    * **Azure App Service (Web App for Containers):** Suitable for web apps, supports multi-container using Docker Compose (ensure volume mounts are compatible or removed/adapted). You would configure App Service to pull images from your ACR. **Note:** The volume errors seen in logs suggest direct Docker Compose deployment with host binds might be problematic here; adapt the compose file or use alternative volume strategies.
+    * **Azure App Service (Web App for Containers):** Suitable for web apps and supports multi-container deployments. Use the provided `sidecar.azure.yml` with the `--multicontainer-config-type sidecar` option when configuring the App Service. **Note:** The volume errors seen in logs suggest direct Docker Compose deployment with host binds might be problematic, so the sidecar approach is recommended.
     * **Azure Container Instances (ACI):** Simple way to run containers without orchestration. You can deploy containers individually or using a YAML definition, pulling from ACR.
     * **Azure Kubernetes Service (AKS):** Full Kubernetes orchestration for complex deployments. (Recommended for production use with persistent storage)
 
 2.  **Configure Deployment:** Update your chosen service to use the images tagged with the latest Git SHA from your ACR. This often involves updating service definitions, ARM templates, Bicep files, or Terraform configurations. You might extend the GitHub Actions workflow to include deployment steps using Azure CLI commands (`az webapp config container set`, `az container create`, `kubectl apply`, etc.).
 
-3.  **Manage Secrets:** Ensure your deployed application has secure access to necessary secrets (API keys, Database URI) using Azure Key Vault or App Service configuration. 
+3.  **Manage Secrets:** Ensure your deployed application has secure access to necessary secrets (API keys, Database URI). Store them as GitHub repository secrets and reference them in your workflow or App Service configuration.

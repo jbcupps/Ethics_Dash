@@ -23,7 +23,6 @@ jobs:
         uses: actions/checkout@v4 # Updated version
         with:
           fetch-depth: 0
-          repository: jbcupps/Ethics_Dash
 
       - name: Login to Azure via OIDC
         uses: azure/login@v2 # Updated version
@@ -91,6 +90,8 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
 
+
+
       - name: Enable container logging
         run: |
           az webapp log config --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --docker-container-logging filesystem
@@ -100,8 +101,6 @@ jobs:
           az webapp config appsettings set --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --settings \
             ACR_LOGIN_SERVER="${{ env.ACR_LOGIN_SERVER }}" \
             IMAGE_TAG="${{ env.IMAGE_TAG }}" \
-            MONGO_USERNAME="${{ secrets.MONGO_USERNAME }}" \
-            MONGO_PASSWORD="${{ secrets.MONGO_PASSWORD }}" \
             NODE_ENV="production" \
             LOG_LEVEL="info" \
             API_VERSION="v1" \
@@ -120,16 +119,16 @@ jobs:
             GEMINI_API_ENDPOINT="https://generativelanguage.googleapis.com" \
             XAI_API_ENDPOINT="https://api.grok.x"
 
-      - name: Deploy multi-container Web App using Docker Compose
-        uses: azure/cli@v1  # Use Azure CLI action for multi-container deployment
+      - name: Deploy multi-container Web App using sidecar config
+        uses: azure/cli@v1
         with:
           azcliversion: latest
           inlineScript: |
             az webapp config container set \
               --resource-group ${{ env.RESOURCE_GROUP }} \
               --name ${{ env.AZURE_WEBAPP_NAME }} \
-              --multicontainer-config-type compose \
-              --multicontainer-config-file docker-compose.azure.yml
+              --multicontainer-config-type sidecar \
+              --multicontainer-config-file sidecar.azure.yml
 
       - name: Wait for Web App to start
         run: |
