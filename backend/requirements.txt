@@ -22,4 +22,10 @@ httpx>=0.25.0,<0.28.0 # HTTP client used by Anthropic and xAI APIs
 pymongo[srv]>=4.0,<5.0 # Added MongoDB driver (with SRV support)
 pydantic>=2.0,<3.0 # Pydantic version constraints
 
+# Physical Verification Blockchain (PVB) Dependencies
+web3>=6.15.0,<7.0.0 # Web3.py for Ethereum blockchain interaction
+eth-account>=0.10.0,<1.0.0 # Ethereum account management and signing
+eth-hash>=0.6.0,<1.0.0 # Ethereum hashing utilities
+py-solc-x>=2.0.0,<3.0.0 # Solidity compiler for contract deployment
+
 # Add any other specific versions if necessary 

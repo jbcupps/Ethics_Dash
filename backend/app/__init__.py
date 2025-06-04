@@ -177,8 +177,13 @@ def create_app():
     # --- Import and register Flask blueprints FIRST ---
     from .api import api_bp
     from .memes_api import memes_bp
+    from .pvb import register_pvb_api
+    
     server.register_blueprint(api_bp)
     server.register_blueprint(memes_bp)
+    
+    # Register Physical Verification Blockchain (PVB) API
+    register_pvb_api(server)
 
     # --- Initialize Dash App AFTER blueprints --- 
     dash_app = dash.Dash(

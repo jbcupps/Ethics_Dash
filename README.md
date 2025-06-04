@@ -11,6 +11,7 @@ A web application focused on ethical analysis using AI models, leveraging backen
 - [Configuration](#configuration)
   - [Environment Variables (`.env`)](#environment-variables-env)
 - [API Usage](#api-usage)
+- [Physical Verification Blockchain (PVB)](#physical-verification-blockchain-pvb)
 - [Security Notes](#security-notes)
 
 ## Prerequisites
@@ -107,6 +108,49 @@ Detailed API endpoint documentation is not currently linked here. Please refer t
 
 ### Versioning
 The API version may be specified by the `API_VERSION` configuration variable. If used, include this information in your requests as needed (e.g., in the URL path or an `Accept` header). The specific implementation of API versioning (if any) should be verified in the API source code.
+
+## Physical Verification Blockchain (PVB)
+
+The Ethics Dashboard includes a Physical Verification Blockchain (PVB) system that provides cryptographically secure chain of custody for media and data. This system enables:
+
+- **Device Security Modules (DSMs)**: Software/hardware on capturing devices that sign data at the source
+- **Trusted Verifiers (TVs)**: Entities that vet and register DSMs
+- **Immutable Records**: Blockchain-based storage of data hashes, signatures, and metadata
+
+### PVB Features
+
+- Cryptographic verification of data authenticity
+- Immutable audit trails
+- Decentralized trust through blockchain technology
+- Support for off-chain data storage (IPFS, Arweave)
+- RESTful API for integration with external systems
+
+### PVB API Endpoints
+
+- **Health Check**: `GET /api/pvb/health`
+- **Verifier Registration**: `POST /api/pvb/verifiers`
+- **Device Management**: `POST /api/pvb/verifiers/{address}/devices`
+- **Data Submission**: `POST /api/pvb/data`
+- **Data Verification**: `GET /api/pvb/data/{hash}/verify`
+
+### Quick Start with PVB
+
+1. **Start the blockchain service**:
+   ```bash
+   docker compose up -d ganache
+   ```
+
+2. **Deploy smart contracts**:
+   ```bash
+   python scripts/deploy_pvb_contracts.py
+   ```
+
+3. **Test the PVB API**:
+   ```bash
+   curl http://localhost:5000/api/pvb/health
+   ```
+
+For detailed PVB documentation, see [docs/PVB_Implementation_Guide.md](docs/PVB_Implementation_Guide.md).
 
 ## Security Notes
 

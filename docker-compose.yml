@@ -15,6 +15,11 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      # PVB Blockchain Configuration
+      - WEB3_PROVIDER_URL=http://ganache:8545
+      - REGISTRY_CONTRACT_ADDRESS=${REGISTRY_CONTRACT_ADDRESS}
+      - SUBMISSION_CONTRACT_ADDRESS=${SUBMISSION_CONTRACT_ADDRESS}
+      - BLOCKCHAIN_PRIVATE_KEY=${BLOCKCHAIN_PRIVATE_KEY}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
       interval: 10s
@@ -77,6 +82,32 @@ services:
         condition: service_healthy
     volumes:
       - ./documents:/app/documents
+    networks:
+      - ai-network
+
+  # Ganache Blockchain for PVB Development
+  ganache:
+    image: trufflesuite/ganache:latest
+    ports:
+      - "7545:8545"  # Map container port 8545 to host port 7545
+    command: >
+      ganache
+      --host 0.0.0.0
+      --port 8545
+      --accounts 10
+      --deterministic
+      --mnemonic "ethics dashboard physical verification blockchain development test mnemonic phrase"
+      --networkId 1337
+      --gasLimit 10000000
+      --gasPrice 20000000000
+      --defaultBalanceEther 100
+      --blockTime 2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8545"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - ai-network
 
