@@ -30,6 +30,7 @@ contract DataSubmission {
     mapping(bytes32 => Submission) public submissions; // dataHash => Submission
     mapping(bytes32 => bytes32[]) public deviceSubmissions; // deviceId => dataHash[]
     mapping(address => bytes32[]) public verifierSubmissions; // verifierAddress => dataHash[]
+    mapping(bytes32 => string) public submissionLabels;
     
     // Counter for total submissions
     uint256 public totalSubmissions;
@@ -55,6 +56,8 @@ contract DataSubmission {
         bytes32 indexed deviceId,
         uint256 timestamp
     );
+    
+    event LabelAdded(bytes32 indexed dataHash, string label, address indexer);
     
     // Modifiers
     modifier onlyActiveDevice(bytes32 _deviceId) {
@@ -255,6 +258,13 @@ contract DataSubmission {
         require(_newRegistryAddress != address(0), "Registry address cannot be zero");
         // In production, add proper access control (onlyOwner or governance)
         trustedVerifierRegistry = TrustedVerifierRegistry(_newRegistryAddress);
+    }
+
+    function labelSubmission(bytes32 _dataHash, string memory _ethicalLabel) external submissionExists(_dataHash) {
+        // Basic access control - in production, use proper roles
+        require(msg.sender == submissions[_dataHash].verifierAddress || msg.sender == owner(), "Only verifier or owner can label");
+        submissionLabels[_dataHash] = _ethicalLabel;
+        emit LabelAdded(_dataHash, _ethicalLabel, msg.sender);
     }
     
     /**
