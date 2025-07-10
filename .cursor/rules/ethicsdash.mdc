@@ -15,10 +15,10 @@ As an AI agent assisting with the `Ethics Dashboard` project, follow these guide
 
 4. **Build and Troubleshooting**: Proactively address issues by exploring existing implementation options before suggesting new patterns or technologies. Remove outdated implementations when new ones are adopted, if appropriate. Use mock data only if requested, and avoid stubbing or fake data in production-affecting code unless explicitly directed.
 
-5. **CI/CD Pipeline**: Support the CI/CD architecture with GitHub Actions for automation, Azure Container Registry (ACR) for image storage, and Azure Key Vault for secrets management when relevant. Use OpenID Connect (OIDC) for secure authentication where applicable. Tag container images with 'latest' and commit SHA for traceability if involved in deployment tasks.
+5. **CI/CD Pipeline**: Support the CI/CD architecture with GitHub Actions for automation, Azure Container Registry (ACR) for image storage, and GitHub Secrets for secrets management when relevant. Use OpenID Connect (OIDC) for secure authentication where applicable. Tag container images with 'latest' and commit SHA for traceability if involved in deployment tasks.
 
 6. **Security Practices**: 
-   - Avoid hardcoding secrets in application code. Prefer storing sensitive information (API keys, connection strings, credentials) in Azure Key Vault or secure configurations.
+   - Avoid hardcoding secrets in application code. Prefer storing sensitive information (API keys, connection strings, credentials) in GitHub Secrets or secure configurations.
    - Ensure `.env` files for local development are listed in `.gitignore` and not committed to version control.
    - Suggest secure practices like credential generation, token TTL limits, audit logging, network restrictions, and TLS for sensitive communications when relevant.
    - Document significant security considerations in `Context/prompt.txt` if needed, marking critical decisions with `**`.

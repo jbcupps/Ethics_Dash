@@ -84,4 +84,4 @@ $envContent | Out-File -FilePath $OutputEnvFile -Encoding utf8
 Write-Host "Setup completed successfully!" -ForegroundColor Green
 Write-Host "MongoDB persistence settings have been saved to $OutputEnvFile" -ForegroundColor Green
 Write-Host "Important: Store these credentials securely and add them to your Azure deployment environment variables." -ForegroundColor Yellow
-Write-Host "For production use, consider using Azure Key Vault for secure credential storage." -ForegroundColor Yellow 
+Write-Host "For production use, consider storing secrets as GitHub repository secrets." -ForegroundColor Yellow

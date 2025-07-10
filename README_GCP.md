@@ -48,7 +48,7 @@ This guide explains how to set up and use the GitHub Actions workflow (`.github/
     * `GCP_ARTIFACT_REGISTRY_REPO`: The name of your Artifact Registry repository (e.g., `ethics-dash-repo`).
     * `GCP_CLOUD_RUN_REGION`: The region where you want to deploy Cloud Run services (e.g., `us-central1`).
     * `GCP_MONGO_URI`: The **connection string** for your cloud MongoDB instance (e.g., MongoDB Atlas connection string). **Store this securely!**
-    * **(Optional but Recommended)** Store LLM API keys in GCP Secret Manager and grant the Service Account access, then reference them in Cloud Run environment variables. Alternatively, store them as GitHub secrets and pass them during deployment (less secure).
+    * Store LLM API keys as GitHub repository secrets and reference them in the workflow. You may also use GCP Secret Manager if preferred.
 
 5.  **Understand the Workflow:**
     * The `.github/workflows/gcp_deploy.yml` workflow triggers on pushes to the `main` branch or manually.
@@ -76,6 +76,6 @@ Once the workflow completes successfully, the frontend application will be avail
 ## Important Notes
 
 -   **DB Initialization:** This workflow does *not* automatically run the `db-init` container. You will need to run the database population script (`scripts/populate_memes.py`) manually against your cloud MongoDB instance the first time, or create a GCP Cloud Build job or a GKE Job to handle this initialization step using the `db-init` image (which you'd need to add build/push steps for in the workflow).
--   **Secret Management:** Passing secrets like `GCP_MONGO_URI` directly as GitHub secrets is less secure than using GCP Secret Manager and granting the Cloud Run service account access. Adapt the workflow accordingly for better security.
+-   **Secret Management:** Store secrets like `GCP_MONGO_URI` as GitHub repository secrets for convenience. You can also use GCP Secret Manager and grant the Cloud Run service account access if desired.
 -   **Nginx Configuration:** The `ai-frontend` (Nginx) container needs to be correctly configured (in its `nginx.conf` or similar) to proxy API calls (`/api/*`) to the backend Cloud Run service URL. The workflow attempts to pass this dynamically, but verify the Nginx configuration handles it.
 -   **Cloud Run Settings:** Adjust Cloud Run flags (`--min-instances`, `--max-instances`) 

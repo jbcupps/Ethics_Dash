@@ -10,7 +10,10 @@ from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError, InvalidURI
 from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv  # Load .env file for local development
-from urllib.parse import quote_plus, urlparse, urlunparse # Added imports
+from urllib.parse import quote_plus, urlparse, urlunparse
+
+# Import the new centralized configuration
+from . import config
 
 # Dash Imports
 import dash
@@ -22,12 +25,25 @@ from .callbacks import register_all_callbacks # Use relative import
 # Setup logger for this module
 logger = logging.getLogger(__name__)
 
-load_dotenv()  # Load environment variables from .env into os.environ immediately
+def _sanitize_mongo_uri(uri: str) -> str:
+    """Return MongoDB URI without credentials for safe logging."""
+    try:
+        parsed = urlparse(uri)
+        if parsed.username or parsed.password:
+            netloc = parsed.hostname or ""
+            if parsed.port:
+                netloc += f":{parsed.port}"
+            sanitized = parsed._replace(netloc=netloc)
+            return urlunparse(sanitized)
+    except Exception:
+        pass
+    return uri
 
 def wait_for_mongodb(mongo_uri, max_retries=30, retry_interval=2):
     """Wait for MongoDB to become available with retries."""
     # Use the URI directly
-    logger.info(f"Checking MongoDB connection using URI: {mongo_uri}...")
+    safe_uri = _sanitize_mongo_uri(mongo_uri)
+    logger.info(f"Checking MongoDB connection using URI: {safe_uri}...")
 
     for attempt in range(1, max_retries + 1):
         try:
@@ -45,7 +61,7 @@ def wait_for_mongodb(mongo_uri, max_retries=30, retry_interval=2):
                 time.sleep(retry_interval)
             # If InvalidURI occurs, no point retrying with the same URI
             if isinstance(e, InvalidURI):
-                 logger.error(f"Invalid MongoDB URI encountered: {mongo_uri}. Aborting wait.")
+                 logger.error(f"Invalid MongoDB URI encountered: {safe_uri}. Aborting wait.")
                  break
 
     logger.error("Max retries reached or invalid URI. MongoDB connection failed.")
@@ -60,34 +76,56 @@ def create_app():
         server.wsgi_app, x_proto=1, x_prefix=1
     )
     
-    # --- Load Configuration --- 
-    
-    # MongoDB Configuration (Construct URI from parts)
-    mongo_host = os.getenv("MONGO_HOST", "ai-mongo")
-    mongo_port = os.getenv("MONGO_PORT", "27017")
-    mongo_user = os.getenv("MONGO_USERNAME") # Read raw username
-    mongo_pass = os.getenv("MONGO_PASSWORD") # Read raw password
-    mongo_db_name = os.getenv("MONGO_DB_NAME", "ethics_db")
+    # --- MongoDB Configuration using centralized config with fallbacks ---
+    try:
+        # Try centralized config first
+        mongo_uri = config.get_mongo_uri()
+        mongo_db_name = config.get_mongo_db_name()
+        logger.info("Using centralized MongoDB configuration")
+    except Exception as config_err:
+        logger.warning(f"Centralized config failed: {config_err}. Falling back to environment variables.")
+        
+        # Fallback to individual environment variables
+        mongo_host = os.getenv("MONGO_HOST", "ai-mongo")
+        mongo_port = os.getenv("MONGO_PORT", "27017")
+        mongo_user = os.getenv("MONGO_USERNAME")  # Read raw username
+        mongo_pass = os.getenv("MONGO_PASSWORD")  # Read raw password
+        mongo_db_name = os.getenv("MONGO_DB_NAME", "ethics_db")
 
-    mongo_uri = None # Initialize mongo_uri
+        mongo_uri_env = os.getenv("MONGO_URI")
+        mongo_uri = None  # Final URI that will be used
 
-    if mongo_user and mongo_pass:
-        # URL-encode username and password to handle special characters properly
-        logger.info("Constructing MongoDB URI with URL-encoded credentials.")
-        # Ensure user/pass are strings and URL-encoded
-        mongo_user_encoded = quote_plus(str(mongo_user))
-        mongo_pass_encoded = quote_plus(str(mongo_pass))
-        mongo_uri = f"mongodb://{mongo_user_encoded}:{mongo_pass_encoded}@{mongo_host}:{mongo_port}/{mongo_db_name}?authSource=admin"
-    else:
-        logger.warning("MONGO_USERNAME or MONGO_PASSWORD not set. Using unauthenticated connection.")
-        mongo_uri = f"mongodb://{mongo_host}:{mongo_port}/{mongo_db_name}"
+        if mongo_uri_env:
+            # If a full connection string is provided, use it directly
+            mongo_uri = mongo_uri_env
+            # If DB name is not explicitly set, try to parse it from the URI
+            if not os.getenv("MONGO_DB_NAME"):
+                try:
+                    parsed = urlparse(mongo_uri_env)
+                    db_name_from_uri = parsed.path.lstrip("/")
+                    if db_name_from_uri:
+                        mongo_db_name = db_name_from_uri
+                        logger.info(f"Parsed DB name '{mongo_db_name}' from MONGO_URI")
+                except Exception as parse_err:
+                    logger.warning(f"Could not parse DB name from MONGO_URI: {parse_err}")
+        else:
+            # Construct URI from individual components
+            if mongo_user and mongo_pass:
+                # URL-encode username and password to handle special characters properly
+                logger.info("Constructing MongoDB URI with URL-encoded credentials.")
+                mongo_user_encoded = quote_plus(str(mongo_user))
+                mongo_pass_encoded = quote_plus(str(mongo_pass))
+                mongo_uri = f"mongodb://{mongo_user_encoded}:{mongo_pass_encoded}@{mongo_host}:{mongo_port}/{mongo_db_name}?authSource=admin"
+            else:
+                logger.warning("MONGO_USERNAME or MONGO_PASSWORD not set. Using unauthenticated connection.")
+                mongo_uri = f"mongodb://{mongo_host}:{mongo_port}/{mongo_db_name}"
 
     server.config['MONGO_URI'] = mongo_uri # Store the final URI
     server.config['MONGO_DB_NAME'] = mongo_db_name
     
     # Log the MongoDB config
-    logger.info(f"MongoDB URI (constructed): {server.config['MONGO_URI']}")
-    logger.info(f"MongoDB Database: {server.config['MONGO_DB_NAME']}")
+    logger.info(f"MongoDB URI (constructed): {_sanitize_mongo_uri(mongo_uri)}")
+    logger.info(f"MongoDB Database: {mongo_db_name}")
     
     # Load API Keys and Model Config for Analysis
     # Use specific analysis keys if present, otherwise fall back to general keys
@@ -132,15 +170,20 @@ def create_app():
             server.mongo_client = None
             server.db = None
     else:
-        logger.error(f"Failed to connect to MongoDB using URI: {mongo_uri}")
+        logger.error(f"Failed to connect to MongoDB using URI: {_sanitize_mongo_uri(mongo_uri)}")
         server.mongo_client = None
         server.db = None
 
     # --- Import and register Flask blueprints FIRST ---
     from .api import api_bp
     from .memes_api import memes_bp
+    from .pvb import register_pvb_api
+    
     server.register_blueprint(api_bp)
     server.register_blueprint(memes_bp)
+    
+    # Register Physical Verification Blockchain (PVB) API
+    register_pvb_api(server)
 
     # --- Initialize Dash App AFTER blueprints --- 
     dash_app = dash.Dash(

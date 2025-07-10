@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 
 const PromptForm = ({ onSubmit, isLoading, availableModels = [] }) => {
   const [prompt, setPrompt] = useState('');
@@ -199,6 +200,12 @@ API Endpoint:
       </form>
     </div>
   );
+};
+
+PromptForm.propTypes = {
+  onSubmit: PropTypes.func.isRequired,
+  isLoading: PropTypes.bool,
+  availableModels: PropTypes.arrayOf(PropTypes.string)
 };
 
 export default PromptForm; 

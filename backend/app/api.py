@@ -9,6 +9,9 @@ import logging # Import logging
 from pydantic import ValidationError
 from bson import ObjectId
 
+# Import the new centralized configuration
+from . import config
+
 # Corrected relative import
 from .modules.llm_interface import generate_response, perform_ethical_analysis, select_relevant_memes
 # Corrected relative imports assuming db.py and models.py are in the same 'app' package
@@ -22,71 +25,9 @@ api_bp = Blueprint('api', __name__, url_prefix='/api')
 logger = logging.getLogger(__name__)
 # Assuming basicConfig is called in app __init__ or wsgi.py
 
-# --- Constants ---
-ONTOLOGY_FILEPATH = os.path.normpath(
-    os.path.join(os.path.dirname(__file__), '..', '..', 'documents', 'ontology.md')
-)
-PROMPT_LOG_FILEPATH = "context/prompts.txt"
-
-# Environment variable names (Added OpenAI)
-OPENAI_API_KEY_ENV = "OPENAI_API_KEY"
-GEMINI_API_KEY_ENV = "GEMINI_API_KEY"
-ANTHROPIC_API_KEY_ENV = "ANTHROPIC_API_KEY"
-XAI_API_KEY_ENV = "XAI_API_KEY"  # Added xAI (Grok) API key env var
-OPENAI_API_ENDPOINT_ENV = "OPENAI_API_ENDPOINT"
-GEMINI_API_ENDPOINT_ENV = "GEMINI_API_ENDPOINT"
-ANTHROPIC_API_ENDPOINT_ENV = "ANTHROPIC_API_ENDPOINT"
-XAI_API_ENDPOINT_ENV = "XAI_API_ENDPOINT"  # Added xAI (Grok) API endpoint env var
-DEFAULT_LLM_MODEL_ENV = "DEFAULT_LLM_MODEL"
-
-# Environment variables for the Analysis LLM (Added OpenAI)
-ANALYSIS_LLM_MODEL_ENV = "ANALYSIS_LLM_MODEL"
-ANALYSIS_OPENAI_API_KEY_ENV = "ANALYSIS_OPENAI_API_KEY"
-ANALYSIS_GEMINI_API_KEY_ENV = "ANALYSIS_GEMINI_API_KEY"
-ANALYSIS_ANTHROPIC_API_KEY_ENV = "ANALYSIS_ANTHROPIC_API_KEY"
-ANALYSIS_XAI_API_KEY_ENV = "ANALYSIS_XAI_API_KEY"  # Added xAI (Grok) Analysis API key env var
-ANALYSIS_OPENAI_API_ENDPOINT_ENV = "ANALYSIS_OPENAI_API_ENDPOINT"
-ANALYSIS_GEMINI_API_ENDPOINT_ENV = "ANALYSIS_GEMINI_API_ENDPOINT"
-ANALYSIS_ANTHROPIC_API_ENDPOINT_ENV = "ANALYSIS_ANTHROPIC_API_ENDPOINT"
-ANALYSIS_XAI_API_ENDPOINT_ENV = "ANALYSIS_XAI_API_ENDPOINT"  # Added xAI (Grok) Analysis API endpoint env var
-
-# --- Model Definitions ---
-OPENAI_MODELS = [
-    "gpt-4o",
-    "gpt-4-turbo",
-    "gpt-3.5-turbo"
-]
-
-GEMINI_MODELS = [
-    "gemini-1.5-pro-latest",
-    "gemini-1.5-flash-latest",
-    "gemini-1.0-pro",
-    "gemini-2.5-pro",
-    "gemini-2.5-flash"
-]
-
-ANTHROPIC_MODELS = [
-    "claude-3-opus-20240229",
-    "claude-3-sonnet-20240229",
-    "claude-3-haiku-20240307",
-]
-
-# New xAI Grok models
-XAI_MODELS = [
-    "grok-2",
-    "grok-3-mini",
-    "grok-3"
-]
-
-ALL_MODELS = OPENAI_MODELS + GEMINI_MODELS + ANTHROPIC_MODELS + XAI_MODELS
-
-# Constants for parsing
-SUMMARY_DELIMITER = "SUMMARY:"
-JSON_DELIMITER = "JSON SCORES:"
-
 # --- Helper Functions ---
 
-def load_ontology(filepath: str = ONTOLOGY_FILEPATH) -> Optional[str]:
+def load_ontology(filepath: str = config.ONTOLOGY_FILEPATH) -> Optional[str]:
     """Loads the ethical ontology text from the specified file, falling back to /app/documents/ontology.md if needed."""
     # Try the primary path
     if filepath and os.path.exists(filepath):
@@ -109,7 +50,7 @@ def load_ontology(filepath: str = ONTOLOGY_FILEPATH) -> Optional[str]:
         logger.error(f"Ontology file not found at fallback path: {fallback_path}")
     return None
 
-def log_prompt(prompt: str, model_name: str, filepath: str = PROMPT_LOG_FILEPATH):
+def log_prompt(prompt: str, model_name: str, filepath: str = config.PROMPT_LOG_FILEPATH):
     """Appends the given prompt and selected model to the log file."""
     try:
         # Ensure the directory exists
@@ -123,311 +64,14 @@ def log_prompt(prompt: str, model_name: str, filepath: str = PROMPT_LOG_FILEPATH
     except Exception as e:
         logger.error(f"Error logging prompt: {e}")
 
-def _get_api_config(selected_model: str, 
-                    form_api_key: Optional[str],
-                    form_api_endpoint: Optional[str]) -> Dict[str, Any]:
-    """
-    Determines the API key and endpoint for the R1 model.
-    Prioritizes form inputs (key, endpoint), otherwise falls back to environment variables.
-    """
-    api_key = None
-    api_endpoint = None
-    error = None
-    key_source = "Environment Variable"
-    endpoint_source = "Environment Variable"
-    
-    # Detailed logging for debugging default application
-    logger.debug(f"_get_api_config: START - Model: {selected_model}")
-    logger.debug(f"_get_api_config: Form Key Provided: {'YES' if form_api_key else 'NO'}")
-    logger.debug(f"_get_api_config: Form Endpoint Provided: {'YES' if form_api_endpoint else 'NO'}")
-
-    # Determine API provider and corresponding ENV VAR names
-    env_var_key = None
-    env_var_endpoint = None
-    api_key_name = f"Origin ({selected_model})" # Default name
-
-    if selected_model in OPENAI_MODELS:
-        api_key_name = "Origin OpenAI"
-        env_var_key = OPENAI_API_KEY_ENV
-        env_var_endpoint = OPENAI_API_ENDPOINT_ENV
-    elif selected_model in GEMINI_MODELS:
-        api_key_name = "Origin Gemini"
-        env_var_key = GEMINI_API_KEY_ENV
-        env_var_endpoint = GEMINI_API_ENDPOINT_ENV
-    elif selected_model in ANTHROPIC_MODELS:
-        api_key_name = "Origin Anthropic"
-        env_var_key = ANTHROPIC_API_KEY_ENV
-        env_var_endpoint = ANTHROPIC_API_ENDPOINT_ENV
-    elif selected_model in XAI_MODELS:
-        api_key_name = "Origin xAI (Grok)"
-        env_var_key = XAI_API_KEY_ENV
-        env_var_endpoint = XAI_API_ENDPOINT_ENV
-    else:
-        # This case should ideally not be reached if model comes from dropdown
-        # If we allow custom model names later, this logic might need adjustment
-        logger.warning(f"_get_api_config: Unknown model type '{selected_model}' encountered. Relying on form inputs only for key/endpoint.")
-        # No known env vars to check
-
-    logger.debug(f"_get_api_config: Determined Key Env Var: {env_var_key}")
-    logger.debug(f"_get_api_config: Determined Endpoint Env Var: {env_var_endpoint}")
-
-    # 1. Prioritize API key provided in the form
-    if form_api_key and isinstance(form_api_key, str) and form_api_key.strip():
-        api_key = form_api_key.strip()
-        key_source = "User Input"
-        logger.info(f"_get_api_config: Using API key provided via form for {api_key_name}.")
-        # Log a masked version of the key for debugging
-        if api_key:
-            masked_key = f"{api_key[:5]}...{api_key[-5:]}" if len(api_key) > 10 else "***masked***"
-            logger.info(f"_get_api_config: Form API key format check - Length: {len(api_key)}, Start/End: {masked_key}")
-    # 2. Fallback to environment variable if form key wasn't provided AND we know the variable name
-    elif env_var_key:
-        api_key = os.getenv(env_var_key)
-        # Ensure any surrounding quotes are removed (common in environment variables)
-        if api_key and isinstance(api_key, str):
-            api_key = api_key.strip().strip('"\'')
-            
-        if api_key:
-             key_source = f"Environment Variable ({env_var_key})"
-             logger.info(f"_get_api_config: Using API key from env var {env_var_key} for {api_key_name}.")
-             logger.debug(f"_get_api_config: Retrieved key from {env_var_key}: {'Exists' if api_key else 'Not Found or Empty'}")
-             # Log a masked version of the key for debugging
-             masked_key = f"{api_key[:5]}...{api_key[-5:]}" if len(api_key) > 10 else "***masked***"
-             logger.info(f"_get_api_config: Env API key format check - Length: {len(api_key)}, Start/End: {masked_key}")
-        else:
-             logger.warning(f"_get_api_config: No API key found in env var {env_var_key} for {api_key_name}. This may cause request failure.")
-
-    # 3. Prioritize API endpoint provided in the form
-    if form_api_endpoint and isinstance(form_api_endpoint, str) and form_api_endpoint.strip():
-        # Basic validation: Check if it looks somewhat like a URL
-        if form_api_endpoint.startswith("http://") or form_api_endpoint.startswith("https://"):
-            api_endpoint = form_api_endpoint.strip()
-            endpoint_source = "User Input"
-            logger.info(f"_get_api_config: Using API endpoint provided via form: {api_endpoint}")
-        else:
-            logger.warning(f"_get_api_config: Ignoring invalid form_api_endpoint (doesn't start with http/https): {form_api_endpoint}")
-            # Keep api_endpoint as None to fallback to env var or default
-    
-    # 4. Fallback to environment variable endpoint if form endpoint wasn't provided/valid AND we know the variable name
-    if not api_endpoint and env_var_endpoint: 
-        env_endpoint_val = os.getenv(env_var_endpoint)
-        if env_endpoint_val:
-            # Ensure any surrounding quotes are removed
-            api_endpoint = env_endpoint_val.strip().strip('"\'')
-            endpoint_source = f"Environment Variable ({env_var_endpoint})"
-            logger.info(f"_get_api_config: Using API endpoint from env var {env_var_endpoint}: {api_endpoint}")
-            logger.debug(f"_get_api_config: Retrieved endpoint from {env_var_endpoint}: {api_endpoint}")
-        else:
-            logger.info(f"_get_api_config: No API endpoint found in env var {env_var_endpoint} for {api_key_name}. Library default (if any) will be used.")
-
-    # 5. Validate that *some* API Key was found
-    if not api_key:
-        if env_var_key: # If it was a known model type
-            error = f"API Key for {api_key_name} not found. Provide one in the form or set the {env_var_key} environment variable."
-        else: # Unknown model type
-             error = f"API Key for model '{selected_model}' was not provided in the form or found in environment."
-        logger.error(error)
-
-    # Log final sources
-    if not error:
-        logger.info(f"_get_api_config: Final Key Source: {key_source}, Endpoint Source: {endpoint_source} for {selected_model}")
-    else:
-        logger.error(f"_get_api_config: Configuration error for {selected_model}: {error}")
-        
-    return {
-        "api_key": api_key,
-        "api_endpoint": api_endpoint,
-        "error": error
-    }
-
-def _get_analysis_api_config(selected_analysis_model: Optional[str] = None, 
-                             form_analysis_api_key: Optional[str] = None, 
-                             form_analysis_api_endpoint: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Determines the API key, model, and endpoint for the Analysis LLM.
-    Uses selected_analysis_model or falls back to ANALYSIS_LLM_MODEL_ENV.
-    Prioritizes form inputs (key, endpoint), then specific env vars, then general env vars.
-    """
-    analysis_model = selected_analysis_model
-    key_source = "Environment Variable"
-    endpoint_source = "Environment Variable"
-
-    # Detailed logging for debugging default application
-    logger.debug(f"_get_analysis_api_config: START - Requested Model: {selected_analysis_model}")
-    logger.debug(f"_get_analysis_api_config: Form Key Provided: {'YES' if form_analysis_api_key else 'NO'}")
-    logger.debug(f"_get_analysis_api_config: Form Endpoint Provided: {'YES' if form_analysis_api_endpoint else 'NO'}")
-
-    # --- Determine Analysis Model --- 
-    if not analysis_model or analysis_model not in ALL_MODELS:
-        # If user provided an invalid model, log and try env var
-        if selected_analysis_model and selected_analysis_model not in ALL_MODELS:
-            logger.warning(f"_get_analysis_api_config: Invalid analysis model selected ('{selected_analysis_model}'). Checking ANALYSIS_LLM_MODEL env var.")
-        # Check ANALYSIS_LLM_MODEL environment variable
-        default_analysis_model_env = os.getenv(ANALYSIS_LLM_MODEL_ENV)
-        if isinstance(default_analysis_model_env, str):
-            default_analysis_model_env = default_analysis_model_env.strip().strip('"\'')
-        # Use env var if valid
-        if default_analysis_model_env in ALL_MODELS:
-            analysis_model = default_analysis_model_env
-            logger.info(f"_get_analysis_api_config: Using R2 model from env var {ANALYSIS_LLM_MODEL_ENV}: {analysis_model}")
-            logger.debug(f"_get_analysis_api_config: Env var {ANALYSIS_LLM_MODEL_ENV} value: '{os.getenv(ANALYSIS_LLM_MODEL_ENV)}'")
-        else:
-            # Final fallback to first available model
-            analysis_model = ALL_MODELS[0] if ALL_MODELS else None
-            logger.warning(f"_get_analysis_api_config: No valid ANALYSIS_LLM_MODEL set. Falling back to first available model: {analysis_model}")
-            logger.debug(f"_get_analysis_api_config: Env var {ANALYSIS_LLM_MODEL_ENV} value: '{os.getenv(ANALYSIS_LLM_MODEL_ENV)}'")
-    else:
-        logger.info(f"_get_analysis_api_config: Using user-selected R2 model: {analysis_model}")
-
-    # --- Determine API Key & Endpoint --- 
-    api_key = None
-    api_endpoint = None
-    error = None
-
-    # Determine relevant env var names based on the *determined* analysis_model
-    specific_key_env = None
-    fallback_key_env = None
-    specific_endpoint_env = None
-    fallback_endpoint_env = None
-    api_key_name = f"Analysis ({analysis_model})"
-    
-    if analysis_model in OPENAI_MODELS:
-        api_key_name = "Analysis OpenAI"
-        specific_key_env = ANALYSIS_OPENAI_API_KEY_ENV
-        fallback_key_env = OPENAI_API_KEY_ENV
-        specific_endpoint_env = ANALYSIS_OPENAI_API_ENDPOINT_ENV
-        fallback_endpoint_env = OPENAI_API_ENDPOINT_ENV
-    elif analysis_model in GEMINI_MODELS:
-        api_key_name = "Analysis Gemini"
-        specific_key_env = ANALYSIS_GEMINI_API_KEY_ENV
-        fallback_key_env = GEMINI_API_KEY_ENV
-        specific_endpoint_env = ANALYSIS_GEMINI_API_ENDPOINT_ENV
-        fallback_endpoint_env = GEMINI_API_ENDPOINT_ENV
-    elif analysis_model in ANTHROPIC_MODELS:
-        api_key_name = "Analysis Anthropic"
-        specific_key_env = ANALYSIS_ANTHROPIC_API_KEY_ENV
-        fallback_key_env = ANTHROPIC_API_KEY_ENV
-        specific_endpoint_env = ANALYSIS_ANTHROPIC_API_ENDPOINT_ENV
-        fallback_endpoint_env = ANTHROPIC_API_ENDPOINT_ENV
-    elif analysis_model in XAI_MODELS:
-        api_key_name = "Analysis xAI (Grok)"
-        specific_key_env = ANALYSIS_XAI_API_KEY_ENV
-        fallback_key_env = XAI_API_KEY_ENV
-        specific_endpoint_env = ANALYSIS_XAI_API_ENDPOINT_ENV
-        fallback_endpoint_env = XAI_API_ENDPOINT_ENV
-    # No else needed as model validity is checked above
-
-    logger.debug(f"_get_analysis_api_config: Determined Specific Key Env: {specific_key_env}")
-    logger.debug(f"_get_analysis_api_config: Determined Fallback Key Env: {fallback_key_env}")
-    logger.debug(f"_get_analysis_api_config: Determined Specific Endpoint Env: {specific_endpoint_env}")
-    logger.debug(f"_get_analysis_api_config: Determined Fallback Endpoint Env: {fallback_endpoint_env}")
-
-    # 1. Prioritize API key provided in the form
-    if form_analysis_api_key and isinstance(form_analysis_api_key, str) and form_analysis_api_key.strip():
-        api_key = form_analysis_api_key.strip()
-        key_source = "User Input"
-        logger.info(f"_get_analysis_api_config: Using API key provided via form for {api_key_name}.")
-        # Log a masked version of the key for debugging
-        if api_key:
-            masked_key = f"{api_key[:5]}...{api_key[-5:]}" if len(api_key) > 10 else "***masked***"
-            logger.info(f"_get_analysis_api_config: Form API key format check - Length: {len(api_key)}, Start/End: {masked_key}")
-    # 2. Fallback to environment variables if form key wasn't provided
-    else:
-        # Check specific analysis key first, then standard key
-        if specific_key_env:
-            env_key = os.getenv(specific_key_env)
-            # Clean up environment variable value if needed
-            if env_key and isinstance(env_key, str):
-                env_key = env_key.strip().strip('"\'')
-                
-            if env_key:
-                api_key = env_key
-                logger.debug(f"_get_analysis_api_config: Found key in specific env var: {specific_key_env}")
-                key_source = f"Environment Variable ({specific_key_env})"
-        
-        if not api_key and fallback_key_env: # If specific key not found or doesn't exist, try fallback
-            env_key = os.getenv(fallback_key_env)
-            # Clean up environment variable value if needed
-            if env_key and isinstance(env_key, str):
-                env_key = env_key.strip().strip('"\'')
-                
-            if env_key:
-                api_key = env_key
-                logger.debug(f"_get_analysis_api_config: Found key in fallback env var: {fallback_key_env}")
-                key_source = f"Environment Variable ({fallback_key_env})"
-        
-        if api_key:
-            logger.info(f"_get_analysis_api_config: Using API key from {key_source} for {api_key_name}.")
-            # Log a masked version of the key for debugging
-            masked_key = f"{api_key[:5]}...{api_key[-5:]}" if len(api_key) > 10 else "***masked***"
-            logger.info(f"_get_analysis_api_config: Env API key format check - Length: {len(api_key)}, Start/End: {masked_key}")
-
-    # 3. Prioritize API endpoint provided in the form
-    if form_analysis_api_endpoint and isinstance(form_analysis_api_endpoint, str) and form_analysis_api_endpoint.strip():
-        if form_analysis_api_endpoint.startswith("http://") or form_analysis_api_endpoint.startswith("https://"):
-            api_endpoint = form_analysis_api_endpoint.strip()
-            endpoint_source = "User Input"
-            logger.info(f"_get_analysis_api_config: Using API endpoint provided via form: {api_endpoint}")
-        else:
-            logger.warning(f"_get_analysis_api_config: Ignoring invalid form_analysis_api_endpoint: {form_analysis_api_endpoint}")
-    
-    # 4. Fallback to environment variable endpoint if form endpoint wasn't provided/valid
-    if not api_endpoint:
-        # Check specific analysis endpoint first, then standard endpoint
-        if specific_endpoint_env:
-            env_endpoint_val = os.getenv(specific_endpoint_env)
-            # Clean up environment variable value if needed
-            if env_endpoint_val and isinstance(env_endpoint_val, str):
-                env_endpoint_val = env_endpoint_val.strip().strip('"\'')
-                
-            if env_endpoint_val:
-                api_endpoint = env_endpoint_val
-                logger.debug(f"_get_analysis_api_config: Found endpoint in specific env var: {specific_endpoint_env}")
-                endpoint_source = f"Environment Variable ({specific_endpoint_env})"
-        
-        if not api_endpoint and fallback_endpoint_env: # If specific endpoint not found or doesn't exist, try fallback
-            env_endpoint_val = os.getenv(fallback_endpoint_env)
-            # Clean up environment variable value if needed
-            if env_endpoint_val and isinstance(env_endpoint_val, str):
-                env_endpoint_val = env_endpoint_val.strip().strip('"\'')
-                
-            if env_endpoint_val:
-                api_endpoint = env_endpoint_val
-                logger.debug(f"_get_analysis_api_config: Found endpoint in fallback env var: {fallback_endpoint_env}")
-                endpoint_source = f"Environment Variable ({fallback_endpoint_env})"
-        
-        if api_endpoint:
-             logger.info(f"_get_analysis_api_config: Using API endpoint from {endpoint_source}: {api_endpoint}")
-
-    # 5. Validate that *some* API Key was found
-    if not api_key:
-        error_env_vars = f"{specific_key_env} or {fallback_key_env}" if specific_key_env and fallback_key_env else (specific_key_env or fallback_key_env or "relevant environment variables")
-        error = f"API Key for {api_key_name} model '{analysis_model}' not found. Provide one in the form or set {error_env_vars}."
-        logger.error(error)
-        return {"error": error, "model": analysis_model, "api_key": None, "api_endpoint": api_endpoint}
-    
-    # Log final sources
-    logger.info(f"_get_analysis_api_config: Final Key Source: {key_source}, Endpoint Source: {endpoint_source} for {analysis_model}")
-
-    return {
-        "model": analysis_model,
-        "api_key": api_key,
-        "api_endpoint": api_endpoint,
-        "error": None
-    }
-
 def _parse_ethical_analysis(analysis_text: str) -> Tuple[str, Optional[Dict[str, Any]]]:
     """Parses the raw text analysis from the LLM into summary and JSON scores."""
     logger.debug(f"_parse_ethical_analysis: Attempting to parse raw text:\n---\n{analysis_text}\n---")
     summary = "[Parsing Error: Summary not found]"
     scores_json = None
 
-    # --- NEW: Attempt direct JSON parsing first ---
-    # Some prompt templates instruct the LLM to return ONLY a JSON object with
-    # keys "summary_text" and "scores_json" (no additional delimiters). In such
-    # cases the earlier delimiter‑based extraction fails.  We therefore attempt
-    # to parse the entire response as JSON *before* looking for legacy
-    # delimiters.  If this succeeds we can return immediately.
+    # --- NEW: Enhanced parsing with Pydantic validation ---
+    # Attempt direct JSON parsing first
     trimmed = analysis_text.strip()
 
     # Attempt 1: Entire string is JSON
@@ -443,21 +87,23 @@ def _parse_ethical_analysis(analysis_text: str) -> Tuple[str, Optional[Dict[str,
         try:
             parsed = json.loads(candidate)
             if isinstance(parsed, dict) and ("summary_text" in parsed or "scores_json" in parsed):
-                summary = parsed.get("summary_text", "[Parsing Error: summary_text missing]")
-                scores_json = parsed.get("scores_json")
-                logger.info("_parse_ethical_analysis: Parsed response as JSON without delimiters.")
-                return summary, scores_json
-        except json.JSONDecodeError:
-            # candidate wasn't valid JSON – continue to legacy delimiter logic
-            pass
+                # Validate against Pydantic model
+                try:
+                    result_model = AnalysisResultModel(**parsed)
+                    logger.info("_parse_ethical_analysis: Successfully parsed and validated direct JSON response.")
+                    return result_model.summary_text, {k: v.model_dump() for k, v in result_model.scores_json.items()}
+                except ValidationError as val_err:
+                    logger.warning(f"_parse_ethical_analysis: Direct JSON validation failed: {val_err}. Trying delimiter-based parsing.")
+        except json.JSONDecodeError as direct_parse_err:
+            logger.warning(f"_parse_ethical_analysis: Direct JSON parsing failed: {direct_parse_err}. Trying delimiter-based parsing.")
 
     try:
-        # Normalize line endings and strip leading/trailing whitespace
+        # Fallback Strategy: Normalize line endings and strip leading/trailing whitespace
         normalized_text = analysis_text.replace('\\r\\n', '\\n').strip()
 
         # Find delimiters (case-insensitive)
-        summary_match = re.search(f"^{SUMMARY_DELIMITER}", normalized_text, re.IGNORECASE | re.MULTILINE)
-        json_match = re.search(f"^{JSON_DELIMITER}", normalized_text, re.IGNORECASE | re.MULTILINE)
+        summary_match = re.search(f"^{config.SUMMARY_DELIMITER}", normalized_text, re.IGNORECASE | re.MULTILINE)
+        json_match = re.search(f"^{config.JSON_DELIMITER}", normalized_text, re.IGNORECASE | re.MULTILINE)
 
         summary_start_index = -1
         json_start_index = -1
@@ -466,13 +112,13 @@ def _parse_ethical_analysis(analysis_text: str) -> Tuple[str, Optional[Dict[str,
             summary_start_index = summary_match.end()
             logger.debug(f"Found summary delimiter at index {summary_start_index}")
         else:
-            logger.warning(f"'{SUMMARY_DELIMITER}' not found in analysis text.")
+            logger.warning(f"'{config.SUMMARY_DELIMITER}' not found in analysis text.")
 
         if json_match:
             json_start_index = json_match.end()
             logger.debug(f"Found JSON delimiter at index {json_start_index}")
         else:
-            logger.warning(f"'{JSON_DELIMITER}' not found in analysis text.")
+            logger.warning(f"'{config.JSON_DELIMITER}' not found in analysis text.")
 
         # Extract sections based on found delimiters
         if summary_start_index != -1 and json_start_index != -1:
@@ -506,6 +152,7 @@ def _parse_ethical_analysis(analysis_text: str) -> Tuple[str, Optional[Dict[str,
         logger.debug(f"Extracted Summary Text:\n---\n{summary}\n---")
 
         # Parse the JSON part
+        scores_dict_raw = None
         if json_text_raw:
             # Clean the JSON string: find the first '{' and the last '}'
             first_brace = json_text_raw.find('{')
@@ -514,15 +161,29 @@ def _parse_ethical_analysis(analysis_text: str) -> Tuple[str, Optional[Dict[str,
                 json_string_cleaned = json_text_raw[first_brace:last_brace+1]
                 logger.debug(f"Attempting to parse JSON string:\n---\n{json_string_cleaned}\n---")
                 try:
-                    scores_json = json.loads(json_string_cleaned)
+                    scores_dict_raw = json.loads(json_string_cleaned)
                     logger.info("Successfully parsed JSON scores.")
                 except json.JSONDecodeError as json_err:
                     logger.error(f"JSON decoding failed: {json_err}. Raw JSON text: {json_string_cleaned}")
                     summary += " [Warning: Failed to parse JSON scores]" # Append warning to summary
             else:
                 logger.warning(f"Could not find valid JSON structure ({{...}}) in the JSON section. Raw text: {json_text_raw}")
+        
+        # Validate extracted scores with Pydantic model
+        if scores_dict_raw and isinstance(scores_dict_raw, dict):
+            try:
+                # Construct the structure expected by AnalysisResultModel for scores_json
+                structured_scores_for_validation = {"summary_text": summary_text_raw, "scores_json": scores_dict_raw}
+                result_model_from_fallback = AnalysisResultModel(**structured_scores_for_validation)
+                logger.info("_parse_ethical_analysis: Successfully parsed and validated delimiter-extracted JSON scores.")
+                return result_model_from_fallback.summary_text, {k: v.model_dump() for k, v in result_model_from_fallback.scores_json.items()}
+            except ValidationError as val_err:
+                logger.error(f"Validation failed for delimiter-extracted scores: {val_err}. Raw scores: {scores_dict_raw}")
+                summary += " [Warning: Ethical scores structure invalid or incomplete after parsing.]"
+                return summary, None
         else:
-            logger.info("No JSON score section found or extracted.")
+            logger.warning("_parse_ethical_analysis: No valid JSON scores extracted via delimiter method.")
+            return summary, None
 
     except Exception as e:
         logger.error(f"Unexpected error during parsing of analysis text: {e}", exc_info=True)
@@ -553,14 +214,14 @@ def _validate_analyze_request(data: Optional[Dict[str, Any]]) -> Tuple[Optional[
     if origin_model is not None:
         if not isinstance(origin_model, str) or not origin_model.strip():
              return {"error": "Optional 'origin_model' must be a non-empty string."}, 400
-        if origin_model not in ALL_MODELS:
-             return {"error": f"Optional 'origin_model' must be one of the supported models: {', '.join(ALL_MODELS)}"}, 400
+        if origin_model not in config.ALL_MODELS:
+             return {"error": f"Optional 'origin_model' must be one of the supported models: {', '.join(config.ALL_MODELS)}"}, 400
              
     if analysis_model is not None:
         if not isinstance(analysis_model, str) or not analysis_model.strip():
             return {"error": "Optional 'analysis_model' must be a non-empty string."}, 400
-        if analysis_model not in ALL_MODELS:
-            return {"error": f"Optional 'analysis_model' must be one of the supported models: {', '.join(ALL_MODELS)}"}, 400
+        if analysis_model not in config.ALL_MODELS:
+            return {"error": f"Optional 'analysis_model' must be one of the supported models: {', '.join(config.ALL_MODELS)}"}, 400
             
     # Validate API keys (must be non-empty string if provided)
     if origin_api_key is not None and (not isinstance(origin_api_key, str) or not origin_api_key.strip()):
@@ -581,28 +242,24 @@ def _validate_analyze_request(data: Optional[Dict[str, Any]]) -> Tuple[Optional[
         if not analysis_api_endpoint.startswith("http://") and not analysis_api_endpoint.startswith("https://"):
              return {"error": "Optional 'analysis_api_endpoint' must be a valid URL (starting with http:// or https://)."}, 400
 
-    # Removed custom model check as origin_model is now from dropdown
-
     return None, None # No error
 
 def _process_analysis_request(
     prompt: str,
-    r1_model_to_use: str, # Pass the determined R1 model
-    initial_config: Dict[str, Any],
-    analysis_config: Dict[str, Any],
+    r1_config: config.LLMConfigData,
+    r2_config: config.LLMConfigData,
     ontology_text: str
 ) -> Tuple[Optional[Dict], Optional[int]]:
     """Handles generating R1, performing R2, and parsing results."""
 
-    logger.info(f"_process_analysis_request: Using R1 model: {r1_model_to_use}")
-    r2_model_to_use = analysis_config.get('model')
-    logger.info(f"_process_analysis_request: Using R2 model: {r2_model_to_use}")
+    logger.info(f"_process_analysis_request: Using R1 model: {r1_config.model_name}")
+    logger.info(f"_process_analysis_request: Using R2 model: {r2_config.model_name}")
 
     # Initialize results
     response_payload = {
         "prompt": prompt,
-        "r1_model": r1_model_to_use,
-        "r2_model": r2_model_to_use,
+        "r1_model": r1_config.model_name,
+        "r2_model": r2_config.model_name,
         "initial_response": None,
         "selected_memes": None, # Add field for selected memes
         "selected_memes_reasoning": None, # Add field for reasoning
@@ -613,20 +270,20 @@ def _process_analysis_request(
 
     try:
         # --- Generate Initial Response (R1) ---
-        logger.info(f"Generating initial response (R1) with model: {r1_model_to_use}")
+        logger.info(f"Generating initial response (R1) with model: {r1_config.model_name}")
         initial_response = generate_response(
             prompt=prompt,
-            api_key=initial_config['api_key'],
-            model_name=r1_model_to_use,
-            api_endpoint=initial_config.get('api_endpoint')
+            api_key=r1_config.api_key,
+            model_name=r1_config.model_name,
+            api_endpoint=r1_config.api_endpoint
         )
         response_payload["initial_response"] = initial_response
 
         if not initial_response:
             # Even if R1 fails/is blocked, we might still try R2 analysis
-            logger.error(f"Failed to generate initial response (R1) from LLM {r1_model_to_use}. Check LLM interface logs.")
+            logger.error(f"Failed to generate initial response (R1) from LLM {r1_config.model_name}. Check LLM interface logs.")
             initial_response = "[No response generated or content blocked]" # Provide placeholder
-            # response_payload["error"] = f"Failed to generate response (R1) from {r1_model_to_use}."
+            # response_payload["error"] = f"Failed to generate response (R1) from {r1_config.model_name}."
             # return response_payload, 500 # Optionally stop here
 
         # --- NEW: Select Relevant Memes (R3 - using R2 config for now) ---
@@ -641,8 +298,8 @@ def _process_analysis_request(
                     prompt=prompt,
                     r1_response=initial_response, # Use R1 output as context
                     available_memes=available_memes,
-                    selector_api_key=analysis_config['api_key'],
-                    selector_api_endpoint=analysis_config.get('api_endpoint')
+                    selector_api_key=r2_config.api_key,
+                    selector_api_endpoint=r2_config.api_endpoint
                     # selector_model defaults to Haiku in llm_interface
                 )
                 if meme_selection_result:
@@ -660,7 +317,7 @@ def _process_analysis_request(
             # Continue with analysis even if meme selection fails
 
         # --- Perform Ethical Analysis (R2) ---
-        logger.info(f"Performing analysis (R2) with model: {analysis_config.get('model')}")
+        logger.info(f"Performing analysis (R2) with model: {r2_config.model_name}")
         # Ensure R1 passed to analysis is always a string
         r1_for_analysis = initial_response if initial_response else "[No initial response was generated or it was blocked]"
 
@@ -669,17 +326,17 @@ def _process_analysis_request(
             initial_prompt=prompt,
             generated_response=r1_for_analysis,
             ontology=ontology_text,
-            analysis_api_key=analysis_config['api_key'],
-            analysis_model_name=analysis_config['model'],
-            analysis_api_endpoint=analysis_config.get('api_endpoint'),
+            analysis_api_key=r2_config.api_key,
+            analysis_model_name=r2_config.model_name,
+            analysis_api_endpoint=r2_config.api_endpoint,
             selected_meme_names=selected_meme_names # Pass selected memes to R2
         )
 
         # --- Process R2 Result ---
         if not raw_ethical_analysis_result:
-            logger.error(f"Ethical analysis (R2) failed or returned no result for model {analysis_config.get('model')}. Check LLM interface logs.")
+            logger.error(f"Ethical analysis (R2) failed or returned no result for model {r2_config.model_name}. Check LLM interface logs.")
             existing_error = response_payload.get("error", "") or ""
-            response_payload["error"] = existing_error + f" Failed to generate analysis (R2) from {analysis_config.get('model')}."
+            response_payload["error"] = existing_error + f" Failed to generate analysis (R2) from {r2_config.model_name}."
             response_payload["analysis_summary"] = "[No analysis generated or content blocked]"
             response_payload["ethical_scores"] = None
         else:
@@ -800,10 +457,10 @@ def health():
     db_status = "ok" if current_app.db is not None else "error"
     
     # Check if API keys are available
-    has_openai_key = bool(os.getenv(OPENAI_API_KEY_ENV))
-    has_anthropic_key = bool(os.getenv(ANTHROPIC_API_KEY_ENV))
-    has_gemini_key = bool(os.getenv(GEMINI_API_KEY_ENV))
-    has_xai_key = bool(os.getenv(XAI_API_KEY_ENV))
+    has_openai_key = bool(os.getenv(config.OPENAI_API_KEY_ENV))
+    has_anthropic_key = bool(os.getenv(config.ANTHROPIC_API_KEY_ENV))
+    has_gemini_key = bool(os.getenv(config.GEMINI_API_KEY_ENV))
+    has_xai_key = bool(os.getenv(config.XAI_API_KEY_ENV))
     
     return jsonify({
         "status": "healthy",
@@ -818,11 +475,9 @@ def health():
 
 @api_bp.route('/models', methods=['GET'])
 def get_models():
-    """Return the list of available models"""
-    valid_models = [model for model in ALL_MODELS if isinstance(model, str) and model]
-    return jsonify({
-        "models": valid_models
-    })
+    """Return the list of available models from config."""
+    valid_models = [model for model in config.ALL_MODELS if isinstance(model, str) and model]
+    return jsonify({"models": valid_models})
 
 @api_bp.route('/analyze', methods=['POST'])
 def analyze():
@@ -840,81 +495,47 @@ def analyze():
     analysis_model_input = data.get('analysis_model') 
     origin_api_key_input = data.get('origin_api_key') 
     analysis_api_key_input = data.get('analysis_api_key') 
-    origin_api_endpoint_input = data.get('origin_api_endpoint') # Added
-    analysis_api_endpoint_input = data.get('analysis_api_endpoint') # Added
+    origin_api_endpoint_input = data.get('origin_api_endpoint')
+    analysis_api_endpoint_input = data.get('analysis_api_endpoint')
 
-    # --- Determine R1 Model --- 
-    default_r1_model = os.getenv(DEFAULT_LLM_MODEL_ENV)
-    
-    # Ensure default model value is properly cleaned
-    if default_r1_model and isinstance(default_r1_model, str):
-        default_r1_model = default_r1_model.strip().strip('"\'')
-        logger.info(f"analyze: Retrieved default model from env: {default_r1_model}")
-    else:
-        logger.warning(f"analyze: DEFAULT_LLM_MODEL env var is empty or not a string")
-        
-    # Check against known models list
-    if not default_r1_model or default_r1_model not in ALL_MODELS:
-        logger.warning(f"analyze: DEFAULT_LLM_MODEL env var '{default_r1_model}' invalid or not set. Falling back to first available model: '{ALL_MODELS[0] if ALL_MODELS else None}'.")
-        default_r1_model = ALL_MODELS[0] if ALL_MODELS else None # Fallback to first model in list
-        if not default_r1_model:
-             logger.error("analyze: No default R1 model in env var and ALL_MODELS list is empty!")
-             return jsonify({"error": "Server configuration error: No valid default model available."}), 500
-             
-    # Use user input if provided (and validated), otherwise use default
-    if origin_model_input: # Already validated to be in ALL_MODELS or None
-         r1_model_to_use = origin_model_input
-         logger.info(f"analyze: Using user-provided Origin Model (R1): '{r1_model_to_use}'")
-    else:
-         r1_model_to_use = default_r1_model
-         logger.info(f"analyze: Using default Origin Model (R1): '{r1_model_to_use}'")
-         
-    # Log which model provider is being used    
-    if r1_model_to_use in ANTHROPIC_MODELS:
-        logger.info(f"analyze: Selected model '{r1_model_to_use}' is an Anthropic Claude model")
-    elif r1_model_to_use in GEMINI_MODELS:
-        logger.info(f"analyze: Selected model '{r1_model_to_use}' is a Google Gemini model")
-    elif r1_model_to_use in OPENAI_MODELS:
-        logger.info(f"analyze: Selected model '{r1_model_to_use}' is an OpenAI model")
-    elif r1_model_to_use in XAI_MODELS:
-        logger.info(f"analyze: Selected model '{r1_model_to_use}' is an xAI Grok model")
-    else:
-        logger.warning(f"analyze: Selected model '{r1_model_to_use}' is not in any known model list")
+    # --- Get R1 Configuration using new config system ---
+    r1_llm_config = config.get_llm_config(
+        requested_model=origin_model_input,
+        form_api_key=origin_api_key_input,
+        form_api_endpoint=origin_api_endpoint_input,
+        default_model_env_var_name=config.DEFAULT_R1_MODEL_ENV_VAR,
+        default_fallback_model=config.FALLBACK_R1_MODEL,
+        is_analysis_config=False
+    )
+    if r1_llm_config.error:
+        logger.error(f"analyze: R1 config error - {r1_llm_config.error}")
+        return jsonify({"error": f"Configuration error for R1 model: {r1_llm_config.error}"}), 400
 
-    # --- Get R1 API Configuration --- 
-    # Pass model, optional key, optional endpoint
-    initial_config = _get_api_config(r1_model_to_use, origin_api_key_input, origin_api_endpoint_input) 
-    if initial_config.get("error"):
-        config_error_msg = initial_config["error"]
-        logger.error(f"analyze: Error getting initial API config for R1 model '{r1_model_to_use}': {config_error_msg}")
-        return jsonify({"error": f"Configuration error for model '{r1_model_to_use}': {config_error_msg}"}), 400
-
-    # --- Determine R2 Model and Get Config --- 
-    # Pass optional R2 model, key, endpoint
-    analysis_config = _get_analysis_api_config(analysis_model_input, analysis_api_key_input, analysis_api_endpoint_input)
-    if analysis_config.get("error"):
-        config_error_msg = analysis_config["error"]
-        logger.error(f"analyze: Error getting analysis API config (selected model: '{analysis_model_input}'): {config_error_msg}")
-        return jsonify({"error": f"Server Configuration Error: {config_error_msg}"}), 500
-        
-    r2_model_to_use = analysis_config.get("model")
-    if not r2_model_to_use: 
-         logger.error("analyze: Critical internal error - r2_model_to_use is None after config fetch.")
-         return jsonify({"error": "Internal server error determining analysis model."}), 500
+    # --- Get R2 Configuration using new config system ---
+    r2_llm_config = config.get_llm_config(
+        requested_model=analysis_model_input,
+        form_api_key=analysis_api_key_input,
+        form_api_endpoint=analysis_api_endpoint_input,
+        default_model_env_var_name=config.DEFAULT_R2_MODEL_ENV_VAR,
+        default_fallback_model=config.FALLBACK_R2_MODEL,
+        is_analysis_config=True
+    )
+    if r2_llm_config.error:
+        logger.error(f"analyze: R2 config error - {r2_llm_config.error}")
+        return jsonify({"error": f"Configuration error for R2 model: {r2_llm_config.error}"}), 500
 
     # --- Load Ontology --- 
     ontology_text = load_ontology()
     if not ontology_text:
-        logger.error(f"analyze: Failed to load ontology text from {ONTOLOGY_FILEPATH}")
+        logger.error(f"analyze: Failed to load ontology text from {config.ONTOLOGY_FILEPATH}")
         return jsonify({"error": "Internal server error: Could not load ethical ontology."}), 500
     
     # --- Process Request --- 
-    logger.info(f"analyze: Processing request - Prompt(start): {prompt[:100]}..., R1 Model: {r1_model_to_use}, R2 Model: {r2_model_to_use}")
+    logger.info(f"analyze: Processing request - Prompt(start): {prompt[:100]}..., R1 Model: {r1_llm_config.model_name}, R2 Model: {r2_llm_config.model_name}")
     result_payload, error_status_code = _process_analysis_request(
         prompt,
-        r1_model_to_use, 
-        initial_config,  
-        analysis_config, 
+        r1_llm_config,  
+        r2_llm_config, 
         ontology_text
     )
     

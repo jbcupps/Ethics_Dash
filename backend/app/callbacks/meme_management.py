@@ -7,6 +7,9 @@ from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output, State
 import os
 
+# Import the new centralized configuration
+from .. import config
+
 logger = logging.getLogger(__name__)
 
 # Config
@@ -22,8 +25,8 @@ BACKEND_API_URL = f"{_base_api_url}/memes"
 
 logger.info(f"Meme management callbacks configured to use API URL: {BACKEND_API_URL}")
 
-MAX_UPLOAD_SIZE_MB = 10
-MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024
+# Use config for upload size limits
+MAX_UPLOAD_SIZE_BYTES = config.MAX_UPLOAD_SIZE_MB * 1024 * 1024
 ALLOWED_EXTENSIONS = {'.json'}
 
 def format_upload_results(results):

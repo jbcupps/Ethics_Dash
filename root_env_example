@@ -60,5 +60,26 @@ API_VERSION=v1
 API_KEY=replace_with_strong_api_key
 API_SECRET=replace_with_strong_api_secret
 
-# NOTE: For production, store secrets in Azure Key Vault or a secure secret manager.
+# Physical Verification Blockchain (PVB) Configuration
+# Blockchain Network Configuration
+WEB3_PROVIDER_URL=http://localhost:7545
+# For production, use a real Ethereum network:
+# WEB3_PROVIDER_URL=https://mainnet.infura.io/v3/your_infura_project_id
+# WEB3_PROVIDER_URL=https://polygon-mainnet.infura.io/v3/your_infura_project_id
+
+# Smart Contract Addresses (Set after deployment)
+REGISTRY_CONTRACT_ADDRESS=
+SUBMISSION_CONTRACT_ADDRESS=
+
+# Blockchain Account Configuration
+# Private key for transaction signing (NEVER commit real keys to version control)
+BLOCKCHAIN_PRIVATE_KEY=0x0000000000000000000000000000000000000000000000000000000000000000
+# For Ganache development, you can use one of the generated private keys
+
+# PVB System Configuration
+PVB_NETWORK_ID=1337
+PVB_GAS_LIMIT=300000
+PVB_GAS_PRICE=20000000000
+
+# NOTE: For production, store secrets as GitHub repository secrets or another secure secret manager.
 # This file is a template. Do not commit real secrets to version control. 

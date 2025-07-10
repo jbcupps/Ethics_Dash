@@ -23,18 +23,17 @@ T = TypeVar("T", bound=Dict[str, Any])
 
 def fetch_documents(
     collection_name: str,
-    filter: Optional[Dict[str, Any]] = None,
+    query_filter: Optional[Dict[str, Any]] = None,
     projection: Optional[Dict[str, Any]] = None,
     sort: Optional[List[tuple]] = None,
     limit: Optional[int] = None,
 ) -> List[T]:
-    """
-    Generic helper to fetch documents from the specified MongoDB collection.
-    """
+    """Fetch documents from the specified MongoDB collection."""
+
     db = get_db()
     try:
         collection = db[collection_name]
-        cursor = collection.find(filter or {}, projection or {})
+        cursor = collection.find(query_filter or {}, projection or {})
         if sort:
             cursor = cursor.sort(sort)
         if limit:
@@ -44,7 +43,7 @@ def fetch_documents(
             "Fetched documents",
             extra={
                 "collection": collection_name,
-                "filter": filter or {},
+                "filter": query_filter or {},
                 "projection": projection,
                 "count": len(docs),
             },
@@ -56,7 +55,7 @@ def fetch_documents(
             exc_info=True,
             extra={
                 "collection": collection_name,
-                "filter": filter or {},
+                "filter": query_filter or {},
                 "projection": projection,
             },
         )
