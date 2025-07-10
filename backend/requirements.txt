@@ -22,4 +22,10 @@ httpx>=0.25.0,<0.28.0 # HTTP client used by Anthropic and xAI APIs
 pymongo[srv]>=4.0,<5.0 # Added MongoDB driver (with SRV support)
 pydantic>=2.0,<3.0 # Pydantic version constraints
 
+# Ethical Ontology Blockchain Dependencies
+cryptography>=41.0.0,<42.0.0 # For blockchain cryptographic operations
+hashlib-compat>=1.0.0 # Enhanced hashing support (if needed)
+websockets>=11.0.0,<12.0.0 # For blockchain peer-to-peer communication simulation
+jsonschema>=4.17.0,<5.0.0 # For smart contract input validation
+
 # Add any other specific versions if necessary 

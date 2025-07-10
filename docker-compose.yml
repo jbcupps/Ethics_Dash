@@ -15,6 +15,9 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - ETHICAL_ONTOLOGY_NETWORK_ID=ethical-ontology-local
+      - ETHICAL_ONTOLOGY_BLOCKCHAIN_ENDPOINT=http://ethical-ontology-blockchain:8545
+      - ETHICAL_CONTRACTS_AUTO_DEPLOY=true
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
       interval: 10s
@@ -80,12 +83,75 @@ services:
     networks:
       - ai-network
 
+  # Ethical Ontology Blockchain Service
+  ethical-ontology-blockchain:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile  # Reuse backend dockerfile with blockchain dependencies
+    ports:
+      - "8545:8545"  # Main blockchain node port
+    environment:
+      - NODE_ID=validator_1
+      - NODE_PORT=8545
+      - IS_VALIDATOR=true
+      - MINING_ENABLED=true
+      - NETWORK_ID=ethical-ontology-local
+      - MAX_CONNECTIONS=20
+      - ETHICAL_ONTOLOGY_NETWORK_ID=ethical-ontology-local
+      - ETHICAL_ONTOLOGY_BLOCK_TIME_SECONDS=10
+      - ETHICAL_CONTRACTS_DEONTIC_RULES_AUTO_DEPLOY=true
+      - ETHICAL_CONTRACTS_VIRTUE_REPUTATION_AUTO_DEPLOY=true
+      - ETHICAL_CONTRACTS_TELEOLOGICAL_OUTCOMES_AUTO_DEPLOY=true
+    command: ["python", "/app/scripts/ethical_ontology_deploy.py", "--network", "ethical-ontology-local"]
+    restart: unless-stopped
+    volumes:
+      - ./ethical_ontology:/app/ethical_ontology
+      - ./scripts:/app/scripts
+      - ./documents:/app/documents
+      - blockchain_data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.path.append('/app'); from ethical_ontology.blockchain.core import EthicalOntologyBlockchain; print('OK')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - ai-network
+
+  # Additional Ethical Ontology Blockchain Peer (for testing consensus)
+  ethical-ontology-peer:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8546:8546"
+    environment:
+      - NODE_ID=peer_1
+      - NODE_PORT=8546
+      - IS_VALIDATOR=true
+      - MINING_ENABLED=true
+      - NETWORK_ID=ethical-ontology-local
+      - MAX_CONNECTIONS=10
+      - ETHICAL_ONTOLOGY_NETWORK_ID=ethical-ontology-local
+    command: ["python", "-c", "import time; print('Peer node waiting for validator...'); time.sleep(30); print('Peer node ready')"]
+    restart: unless-stopped
+    depends_on:
+      ethical-ontology-blockchain:
+        condition: service_healthy
+    volumes:
+      - ./ethical_ontology:/app/ethical_ontology
+      - peer_blockchain_data:/app/data
+    networks:
+      - ai-network
+
 # Additional services can be added here
 # For example, a service for model fine-tuning, etc.
 
 # Volume definitions
 volumes:
   mongodb_data:
+  blockchain_data:
+  peer_blockchain_data:
 
 # Network definition
 networks:

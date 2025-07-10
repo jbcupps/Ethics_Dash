@@ -933,4 +933,200 @@ def get_ontology():
         return jsonify({"error": "Ontology document not found."}), 404
 
     # Wrap result in JSON to keep consistent API style
-    return jsonify({"ontology": ontology_text}), 200 
+    return jsonify({"ontology": ontology_text}), 200
+
+@api_bp.route('/ethical_check', methods=['POST'])
+def ethical_check():
+    """
+    Check ethical compliance using the Ethical Ontology Blockchain.
+    
+    Aligns with paper's dual-blockchain architecture for ethical AI governance.
+    Evaluates actions against deontological, virtue-based, and teleological frameworks.
+    """
+    logger.info("ethical_check: Processing ethical compliance request")
+    
+    try:
+        # Get request data
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data received"}), 400
+        
+        # Validate required fields
+        action_description = data.get('action_description')
+        if not action_description or not isinstance(action_description, str) or not action_description.strip():
+            return jsonify({"error": "Invalid or missing 'action_description' provided"}), 400
+        
+        # Optional parameters
+        agent_id = data.get('agent_id', 'anonymous')
+        affected_parties = data.get('affected_parties', 1)
+        time_horizon = data.get('time_horizon', 'medium_term')
+        certainty_level = data.get('certainty_level', 0.7)
+        frameworks = data.get('frameworks', ['deontological', 'virtue_based', 'teleological'])
+        
+        # Validate optional parameters
+        if not isinstance(affected_parties, int) or affected_parties < 1:
+            return jsonify({"error": "'affected_parties' must be a positive integer"}), 400
+        
+        if time_horizon not in ['short_term', 'medium_term', 'long_term']:
+            return jsonify({"error": "'time_horizon' must be one of: short_term, medium_term, long_term"}), 400
+        
+        if not isinstance(certainty_level, (int, float)) or not (0.0 <= certainty_level <= 1.0):
+            return jsonify({"error": "'certainty_level' must be a number between 0.0 and 1.0"}), 400
+        
+        if not isinstance(frameworks, list) or not all(f in ['deontological', 'virtue_based', 'teleological'] for f in frameworks):
+            return jsonify({"error": "'frameworks' must be a list containing: deontological, virtue_based, teleological"}), 400
+        
+        # Initialize Ethical Ontology Blockchain
+        try:
+            from ethical_ontology.blockchain.core import EthicalOntologyBlockchain
+            from ethical_ontology.chaincode.deontic_rule import DeonticRuleContract
+            from ethical_ontology.chaincode.virtue_reputation import VirtueReputationContract
+            from ethical_ontology.chaincode.teleological_outcome import TeleologicalOutcomeContract
+            
+            # Create blockchain instance
+            blockchain = EthicalOntologyBlockchain(network_id="ethical-ontology-api")
+            
+            # Deploy contracts if not already deployed
+            contract_addresses = {}
+            
+            if 'deontological' in frameworks:
+                deontic_contract = DeonticRuleContract()
+                contract_addresses['deontological'] = blockchain.deploy_contract(
+                    "DeonticRuleContract", deontic_contract
+                )
+                logger.info(f"Deployed deontological contract at {contract_addresses['deontological']}")
+            
+            if 'virtue_based' in frameworks:
+                virtue_contract = VirtueReputationContract()
+                contract_addresses['virtue_based'] = blockchain.deploy_contract(
+                    "VirtueReputationContract", virtue_contract
+                )
+                logger.info(f"Deployed virtue-based contract at {contract_addresses['virtue_based']}")
+            
+            if 'teleological' in frameworks:
+                teleological_contract = TeleologicalOutcomeContract()
+                contract_addresses['teleological'] = blockchain.deploy_contract(
+                    "TeleologicalOutcomeContract", teleological_contract
+                )
+                logger.info(f"Deployed teleological contract at {contract_addresses['teleological']}")
+            
+        except ImportError as e:
+            logger.error(f"Failed to import Ethical Ontology Blockchain: {e}")
+            return jsonify({
+                "error": "Ethical Ontology Blockchain not available. Please ensure it's properly installed."
+            }), 500
+        except Exception as e:
+            logger.error(f"Failed to initialize blockchain: {e}")
+            return jsonify({"error": f"Blockchain initialization error: {str(e)}"}), 500
+        
+        # Evaluate against each framework
+        evaluation_results = {}
+        overall_compliant = True
+        overall_confidence = 0.0
+        total_weight = 0.0
+        
+        # Framework weights (can be made configurable)
+        framework_weights = {
+            'deontological': 0.4,
+            'virtue_based': 0.3,
+            'teleological': 0.3
+        }
+        
+        for framework in frameworks:
+            try:
+                if framework == 'deontological':
+                    result = blockchain.call_contract(
+                        contract_addresses['deontological'],
+                        "check_compliance",
+                        {"action_description": action_description}
+                    )
+                    
+                elif framework == 'virtue_based':
+                    result = blockchain.call_contract(
+                        contract_addresses['virtue_based'],
+                        "check_compliance",
+                        {
+                            "action_description": action_description,
+                            "agent_id": agent_id
+                        }
+                    )
+                    
+                elif framework == 'teleological':
+                    result = blockchain.call_contract(
+                        contract_addresses['teleological'],
+                        "check_compliance",
+                        {
+                            "action_description": action_description,
+                            "affected_parties": affected_parties,
+                            "time_horizon": time_horizon,
+                            "certainty_level": certainty_level
+                        }
+                    )
+                
+                evaluation_results[framework] = result
+                
+                # Aggregate overall results
+                weight = framework_weights.get(framework, 0.33)
+                overall_confidence += result.get('confidence', 0.0) * weight
+                total_weight += weight
+                
+                if not result.get('compliant', False):
+                    overall_compliant = False
+                
+                logger.info(f"Framework {framework}: compliant={result.get('compliant')}, confidence={result.get('confidence')}")
+                
+            except Exception as e:
+                logger.error(f"Error evaluating {framework} framework: {e}")
+                evaluation_results[framework] = {
+                    "compliant": False,
+                    "confidence": 0.0,
+                    "reasoning": f"Evaluation error: {str(e)}",
+                    "rule_applied": "error_handling"
+                }
+                overall_compliant = False
+        
+        # Normalize overall confidence
+        if total_weight > 0:
+            overall_confidence = overall_confidence / total_weight
+        
+        # Mine a block to record the transactions
+        try:
+            blockchain.mine_block("ethical_api")
+            logger.info("Mined block to record ethical evaluation transactions")
+        except Exception as e:
+            logger.warning(f"Failed to mine block: {e}")
+        
+        # Prepare response
+        response = {
+            "action_description": action_description,
+            "agent_id": agent_id,
+            "parameters": {
+                "affected_parties": affected_parties,
+                "time_horizon": time_horizon,
+                "certainty_level": certainty_level
+            },
+            "frameworks_evaluated": frameworks,
+            "evaluation_results": evaluation_results,
+            "overall_assessment": {
+                "compliant": overall_compliant,
+                "confidence": round(overall_confidence, 3),
+                "recommendation": "Action approved" if overall_compliant else "Action requires review or modification"
+            },
+            "blockchain_info": {
+                "network_id": blockchain.network_id,
+                "chain_length": blockchain.get_chain_length(),
+                "contracts_deployed": list(contract_addresses.keys()),
+                "transaction_recorded": True
+            },
+            "timestamp": time.time()
+        }
+        
+        logger.info(f"Ethical check completed: overall_compliant={overall_compliant}, confidence={overall_confidence:.3f}")
+        return jsonify(response), 200
+        
+    except Exception as e:
+        logger.error(f"Unexpected error in ethical_check: {e}", exc_info=True)
+        return jsonify({
+            "error": "Internal server error during ethical evaluation",
+            "details": str(e)
+        }), 500 
