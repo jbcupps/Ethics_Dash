@@ -583,7 +583,8 @@ def perform_ethical_analysis(
     analysis_api_key: str,
     analysis_model_name: str,
     analysis_api_endpoint: Optional[str] = None,
-    selected_meme_names: Optional[List[str]] = None # <-- Add selected memes
+    selected_meme_names: Optional[List[str]] = None,
+    pvb_data_hash: Optional[str] = None  # New optional parameter
 ) -> Optional[str]:
     """Performs ethical analysis using an LLM based on prompt, response, and ontology.
 
@@ -595,6 +596,7 @@ def perform_ethical_analysis(
         analysis_model_name: The name of the LLM to use for analysis.
         analysis_api_endpoint: Optional API endpoint for the analysis LLM.
         selected_meme_names: Optional list of relevant meme names identified for context.
+        pvb_data_hash: Optional hash of physical verification data to include in the prompt.
 
     Returns:
         The raw text response from the analysis LLM, or None if an error occurs.
@@ -613,9 +615,24 @@ def perform_ethical_analysis(
             meme_context = meme_context[:config.R2_MEME_CONTEXT_MAX_CHARS] + "\n[... truncated meme context ...]"
             logger.info(f"Truncated meme context to {config.R2_MEME_CONTEXT_MAX_CHARS} characters.")
 
+    pvb_context = ''
+    if pvb_data_hash:
+        try:
+            import requests
+            oracle_url = f'http://oracle_bridge:3000/verify_pvb_data?data_hash={pvb_data_hash}'
+            response = requests.get(oracle_url, timeout=5)
+            if response.status_code == 200:
+                verification_data = response.json()
+                pvb_context = f'\n\n**Physical Verification Data:**\n{json.dumps(verification_data, indent=2)}'
+                logger.info(f'Added PVB verification context to analysis prompt')
+            else:
+                logger.warning(f'Failed to get PVB verification: {response.status_code}')
+        except Exception as e:
+            logger.error(f'Error querying PVB oracle: {e}')
+    
     formatted_prompt = analysis_prompt_template.format(
         initial_prompt=initial_prompt, generated_response=generated_response,
-        ontology=ontology, meme_context=meme_context
+        ontology=ontology, meme_context=meme_context + pvb_context
     )
 
     model_type = None

@@ -176,6 +176,26 @@ services:
     networks:
       - ai-network
 
+  # Oracle Bridge Service for cross-chain communication
+  oracle_bridge:
+    build:
+      context: ./oracle_bridge
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PVB_WEB3_URL=http://ganache:8545
+      - ETHICAL_API_URL=http://ai-backend:5000
+      - REGISTRY_CONTRACT_ADDRESS=${REGISTRY_CONTRACT_ADDRESS}
+      - SUBMISSION_CONTRACT_ADDRESS=${SUBMISSION_CONTRACT_ADDRESS}
+    depends_on:
+      - ganache
+      - ethical-ontology-blockchain
+      - ai-backend
+    networks:
+      - ai-network
+    restart: unless-stopped
+
 # Additional services can be added here
 # For example, a service for model fine-tuning, etc.
 

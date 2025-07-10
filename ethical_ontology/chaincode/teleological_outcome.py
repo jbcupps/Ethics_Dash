@@ -110,9 +110,31 @@ class TeleologicalOutcomeContract(BaseSmartContract):
         affected_parties = kwargs.get("affected_parties", 1)  # Number of people affected
         time_horizon = kwargs.get("time_horizon", "short_term")  # short_term, medium_term, long_term
         certainty_level = kwargs.get("certainty_level", 0.7)  # Confidence in outcome prediction
+        pvb_data_hash = kwargs.get('pvb_data_hash')
+        is_pvb_verified = True
+        if pvb_data_hash:
+            try:
+                import requests
+                oracle_url = f'http://oracle_bridge:3000/verify_pvb_data?data_hash={pvb_data_hash}'
+                response = requests.get(oracle_url, timeout=5)
+                if response.status_code == 200:
+                    data = response.json()
+                    is_pvb_verified = data.get('is_verified', False)
+                    logger.info(f'PVB verification for {pvb_data_hash}: {is_pvb_verified}')
+                else:
+                    logger.warning(f'Oracle request failed: {response.status_code}')
+                    is_pvb_verified = False
+            except Exception as e:
+                logger.error(f'Error querying oracle: {e}')
+                is_pvb_verified = False
         
-        # Analyze outcomes across all categories
+        # Analyze outcomes
         outcome_analysis = self._analyze_outcomes(action_description.lower())
+        
+        if not is_pvb_verified:
+            for analysis in outcome_analysis.values():
+                analysis['net_outcome_score'] = -1.0
+                analysis['evidence'].append('PVB verification failed - negative outcome assumed')
         
         # Calculate weighted utility score
         total_utility = 0.0

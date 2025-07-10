@@ -50,6 +50,12 @@ contract DataSubmission {
         bool isValid
     );
     
+    event DataAvailable(
+        bytes32 indexed dataHash,
+        bytes32 indexed deviceId,
+        uint256 timestamp
+    );
+    
     // Modifiers
     modifier onlyActiveDevice(bytes32 _deviceId) {
         require(
@@ -144,6 +150,7 @@ contract DataSubmission {
         );
         
         emit SubmissionVerified(_dataHash, _deviceId, signatureValid);
+        emit DataAvailable(_dataHash, _deviceId, block.timestamp);
     }
     
     /**

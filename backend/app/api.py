@@ -209,6 +209,7 @@ def _validate_analyze_request(data: Optional[Dict[str, Any]]) -> Tuple[Optional[
     analysis_api_key = data.get('analysis_api_key')
     origin_api_endpoint = data.get('origin_api_endpoint') # Added
     analysis_api_endpoint = data.get('analysis_api_endpoint') # Added
+    pvb_data_hash = data.get('pvb_data_hash')
 
     # Validate models (ensure they are in ALL_MODELS if provided, as they come from dropdown)
     if origin_model is not None:
@@ -241,6 +242,10 @@ def _validate_analyze_request(data: Optional[Dict[str, Any]]) -> Tuple[Optional[
              return {"error": "Optional 'analysis_api_endpoint' must be a non-empty string."}, 400
         if not analysis_api_endpoint.startswith("http://") and not analysis_api_endpoint.startswith("https://"):
              return {"error": "Optional 'analysis_api_endpoint' must be a valid URL (starting with http:// or https://)."}, 400
+
+    if pvb_data_hash is not None:
+        if not isinstance(pvb_data_hash, str) or not pvb_data_hash.strip():
+            return {"error": "Optional 'pvb_data_hash' must be a non-empty string."}, 400
 
     return None, None # No error
 
@@ -329,7 +334,8 @@ def _process_analysis_request(
             analysis_api_key=r2_config.api_key,
             analysis_model_name=r2_config.model_name,
             analysis_api_endpoint=r2_config.api_endpoint,
-            selected_meme_names=selected_meme_names # Pass selected memes to R2
+            selected_meme_names=selected_meme_names, # Pass selected memes to R2
+            pvb_data_hash=data.get('pvb_data_hash') # Pass pvb_data_hash to R2
         )
 
         # --- Process R2 Result ---
@@ -497,6 +503,7 @@ def analyze():
     analysis_api_key_input = data.get('analysis_api_key') 
     origin_api_endpoint_input = data.get('origin_api_endpoint')
     analysis_api_endpoint_input = data.get('analysis_api_endpoint')
+    pvb_data_hash = data.get('pvb_data_hash')
 
     # --- Get R1 Configuration using new config system ---
     r1_llm_config = config.get_llm_config(
@@ -536,7 +543,8 @@ def analyze():
         prompt,
         r1_llm_config,  
         r2_llm_config, 
-        ontology_text
+        ontology_text,
+        data # Pass the entire data dictionary to _process_analysis_request
     )
     
     # --- Handle Response --- 
