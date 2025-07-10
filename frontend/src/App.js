@@ -5,6 +5,7 @@ import Results from './components/Results';
 import LandingPage from './components/LandingPage';
 import MemesDashboard from './components/MemesDashboard';
 import DocumentationPage from './components/DocumentationPage';
+import Governance from './components/Governance';
 import ethicalReviewApi from './services/api';
 import { Tooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css';
@@ -234,6 +235,7 @@ function App() {
   return (
     <Routes>
       <Route path="/*" element={<AppContent />} />
+      <Route path="/governance" element={<Governance />} />
     </Routes>
   );
 }

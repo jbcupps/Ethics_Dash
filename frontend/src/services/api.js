@@ -122,6 +122,54 @@ export const ethicalReviewApi = {
 
   // Add createMeme, getMemeById, updateMeme, deleteMeme functions here later
   // if frontend needs to perform these actions directly.
+
+  // Governance methods
+  getGovernanceProposals: async () => {
+    try {
+      const response = await apiClient.get('/govern');
+      if (response.data && Array.isArray(response.data.proposals)) {
+        return response.data;
+      }
+      console.warn('Unexpected response format for proposals:', response.data);
+      return { proposals: [] };
+    } catch (error) {
+      console.error('Error fetching proposals:', error);
+      throw new Error('Failed to load proposals.');
+    }
+  },
+
+  proposeRule: async (proposalId, description, proposerId) => {
+    try {
+      const payload = { action: 'propose', proposal_id: proposalId, description, proposer_id: proposerId };
+      const response = await apiClient.post('/govern', payload);
+      return response.data;
+    } catch (error) {
+      console.error('Error proposing rule:', error);
+      throw new Error('Failed to propose rule.');
+    }
+  },
+
+  voteOnProposal: async (proposalId, agentId, voteFor) => {
+    try {
+      const payload = { action: 'vote', proposal_id: proposalId, agent_id: agentId, vote_for: voteFor };
+      const response = await apiClient.post('/govern', payload);
+      return response.data;
+    } catch (error) {
+      console.error('Error voting:', error);
+      throw new Error('Failed to vote.');
+    }
+  },
+
+  enactProposal: async (proposalId) => {
+    try {
+      const payload = { action: 'enact', proposal_id: proposalId };
+      const response = await apiClient.post('/govern', payload);
+      return response.data;
+    } catch (error) {
+      console.error('Error enacting proposal:', error);
+      throw new Error('Failed to enact proposal.');
+    }
+  },
 };
 
 export default ethicalReviewApi; 

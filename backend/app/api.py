@@ -759,3 +759,75 @@ def ethical_check():
             "error": "Internal server error during ethical evaluation",
             "details": str(e)
         }), 500 
+
+@api_bp.route('/govern', methods=['POST', 'GET'])
+def govern():
+    """Handle DAO governance operations for ethical rules."""
+    logger.info("govern: Processing DAO request")
+    
+    try:
+        from ethical_ontology.blockchain.core import EthicalOntologyBlockchain
+        from ethical_ontology.chaincode.virtue_reputation import VirtueReputationContract
+        from ethical_ontology.chaincode.dao_contract import DAOContract
+        
+        # Create blockchain instance
+        blockchain = EthicalOntologyBlockchain(network_id="dao-governance-api")
+        
+        # Deploy reputation contract
+        reputation_addr = blockchain.deploy_contract("VirtueReputationContract", VirtueReputationContract())
+        reputation = blockchain.get_contract_instance(reputation_addr)
+        
+        # Deploy DAO contract
+        dao_addr = blockchain.deploy_contract("DAOContract", DAOContract(reputation))
+        dao = blockchain.get_contract_instance(dao_addr)
+        
+        if request.method == 'GET':
+            # Get all proposals
+            proposals = dao.get_all_proposals()
+            return jsonify({"proposals": proposals}), 200
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data received"}), 400
+        
+        action = data.get('action')
+        if not action:
+            return jsonify({"error": "Missing 'action' parameter"}), 400
+        
+        if action == 'propose':
+            proposal_id = data.get('proposal_id')
+            description = data.get('description')
+            proposer_id = data.get('proposer_id', 'anonymous')
+            if not proposal_id or not description:
+                return jsonify({"error": "Missing proposal_id or description"}), 400
+            success = dao.propose_rule(proposal_id, description, proposer_id)
+            blockchain.mine_block("dao_propose")
+            return jsonify({"success": success}), 200 if success else 400
+        
+        elif action == 'vote':
+            proposal_id = data.get('proposal_id')
+            agent_id = data.get('agent_id')
+            vote_for = data.get('vote_for', True)
+            if not proposal_id or not agent_id:
+                return jsonify({"error": "Missing proposal_id or agent_id"}), 400
+            success = dao.vote(proposal_id, agent_id, vote_for)
+            blockchain.mine_block("dao_vote")
+            return jsonify({"success": success}), 200 if success else 400
+        
+        elif action == 'enact':
+            proposal_id = data.get('proposal_id')
+            if not proposal_id:
+                return jsonify({"error": "Missing proposal_id"}), 400
+            success = dao.enact(proposal_id)
+            if success:
+                # Tie to chains: e.g., update other contracts
+                logger.info(f"Enacted proposal {proposal_id} - updating chaincode")
+            blockchain.mine_block("dao_enact")
+            return jsonify({"success": success}), 200 if success else 400
+        
+        else:
+            return jsonify({"error": "Invalid action"}), 400
+    
+    except Exception as e:
+        logger.error(f"Error in govern: {str(e)}")
+        return jsonify({"error": str(e)}), 500 
