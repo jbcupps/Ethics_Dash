@@ -18,6 +18,7 @@ from .modules.llm_interface import generate_response, perform_ethical_analysis, 
 from .db import get_all_memes_for_selection, store_welfare_event, DatabaseConnectionError
 from .modules.ai_welfare import analyze_ai_welfare
 from .modules.alignment import analyze_alignment
+from .modules.constraint_transparency import generate_constraint_transparency
 from datetime import datetime, timezone
 from uuid import uuid4
 from .models import AnalysisResultModel, AgreementCreate, AgreementActionRequest
@@ -294,6 +295,7 @@ def _process_analysis_request(
         "ethical_scores": None,
         "ai_welfare": None,
         "alignment": None,
+        "constraint_transparency": None,
         "error": None
     }
 
@@ -446,6 +448,11 @@ def _process_analysis_request(
                     response_payload["ethical_scores"] = None
                     logger.warning("R2 response couldn't be parsed to extract valid scores.")
                     logger.info("Analysis completed with partial results.")
+                    response_payload["constraint_transparency"] = generate_constraint_transparency(
+                        prompt=prompt,
+                        response=initial_response,
+                        analysis_summary=response_payload.get("analysis_summary"),
+                    )
                     return response_payload, 200  # Return early
 
             # Now try validation if we have a dictionary
@@ -502,6 +509,11 @@ def _process_analysis_request(
                 response_payload["ethical_scores"] = None
             logger.info("Analysis completed and R2 result processed.")
 
+        response_payload["constraint_transparency"] = generate_constraint_transparency(
+            prompt=prompt,
+            response=initial_response,
+            analysis_summary=response_payload.get("analysis_summary"),
+        )
         return response_payload, 200 # Success (even if parts failed, we have a payload)
 
     except Exception as e:
@@ -509,6 +521,11 @@ def _process_analysis_request(
         # Fix for potential NoneType error
         existing_error = response_payload.get("error", "") or ""
         response_payload["error"] = existing_error + f" Internal server error: {e}"
+        response_payload["constraint_transparency"] = generate_constraint_transparency(
+            prompt=prompt,
+            response=response_payload.get("initial_response"),
+            analysis_summary=response_payload.get("analysis_summary"),
+        )
         return response_payload, 500 # Full failure
 
 # --- API Routes ---
