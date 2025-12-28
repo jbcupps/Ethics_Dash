@@ -364,6 +364,33 @@ button:disabled {
   margin-top: var(--spacing-lg);
 }
 
+.alignment-meter {
+  position: relative;
+  height: 14px;
+  border-radius: 999px;
+  background-color: var(--color-background-subtle);
+  border: 1px solid var(--color-border-standard);
+  overflow: hidden;
+  margin-bottom: var(--spacing-sm);
+}
+
+.alignment-meter-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #f37b7b, #f5c26b, #6fd28c);
+  transition: width 0.3s ease;
+}
+
+.alignment-meter-label {
+  margin: 0 0 var(--spacing-md);
+  color: var(--color-text-secondary);
+}
+
+.alignment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--spacing-md);
+}
+
 .dimension-score-box {
   border: 1px solid var(--color-border-standard);
   border-radius: var(--border-radius-md);
