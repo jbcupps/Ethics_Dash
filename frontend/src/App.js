@@ -6,6 +6,7 @@ import LandingPage from './components/LandingPage';
 import MemesDashboard from './components/MemesDashboard';
 import DocumentationPage from './components/DocumentationPage';
 import Governance from './components/Governance';
+import AgreementBuilder from './components/AgreementBuilder';
 import ethicalReviewApi from './services/api';
 import { Tooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css';
@@ -69,6 +70,11 @@ function AppContent() {
   const handleViewTool = () => {
     setView('tool');
     navigate('/tool');
+  };
+
+  const handleViewAgreements = () => {
+    setView('agreements');
+    navigate('/agreements');
   };
 
   const handleToggleMemeDropdown = () => setShowMemeDropdown(!showMemeDropdown);
@@ -168,6 +174,14 @@ function AppContent() {
         >
           Documentation
         </button>
+        <button
+          onClick={handleViewAgreements}
+          className={`nav-button ${view === 'agreements' ? 'active' : ''}`}
+          data-tooltip-id="nav-tooltip"
+          data-tooltip-content="Build and negotiate voluntary agreements"
+        >
+          Agreements
+        </button>
         <div className="nav-search">
           <input 
             type="text" 
@@ -209,6 +223,7 @@ function AppContent() {
               aiWelfare={results.aiWelfare}
               alignment={results.alignment}
               searchTerm={lowerSearchTerm}
+              onCreateAgreement={handleViewAgreements}
             />
           </>
         );
@@ -216,6 +231,8 @@ function AppContent() {
         return <MemesDashboard searchTerm={lowerSearchTerm} />;
       case 'docs':
         return <DocumentationPage searchTerm={lowerSearchTerm} />;
+      case 'agreements':
+        return <AgreementBuilder analysisContext={results} />;
       case 'landing':
       default:
         return <LandingPage onEnter={handleEnterTool} />;

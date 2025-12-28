@@ -160,6 +160,12 @@ def create_app():
                 # Consider if 'name' should be unique. If not, remove unique=True.
                 result = server.db.ethical_memes.create_index([('name', 1)], unique=True, name='name_unique_idx')
                 logger.info(f"Ensured index '{result}' on ethical_memes.name")
+                agreements_status_idx = server.db.agreements.create_index([('status', 1)], name='agreements_status_idx')
+                logger.info(f"Ensured index '{agreements_status_idx}' on agreements.status")
+                agreements_created_idx = server.db.agreements.create_index([('created_at', -1)], name='agreements_created_at_idx')
+                logger.info(f"Ensured index '{agreements_created_idx}' on agreements.created_at")
+                actions_agreement_idx = server.db.agreement_actions.create_index([('agreement_id', 1), ('timestamp', 1)], name='agreement_actions_agreement_id_timestamp_idx')
+                logger.info(f"Ensured index '{actions_agreement_idx}' on agreement_actions.agreement_id+timestamp")
                 # Add other indexes here if needed, e.g.:
                 # server.db.ethical_memes.create_index([('tags', 1)], name='tags_idx')
                 # server.db.ethical_memes.create_index([('ethical_dimension', 1)], name='dimension_idx')

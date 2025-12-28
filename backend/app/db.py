@@ -5,6 +5,8 @@ from flask import current_app
 logger = logging.getLogger(__name__)
 MEMES_COLLECTION_NAME = "ethical_memes"
 WELFARE_EVENTS_COLLECTION_NAME = "welfare_events"
+AGREEMENTS_COLLECTION_NAME = "agreements"
+AGREEMENT_ACTIONS_COLLECTION_NAME = "agreement_actions"
 
 class DatabaseConnectionError(Exception):
     """Raised when the database connection is not initialized."""

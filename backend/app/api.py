@@ -20,7 +20,7 @@ from .modules.ai_welfare import analyze_ai_welfare
 from .modules.alignment import analyze_alignment
 from datetime import datetime, timezone
 from uuid import uuid4
-from .models import AnalysisResultModel
+from .models import AnalysisResultModel, AgreementCreate, AgreementActionRequest
 
 # --- Blueprint Definition ---
 api_bp = Blueprint('api', __name__, url_prefix='/api')
@@ -195,6 +195,23 @@ def _parse_ethical_analysis(analysis_text: str) -> Tuple[str, Optional[Dict[str,
         scores_json = None
 
     return summary, scores_json
+
+def _serialize_mongo_value(value: Any) -> Any:
+    if isinstance(value, ObjectId):
+        return str(value)
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {k: _serialize_mongo_value(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_serialize_mongo_value(item) for item in value]
+    return value
+
+
+def _serialize_mongo_document(document: Dict[str, Any]) -> Dict[str, Any]:
+    serialized = {k: _serialize_mongo_value(v) for k, v in document.items() if k != "_id"}
+    serialized["id"] = str(document["_id"])
+    return serialized
 
 # --- Private Helpers for /analyze Route ---
 
@@ -871,3 +888,170 @@ def govern():
     except Exception as e:
         logger.error(f"Error in govern: {str(e)}")
         return jsonify({"error": str(e)}), 500 
+
+
+@api_bp.route('/agreements', methods=['POST'])
+def create_agreement():
+    """Create a draft or proposed agreement."""
+    data = request.get_json(silent=True) or {}
+    try:
+        agreement_request = AgreementCreate(**data)
+    except ValidationError as exc:
+        return jsonify({"error": "Invalid agreement payload", "details": exc.errors()}), 400
+
+    if agreement_request.status not in ("draft", "proposed"):
+        return jsonify({"error": "Agreement status must be 'draft' or 'proposed' on creation."}), 400
+
+    now = datetime.now(timezone.utc)
+    agreement_doc: Dict[str, Any] = {
+        "parties": agreement_request.parties,
+        "terms": agreement_request.terms,
+        "status": agreement_request.status,
+        "model_id": agreement_request.model_id,
+        "model_version": agreement_request.model_version,
+        "created_at": now,
+        "updated_at": now,
+    }
+    result = current_app.db.agreements.insert_one(agreement_doc)
+    agreement_doc["_id"] = result.inserted_id
+
+    action_doc = {
+        "agreement_id": result.inserted_id,
+        "action": "comment",
+        "payload": {"message": "Agreement created.", "status": agreement_request.status},
+        "timestamp": now,
+        "actor_party_id": "system",
+    }
+    action_result = current_app.db.agreement_actions.insert_one(action_doc)
+    action_doc["_id"] = action_result.inserted_id
+
+    return jsonify({
+        "agreement": _serialize_mongo_document(agreement_doc),
+        "action": _serialize_mongo_document(action_doc),
+    }), 201
+
+
+@api_bp.route('/agreements/<agreement_id>', methods=['GET'])
+def get_agreement(agreement_id: str):
+    """Fetch a single agreement by ID."""
+    try:
+        obj_id = ObjectId(agreement_id)
+    except Exception:
+        return jsonify({"error": "Invalid agreement ID."}), 400
+
+    agreement_doc = current_app.db.agreements.find_one({"_id": obj_id})
+    if not agreement_doc:
+        return jsonify({"error": "Agreement not found."}), 404
+
+    return jsonify({"agreement": _serialize_mongo_document(agreement_doc)}), 200
+
+
+@api_bp.route('/agreements/<agreement_id>/actions', methods=['POST'])
+def add_agreement_action(agreement_id: str):
+    """Apply an action to an agreement (accept/decline/counter/comment)."""
+    data = request.get_json(silent=True) or {}
+    try:
+        action_request = AgreementActionRequest(**data)
+    except ValidationError as exc:
+        return jsonify({"error": "Invalid action payload", "details": exc.errors()}), 400
+
+    try:
+        obj_id = ObjectId(agreement_id)
+    except Exception:
+        return jsonify({"error": "Invalid agreement ID."}), 400
+
+    agreement_doc = current_app.db.agreements.find_one({"_id": obj_id})
+    if not agreement_doc:
+        return jsonify({"error": "Agreement not found."}), 404
+
+    current_status = agreement_doc.get("status")
+    action = action_request.action
+    payload = action_request.payload or {}
+    now = datetime.now(timezone.utc)
+
+    if action == "accept" and current_status != "proposed":
+        return jsonify({"error": "Only proposed agreements can be accepted."}), 400
+    if action == "decline" and current_status != "proposed":
+        return jsonify({"error": "Only proposed agreements can be declined."}), 400
+    if action == "counter" and current_status not in ("proposed", "active"):
+        return jsonify({"error": "Only proposed or active agreements can be countered."}), 400
+
+    updated_agreement_doc = agreement_doc
+    counter_agreement_doc = None
+
+    if action == "accept":
+        current_app.db.agreements.update_one(
+            {"_id": obj_id},
+            {"$set": {"status": "active", "updated_at": now}},
+        )
+        updated_agreement_doc = current_app.db.agreements.find_one({"_id": obj_id})
+    elif action == "decline":
+        current_app.db.agreements.update_one(
+            {"_id": obj_id},
+            {"$set": {"status": "rejected", "updated_at": now}},
+        )
+        updated_agreement_doc = current_app.db.agreements.find_one({"_id": obj_id})
+    elif action == "counter":
+        if "terms" not in payload:
+            return jsonify({"error": "Counter action requires 'terms' in payload."}), 400
+
+        counter_doc = {
+            "parties": payload.get("parties", agreement_doc.get("parties")),
+            "terms": payload["terms"],
+            "status": "proposed",
+            "model_id": payload.get("model_id", agreement_doc.get("model_id")),
+            "model_version": payload.get("model_version", agreement_doc.get("model_version")),
+            "created_at": now,
+            "updated_at": now,
+            "supersedes_agreement_id": obj_id,
+        }
+        counter_result = current_app.db.agreements.insert_one(counter_doc)
+        counter_doc["_id"] = counter_result.inserted_id
+        counter_agreement_doc = counter_doc
+
+        current_app.db.agreements.update_one(
+            {"_id": obj_id},
+            {"$set": {"status": "superseded", "updated_at": now, "superseded_by": counter_result.inserted_id}},
+        )
+        updated_agreement_doc = current_app.db.agreements.find_one({"_id": obj_id})
+
+        counter_action_doc = {
+            "agreement_id": counter_result.inserted_id,
+            "action": "comment",
+            "payload": {"message": "Counter proposal created.", "counter_of": str(obj_id)},
+            "timestamp": now,
+            "actor_party_id": action_request.actor_party_id,
+        }
+        current_app.db.agreement_actions.insert_one(counter_action_doc)
+
+    action_doc = {
+        "agreement_id": obj_id,
+        "action": action,
+        "payload": payload,
+        "timestamp": now,
+        "actor_party_id": action_request.actor_party_id,
+    }
+    action_result = current_app.db.agreement_actions.insert_one(action_doc)
+    action_doc["_id"] = action_result.inserted_id
+
+    response = {
+        "agreement": _serialize_mongo_document(updated_agreement_doc),
+        "action": _serialize_mongo_document(action_doc),
+    }
+    if counter_agreement_doc:
+        response["counter_agreement"] = _serialize_mongo_document(counter_agreement_doc)
+
+    return jsonify(response), 200
+
+
+@api_bp.route('/agreements/<agreement_id>/history', methods=['GET'])
+def get_agreement_history(agreement_id: str):
+    """Return agreement actions history."""
+    try:
+        obj_id = ObjectId(agreement_id)
+    except Exception:
+        return jsonify({"error": "Invalid agreement ID."}), 400
+
+    actions_cursor = current_app.db.agreement_actions.find({"agreement_id": obj_id}).sort("timestamp", 1)
+    actions = [_serialize_mongo_document(action) for action in actions_cursor]
+    return jsonify({"history": actions}), 200
