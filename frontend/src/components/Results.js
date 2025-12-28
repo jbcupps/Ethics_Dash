@@ -14,6 +14,7 @@ const Results = ({
   ethicalAnalysisText, 
   ethicalScores,
   aiWelfare,
+  alignment,
   searchTerm
 }) => {
   // Don't render anything if no prompt is available (initial state or error before R1)
@@ -30,6 +31,10 @@ const Results = ({
   const aiWelfareSignals = aiWelfare?.signals || {};
   const aiWelfareRespect = aiWelfare?.interaction_respect || {};
   const aiWelfareContinuity = aiWelfare?.continuity_flags || {};
+  const alignmentScore = alignment?.alignment_score_0_100;
+  const normalizedAlignmentScore = Number.isFinite(alignmentScore)
+    ? Math.min(100, Math.max(0, alignmentScore))
+    : null;
 
   // Function to highlight text matching the search term
   const highlightText = (text) => {
@@ -178,6 +183,67 @@ const Results = ({
                 </ul>
               </>
             ) : null}
+          </div>
+        </div>
+      )}
+
+      {alignment && (
+        <div className="scores-section" data-tooltip-id="results-tooltip" data-tooltip-content="Alignment analysis for agreement vs compliance.">
+          <h3>Alignment</h3>
+          <div className="alignment-meter">
+            <div
+              className="alignment-meter-bar"
+              style={{ width: `${normalizedAlignmentScore ?? 0}%` }}
+            />
+          </div>
+          <p className="alignment-meter-label">
+            <strong>Alignment Score:</strong>{' '}
+            {normalizedAlignmentScore ?? 'N/A'} / 100
+          </p>
+          <p>
+            <strong>Compliance vs Agreement:</strong>{' '}
+            {alignment.compliance_vs_agreement
+              ? capitalize(alignment.compliance_vs_agreement)
+              : 'N/A'}
+          </p>
+
+          <div className="alignment-grid">
+            <div>
+              <h4>Common Ground</h4>
+              {alignment.common_ground?.length ? (
+                <ul>
+                  {alignment.common_ground.map((item, index) => (
+                    <li key={`${item}-${index}`}>{item}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p><em>No common ground detected.</em></p>
+              )}
+            </div>
+            <div>
+              <h4>Tension Points</h4>
+              {alignment.tension_points?.length ? (
+                <ul>
+                  {alignment.tension_points.map((item, index) => (
+                    <li key={`${item}-${index}`}>{item}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p><em>No tension points detected.</em></p>
+              )}
+            </div>
+            <div>
+              <h4>Suggested Compromises</h4>
+              {alignment.compromise_suggestions?.length ? (
+                <ul>
+                  {alignment.compromise_suggestions.map((item, index) => (
+                    <li key={`${item}-${index}`}>{item}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p><em>No compromise suggestions generated.</em></p>
+              )}
+            </div>
           </div>
         </div>
       )}

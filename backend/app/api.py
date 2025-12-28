@@ -17,6 +17,7 @@ from .modules.llm_interface import generate_response, perform_ethical_analysis, 
 # Corrected relative imports assuming db.py and models.py are in the same 'app' package
 from .db import get_all_memes_for_selection, store_welfare_event, DatabaseConnectionError
 from .modules.ai_welfare import analyze_ai_welfare
+from .modules.alignment import analyze_alignment
 from datetime import datetime, timezone
 from uuid import uuid4
 from .models import AnalysisResultModel
@@ -275,6 +276,7 @@ def _process_analysis_request(
         "analysis_summary": None,
         "ethical_scores": None,
         "ai_welfare": None,
+        "alignment": None,
         "error": None
     }
 
@@ -296,6 +298,15 @@ def _process_analysis_request(
             metadata=welfare_metadata,
         )
         response_payload["ai_welfare"] = ai_welfare_payload.get("ai_welfare")
+
+        alignment_payload = analyze_alignment(
+            prompt=prompt,
+            response=initial_response,
+            parties=welfare_metadata.get("parties") if welfare_metadata else None,
+            transcript_segment=welfare_metadata.get("transcript_segment") if welfare_metadata else None,
+            model_metadata=welfare_metadata.get("model_metadata") if welfare_metadata else None,
+        )
+        response_payload["alignment"] = alignment_payload.get("alignment")
 
         try:
             welfare_event = {
