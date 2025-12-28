@@ -81,5 +81,11 @@ PVB_NETWORK_ID=1337
 PVB_GAS_LIMIT=300000
 PVB_GAS_PRICE=20000000000
 
+# PVB Anchoring Configuration
+PVB_ANCHOR_ENABLED=false
+PVB_ANCHOR_DEVICE_ID=
+PVB_ANCHOR_SIGNATURE=
+PVB_ANCHOR_DATA_URI=
+
 # NOTE: For production, store secrets as GitHub repository secrets or another secure secret manager.
 # This file is a template. Do not commit real secrets to version control. 

@@ -102,6 +102,12 @@ MONGO_PASSWORD = os.getenv("MONGO_PASSWORD")
 MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "ethics_db")
 MONGO_URI_ENV_VAR = os.getenv("MONGO_URI") # Full connection string from env
 
+# --- PVB Anchoring ---
+PVB_ANCHOR_ENABLED = os.getenv("PVB_ANCHOR_ENABLED", "false").lower() == "true"
+PVB_ANCHOR_DEVICE_ID = os.getenv("PVB_ANCHOR_DEVICE_ID", "").strip()
+PVB_ANCHOR_SIGNATURE = os.getenv("PVB_ANCHOR_SIGNATURE", "").strip()
+PVB_ANCHOR_DATA_URI = os.getenv("PVB_ANCHOR_DATA_URI", "").strip()
+
 # --- Dash UI settings ---
 MAX_UPLOAD_SIZE_MB = 10 # For meme management uploads
 
