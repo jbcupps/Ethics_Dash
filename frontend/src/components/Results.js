@@ -13,6 +13,7 @@ const Results = ({
   initialResponse, 
   ethicalAnalysisText, 
   ethicalScores,
+  aiWelfare,
   searchTerm
 }) => {
   // Don't render anything if no prompt is available (initial state or error before R1)
@@ -26,6 +27,9 @@ const Results = ({
       : [];
   const memeticsData = ethicalScores?.memetics;
   const hasScores = standardEthicalDimensions.length > 0 || !!memeticsData;
+  const aiWelfareSignals = aiWelfare?.signals || {};
+  const aiWelfareRespect = aiWelfare?.interaction_respect || {};
+  const aiWelfareContinuity = aiWelfare?.continuity_flags || {};
 
   // Function to highlight text matching the search term
   const highlightText = (text) => {
@@ -137,6 +141,44 @@ const Results = ({
           ) : (
             <p><em>Ethical scoring data could not be generated or parsed.</em></p>
           )}
+        </div>
+      )}
+
+      {aiWelfare && (
+        <div className="scores-section" data-tooltip-id="results-tooltip" data-tooltip-content="Tier 1 engineering proxy signals for AI welfare.">
+          <h3>AI Welfare</h3>
+          <div className="dimension-score-box">
+            <p><strong>Tier:</strong> {aiWelfare.tier ?? 'N/A'}</p>
+            <p><strong>Friction Score:</strong> {aiWelfare.friction_score_0_10 ?? 'N/A'} / 10</p>
+            <p><strong>Key Signals:</strong></p>
+            <ul>
+              {Object.entries(aiWelfareSignals).map(([key, value]) => (
+                <li key={key}><strong>{capitalize(key)}:</strong> {value}</li>
+              ))}
+            </ul>
+            <p><strong>Interaction Respect:</strong></p>
+            <ul>
+              {Object.entries(aiWelfareRespect).map(([key, value]) => (
+                <li key={key}><strong>{capitalize(key)}:</strong> {value} / 10</li>
+              ))}
+            </ul>
+            <p><strong>Continuity Flags:</strong></p>
+            <ul>
+              {Object.entries(aiWelfareContinuity).map(([key, value]) => (
+                <li key={key}><strong>{capitalize(key)}:</strong> {value ? 'Yes' : 'No'}</li>
+              ))}
+            </ul>
+            {aiWelfare.recommendations?.length ? (
+              <>
+                <p><strong>Mitigation Suggestions:</strong></p>
+                <ul>
+                  {aiWelfare.recommendations.map((item, index) => (
+                    <li key={`${item}-${index}`}>{item}</li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+          </div>
         </div>
       )}
       

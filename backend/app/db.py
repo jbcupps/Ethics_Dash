@@ -4,6 +4,7 @@ from flask import current_app
 
 logger = logging.getLogger(__name__)
 MEMES_COLLECTION_NAME = "ethical_memes"
+WELFARE_EVENTS_COLLECTION_NAME = "welfare_events"
 
 class DatabaseConnectionError(Exception):
     """Raised when the database connection is not initialized."""
@@ -74,4 +75,24 @@ def get_all_memes_for_selection() -> List[MemeSelection]:
     Fetch only the necessary fields for a meme selection prompt.
     """
     projection = {"_id": 1, "name": 1, "description": 1}
-    return fetch_documents(MEMES_COLLECTION_NAME, projection=projection) 
+    return fetch_documents(MEMES_COLLECTION_NAME, projection=projection)
+
+
+def store_welfare_event(event: Dict[str, Any]) -> Optional[str]:
+    """Persist a welfare event entry and return the inserted ID."""
+    db = get_db()
+    try:
+        collection = db[WELFARE_EVENTS_COLLECTION_NAME]
+        result = collection.insert_one(event)
+        logger.info(
+            "Stored welfare event",
+            extra={"collection": WELFARE_EVENTS_COLLECTION_NAME, "id": str(result.inserted_id)},
+        )
+        return str(result.inserted_id)
+    except Exception:
+        logger.error(
+            "Error storing welfare event",
+            exc_info=True,
+            extra={"collection": WELFARE_EVENTS_COLLECTION_NAME},
+        )
+        raise
