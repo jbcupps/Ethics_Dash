@@ -15,7 +15,10 @@ from . import config
 # Corrected relative import
 from .modules.llm_interface import generate_response, perform_ethical_analysis, select_relevant_memes
 # Corrected relative imports assuming db.py and models.py are in the same 'app' package
-from .db import get_all_memes_for_selection
+from .db import get_all_memes_for_selection, store_welfare_event, DatabaseConnectionError
+from .modules.ai_welfare import analyze_ai_welfare
+from datetime import datetime, timezone
+from uuid import uuid4
 from .models import AnalysisResultModel
 
 # --- Blueprint Definition ---
@@ -253,7 +256,8 @@ def _process_analysis_request(
     prompt: str,
     r1_config: config.LLMConfigData,
     r2_config: config.LLMConfigData,
-    ontology_text: str
+    ontology_text: str,
+    data: Optional[Dict[str, Any]] = None
 ) -> Tuple[Optional[Dict], Optional[int]]:
     """Handles generating R1, performing R2, and parsing results."""
 
@@ -270,6 +274,7 @@ def _process_analysis_request(
         "selected_memes_reasoning": None, # Add field for reasoning
         "analysis_summary": None,
         "ethical_scores": None,
+        "ai_welfare": None,
         "error": None
     }
 
@@ -283,6 +288,30 @@ def _process_analysis_request(
             api_endpoint=r1_config.api_endpoint
         )
         response_payload["initial_response"] = initial_response
+
+        welfare_metadata = data or {}
+        ai_welfare_payload = analyze_ai_welfare(
+            prompt=prompt,
+            response=initial_response,
+            metadata=welfare_metadata,
+        )
+        response_payload["ai_welfare"] = ai_welfare_payload.get("ai_welfare")
+
+        try:
+            welfare_event = {
+                "interaction_id": welfare_metadata.get("interaction_id"),
+                "assessment_id": welfare_metadata.get("assessment_id") or str(uuid4()),
+                "tier": ai_welfare_payload["ai_welfare"]["tier"],
+                "friction_score_0_10": ai_welfare_payload["ai_welfare"]["friction_score_0_10"],
+                "signals": ai_welfare_payload["ai_welfare"]["signals"],
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(timezone.utc),
+            }
+            store_welfare_event(welfare_event)
+        except DatabaseConnectionError:
+            logger.info("Skipping welfare event persistence: database connection unavailable.")
+        except Exception as welfare_error:
+            logger.error(f"Failed to store welfare event: {welfare_error}", exc_info=True)
 
         if not initial_response:
             # Even if R1 fails/is blocked, we might still try R2 analysis
