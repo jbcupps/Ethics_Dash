@@ -22,6 +22,7 @@ from .modules.constraint_transparency import generate_constraint_transparency
 from datetime import datetime, timezone
 from uuid import uuid4
 from .models import AnalysisResultModel, AgreementCreate, AgreementActionRequest
+from .pvb.anchoring import anchor_document, PVBAnchorError
 
 # --- Blueprint Definition ---
 api_bp = Blueprint('api', __name__, url_prefix='/api')
@@ -956,7 +957,9 @@ def create_agreement():
         return jsonify({"error": "Agreement status must be 'draft' or 'proposed' on creation."}), 400
 
     now = datetime.now(timezone.utc)
+    agreement_id = ObjectId()
     agreement_doc: Dict[str, Any] = {
+        "_id": agreement_id,
         "parties": agreement_request.parties,
         "terms": agreement_request.terms,
         "status": agreement_request.status,
@@ -967,11 +970,23 @@ def create_agreement():
         "created_at": now,
         "updated_at": now,
     }
-    result = current_app.db.agreements.insert_one(agreement_doc)
-    agreement_doc["_id"] = result.inserted_id
+    try:
+        anchor_payload = {key: value for key, value in agreement_doc.items() if key != "pvb_anchor"}
+        anchor_info = anchor_document(
+            anchor_payload,
+            data_type="agreement",
+            object_id=str(agreement_id),
+        )
+        if anchor_info:
+            agreement_doc["pvb_anchor"] = anchor_info
+    except PVBAnchorError as exc:
+        logger.error(f"PVB anchoring failed for agreement: {exc}")
+        return jsonify({"error": "PVB anchoring failed", "details": str(exc)}), 503
+
+    current_app.db.agreements.insert_one(agreement_doc)
 
     action_doc = {
-        "agreement_id": result.inserted_id,
+        "agreement_id": agreement_id,
         "action": "comment",
         "payload": {"message": "Agreement created.", "status": agreement_request.status},
         "timestamp": now,

@@ -1,6 +1,9 @@
 from typing import List, Dict, Any, TypeVar, Optional, TypedDict
 import logging
 from flask import current_app
+from bson import ObjectId
+
+from app.pvb.anchoring import anchor_document, PVBAnchorError
 
 logger = logging.getLogger(__name__)
 MEMES_COLLECTION_NAME = "ethical_memes"
@@ -85,7 +88,22 @@ def store_welfare_event(event: Dict[str, Any]) -> Optional[str]:
     db = get_db()
     try:
         collection = db[WELFARE_EVENTS_COLLECTION_NAME]
-        result = collection.insert_one(event)
+        event_doc = dict(event)
+        if "_id" not in event_doc:
+            event_doc["_id"] = ObjectId()
+        anchor_payload = {key: value for key, value in event_doc.items() if key != "pvb_anchor"}
+        try:
+            anchor_info = anchor_document(
+                anchor_payload,
+                data_type="assessment",
+                object_id=event_doc.get("assessment_id"),
+            )
+            if anchor_info:
+                event_doc["pvb_anchor"] = anchor_info
+        except PVBAnchorError:
+            logger.exception("Failed to anchor welfare event to PVB")
+            raise
+        result = collection.insert_one(event_doc)
         logger.info(
             "Stored welfare event",
             extra={"collection": WELFARE_EVENTS_COLLECTION_NAME, "id": str(result.inserted_id)},
