@@ -17,6 +17,9 @@
   --color-success-background: #E3FCEF;
   --color-success-border: #ABF5D1;
   --color-success-text: #006644;
+  --color-warning-background: #FFF7E6;
+  --color-warning-border: #FFE2BD;
+  --color-warning-text: #8A3F00;
   --color-disabled-background: #B3BAC5;
   
   /* Typography */
@@ -578,6 +581,12 @@ button:disabled {
   color: var(--color-success-text);
   background-color: var(--color-success-background);
   border-color: var(--color-success-border);
+}
+
+.alert-warning {
+  color: var(--color-warning-text);
+  background-color: var(--color-warning-background);
+  border-color: var(--color-warning-border);
 }
 
 /* Deprecate .flash-error in favor of .alert .alert-error */

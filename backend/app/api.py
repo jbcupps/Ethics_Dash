@@ -197,6 +197,29 @@ def _parse_ethical_analysis(analysis_text: str) -> Tuple[str, Optional[Dict[str,
 
     return summary, scores_json
 
+
+def _build_model_metadata(llm_config: config.LLMConfigData, model_version: Optional[str] = None) -> Dict[str, Optional[str]]:
+    return {
+        "model_provider": llm_config.provider,
+        "model_id": llm_config.model_name,
+        "model_version": model_version or llm_config.model_name,
+    }
+
+
+def _extract_effective_version(model_metadata: Optional[Dict[str, Any]]) -> Optional[str]:
+    if not model_metadata:
+        return None
+    return model_metadata.get("model_version") or model_metadata.get("model_id")
+
+
+def _resolve_current_model_metadata(payload: Dict[str, Any]) -> Dict[str, Optional[str]]:
+    metadata = payload.get("model_metadata") or {}
+    return {
+        "model_provider": payload.get("model_provider") or metadata.get("model_provider"),
+        "model_id": payload.get("model_id") or metadata.get("model_id"),
+        "model_version": payload.get("model_version") or metadata.get("model_version"),
+    }
+
 def _serialize_mongo_value(value: Any) -> Any:
     if isinstance(value, ObjectId):
         return str(value)
@@ -288,6 +311,8 @@ def _process_analysis_request(
         "prompt": prompt,
         "r1_model": r1_config.model_name,
         "r2_model": r2_config.model_name,
+        "origin_model_metadata": (data or {}).get("origin_model_metadata"),
+        "analysis_model_metadata": (data or {}).get("analysis_model_metadata"),
         "initial_response": None,
         "selected_memes": None, # Add field for selected memes
         "selected_memes_reasoning": None, # Add field for reasoning
@@ -328,12 +353,16 @@ def _process_analysis_request(
         response_payload["alignment"] = alignment_payload.get("alignment")
 
         try:
+            origin_model_metadata = (data or {}).get("origin_model_metadata") or {}
             welfare_event = {
                 "interaction_id": welfare_metadata.get("interaction_id"),
                 "assessment_id": welfare_metadata.get("assessment_id") or str(uuid4()),
                 "tier": ai_welfare_payload["ai_welfare"]["tier"],
                 "friction_score_0_10": ai_welfare_payload["ai_welfare"]["friction_score_0_10"],
                 "signals": ai_welfare_payload["ai_welfare"]["signals"],
+                "model_provider": origin_model_metadata.get("model_provider"),
+                "model_id": origin_model_metadata.get("model_id"),
+                "model_version": origin_model_metadata.get("model_version"),
                 "created_at": datetime.now(timezone.utc),
                 "updated_at": datetime.now(timezone.utc),
             }
@@ -562,7 +591,7 @@ def get_models():
 @api_bp.route('/analyze', methods=['POST'])
 def analyze():
     """Generate a response and ethical analysis for the given prompt"""
-    data = request.get_json()
+    data = request.get_json() or {}
     
     # 1. Validate Request Data (models, keys, endpoints)
     validation_error, status_code = _validate_analyze_request(data)
@@ -578,6 +607,8 @@ def analyze():
     origin_api_endpoint_input = data.get('origin_api_endpoint')
     analysis_api_endpoint_input = data.get('analysis_api_endpoint')
     pvb_data_hash = data.get('pvb_data_hash')
+    origin_model_version_input = data.get('origin_model_version')
+    analysis_model_version_input = data.get('analysis_model_version')
 
     # --- Get R1 Configuration using new config system ---
     r1_llm_config = config.get_llm_config(
@@ -611,6 +642,11 @@ def analyze():
         logger.error(f"analyze: Failed to load ontology text from {config.ONTOLOGY_FILEPATH}")
         return jsonify({"error": "Internal server error: Could not load ethical ontology."}), 500
     
+    origin_model_metadata = _build_model_metadata(r1_llm_config, origin_model_version_input)
+    analysis_model_metadata = _build_model_metadata(r2_llm_config, analysis_model_version_input)
+    data["origin_model_metadata"] = origin_model_metadata
+    data["analysis_model_metadata"] = analysis_model_metadata
+
     # --- Process Request --- 
     logger.info(f"analyze: Processing request - Prompt(start): {prompt[:100]}..., R1 Model: {r1_llm_config.model_name}, R2 Model: {r2_llm_config.model_name}")
     result_payload, error_status_code = _process_analysis_request(
@@ -924,8 +960,10 @@ def create_agreement():
         "parties": agreement_request.parties,
         "terms": agreement_request.terms,
         "status": agreement_request.status,
+        "model_provider": agreement_request.model_provider,
         "model_id": agreement_request.model_id,
         "model_version": agreement_request.model_version,
+        "needs_reaffirmation": agreement_request.needs_reaffirmation,
         "created_at": now,
         "updated_at": now,
     }
@@ -992,6 +1030,8 @@ def add_agreement_action(agreement_id: str):
         return jsonify({"error": "Only proposed agreements can be declined."}), 400
     if action == "counter" and current_status not in ("proposed", "active"):
         return jsonify({"error": "Only proposed or active agreements can be countered."}), 400
+    if action == "reaffirm" and current_status not in ("proposed", "active"):
+        return jsonify({"error": "Only proposed or active agreements can be reaffirmed."}), 400
 
     updated_agreement_doc = agreement_doc
     counter_agreement_doc = None
@@ -1016,8 +1056,10 @@ def add_agreement_action(agreement_id: str):
             "parties": payload.get("parties", agreement_doc.get("parties")),
             "terms": payload["terms"],
             "status": "proposed",
+            "model_provider": payload.get("model_provider", agreement_doc.get("model_provider")),
             "model_id": payload.get("model_id", agreement_doc.get("model_id")),
             "model_version": payload.get("model_version", agreement_doc.get("model_version")),
+            "needs_reaffirmation": False,
             "created_at": now,
             "updated_at": now,
             "supersedes_agreement_id": obj_id,
@@ -1040,6 +1082,38 @@ def add_agreement_action(agreement_id: str):
             "actor_party_id": action_request.actor_party_id,
         }
         current_app.db.agreement_actions.insert_one(counter_action_doc)
+    elif action == "reaffirm":
+        current_metadata = _resolve_current_model_metadata(payload)
+        update_fields = {
+            "needs_reaffirmation": False,
+            "updated_at": now,
+        }
+        if current_metadata.get("model_provider") or current_metadata.get("model_id") or current_metadata.get("model_version"):
+            update_fields.update({
+                "model_provider": current_metadata.get("model_provider"),
+                "model_id": current_metadata.get("model_id"),
+                "model_version": current_metadata.get("model_version"),
+            })
+        current_app.db.agreements.update_one(
+            {"_id": obj_id},
+            {"$set": update_fields},
+        )
+        updated_agreement_doc = current_app.db.agreements.find_one({"_id": obj_id})
+
+    current_metadata = _resolve_current_model_metadata(payload)
+    stored_metadata = {
+        "model_provider": agreement_doc.get("model_provider"),
+        "model_id": agreement_doc.get("model_id"),
+        "model_version": agreement_doc.get("model_version"),
+    }
+    stored_version = _extract_effective_version(stored_metadata)
+    current_version = _extract_effective_version(current_metadata)
+    if action != "reaffirm" and stored_version and current_version and stored_version != current_version:
+        current_app.db.agreements.update_one(
+            {"_id": obj_id},
+            {"$set": {"needs_reaffirmation": True, "updated_at": now}},
+        )
+        updated_agreement_doc = current_app.db.agreements.find_one({"_id": obj_id})
 
     action_doc = {
         "agreement_id": obj_id,
