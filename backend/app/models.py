@@ -136,15 +136,17 @@ class AnalysisResultModel(BaseModel):
 # --- Agreements ---
 
 AgreementStatus = Literal["draft", "proposed", "active", "rejected", "superseded", "expired"]
-AgreementActionType = Literal["accept", "decline", "counter", "comment"]
+AgreementActionType = Literal["accept", "decline", "counter", "comment", "reaffirm"]
 
 
 class AgreementCreate(BaseModel):
     parties: Any
     terms: Dict[str, Any]
     status: AgreementStatus = "draft"
+    model_provider: Optional[str] = None
     model_id: Optional[str] = None
     model_version: Optional[str] = None
+    needs_reaffirmation: bool = False
 
 
 class AgreementActionRequest(BaseModel):

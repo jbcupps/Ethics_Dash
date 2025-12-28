@@ -107,11 +107,20 @@ MAX_UPLOAD_SIZE_MB = 10 # For meme management uploads
 
 
 class LLMConfigData:
-    def __init__(self, model_name: str, api_key: Optional[str], api_endpoint: Optional[str], source_info: str, error: Optional[str] = None):
+    def __init__(
+        self,
+        model_name: str,
+        api_key: Optional[str],
+        api_endpoint: Optional[str],
+        source_info: str,
+        provider: str,
+        error: Optional[str] = None,
+    ):
         self.model_name = model_name
         self.api_key = api_key
         self.api_endpoint = api_endpoint
         self.source_info = source_info
+        self.provider = provider
         self.error = error
         if not self.api_key and not self.error: # If no key and no pre-existing error
             self.error = f"API Key for {self.model_name} ({self.source_info}) not found or empty."
@@ -151,7 +160,14 @@ def get_llm_config(
         else:
             error_msg = f"No valid model found for request. Requested: '{requested_model}', EnvVar '{default_model_env_var_name}': '{env_model_name}', Fallback: '{default_fallback_model}'. Critical: No models available."
             logger.error(error_msg)
-            return LLMConfigData(requested_model or "Unknown", None, None, "error_no_valid_model", error_msg)
+            return LLMConfigData(
+                requested_model or "Unknown",
+                None,
+                None,
+                "error_no_valid_model",
+                "UnknownProvider",
+                error_msg,
+            )
     logger.info(f"Using model: {final_model} (Source: {model_source_info}, User Requested: {requested_model})")
 
     # 2. Determine API Key and Endpoint based on the final_model
@@ -226,7 +242,13 @@ def get_llm_config(
 
     config_source_info = (f"model_source: {model_source_info}; key_source: {key_source_debug}; "
                           f"endpoint_source: {endpoint_source_debug}")
-    llm_config_instance = LLMConfigData(final_model, final_api_key, final_api_endpoint, config_source_info)
+    llm_config_instance = LLMConfigData(
+        final_model,
+        final_api_key,
+        final_api_endpoint,
+        config_source_info,
+        api_provider_name,
+    )
     logger.info(f"Resolved LLM config for {api_provider_name} (is_analysis={is_analysis_config}): {llm_config_instance}")
     return llm_config_instance
 

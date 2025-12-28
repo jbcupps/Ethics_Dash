@@ -40,8 +40,11 @@ const AgreementBuilder = ({ analysisContext }) => {
   const [freeformNotes, setFreeformNotes] = useState('');
   const [statusMessage, setStatusMessage] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [modelProvider, setModelProvider] = useState('');
   const [modelId, setModelId] = useState('');
   const [modelVersion, setModelVersion] = useState('');
+  const [continuityWarning, setContinuityWarning] = useState(null);
+  const [agreementContinuityWarning, setAgreementContinuityWarning] = useState(null);
 
   const [agreementIdInput, setAgreementIdInput] = useState('');
   const [currentAgreement, setCurrentAgreement] = useState(null);
@@ -59,8 +62,55 @@ const AgreementBuilder = ({ analysisContext }) => {
       setPartiesInput(buildDefaultParties(analysisContext));
       setHumanReadableTerms(buildDefaultHumanReadable(analysisContext));
       setMachineReadableTerms(buildDefaultMachineReadable(analysisContext));
+      const defaultMetadata = analysisContext?.analysisModelMetadata || analysisContext?.originModelMetadata || {};
+      setModelProvider(defaultMetadata.model_provider || '');
+      setModelId(defaultMetadata.model_id || '');
+      setModelVersion(defaultMetadata.model_version || '');
     }
   }, [analysisAvailable, analysisContext]);
+
+  useEffect(() => {
+    if (!analysisAvailable) {
+      return;
+    }
+    const warnings = [];
+    const metadataPairs = [
+      { label: 'Origin model', metadata: analysisContext?.originModelMetadata },
+      { label: 'Analysis model', metadata: analysisContext?.analysisModelMetadata },
+    ];
+
+    metadataPairs.forEach(({ label, metadata }) => {
+      if (!metadata?.model_id) {
+        return;
+      }
+      const effectiveVersion = metadata.model_version || metadata.model_id;
+      const key = `model_version:${metadata.model_provider || 'unknown'}:${metadata.model_id}`;
+      const previousVersion = window.localStorage.getItem(key);
+      if (previousVersion && previousVersion !== effectiveVersion) {
+        warnings.push(`${label} updated from ${previousVersion} to ${effectiveVersion}.`);
+      }
+      if (effectiveVersion) {
+        window.localStorage.setItem(key, effectiveVersion);
+      }
+    });
+
+    setContinuityWarning(warnings.length ? warnings.join(' ') : null);
+  }, [analysisAvailable, analysisContext]);
+
+  useEffect(() => {
+    if (!currentAgreement) {
+      setAgreementContinuityWarning(null);
+      return;
+    }
+    const currentMetadata = analysisContext?.analysisModelMetadata || analysisContext?.originModelMetadata || {};
+    const agreementVersion = currentAgreement.model_version || currentAgreement.model_id;
+    const currentVersion = currentMetadata.model_version || currentMetadata.model_id;
+    if (agreementVersion && currentVersion && agreementVersion !== currentVersion) {
+      setAgreementContinuityWarning(`Agreement model version (${agreementVersion}) differs from current model (${currentVersion}).`);
+    } else {
+      setAgreementContinuityWarning(null);
+    }
+  }, [currentAgreement, analysisContext]);
 
   const parseJsonField = (value, label) => {
     try {
@@ -90,8 +140,10 @@ const AgreementBuilder = ({ analysisContext }) => {
         parties,
         terms,
         status: 'proposed',
+        model_provider: modelProvider || null,
         model_id: modelId || null,
         model_version: modelVersion || null,
+        needs_reaffirmation: false,
       };
       const response = await ethicalReviewApi.createAgreement(payload);
       setCurrentAgreement(response.agreement);
@@ -131,9 +183,19 @@ const AgreementBuilder = ({ analysisContext }) => {
         payload = actionPayload ? { message: actionPayload } : {};
       } else if (actionType === 'counter') {
         payload = { terms: parseJsonField(counterTermsInput || '{}', 'Counter terms') };
+      } else if (actionType === 'reaffirm') {
+        payload = actionPayload ? { message: actionPayload } : {};
       } else if (actionPayload) {
         payload = { message: actionPayload };
       }
+
+      const currentModelMetadata = {
+        model_provider: modelProvider || null,
+        model_id: modelId || null,
+        model_version: modelVersion || null,
+      };
+      payload = payload || {};
+      payload.model_metadata = currentModelMetadata;
 
       const response = await ethicalReviewApi.addAgreementAction(currentAgreement.id, {
         action: actionType,
@@ -152,6 +214,36 @@ const AgreementBuilder = ({ analysisContext }) => {
     }
   };
 
+  const handleFlagReaffirmation = async () => {
+    resetMessages();
+    if (!currentAgreement?.id) {
+      setErrorMessage('Load or create an agreement before flagging reaffirmation.');
+      return;
+    }
+
+    try {
+      const response = await ethicalReviewApi.addAgreementAction(currentAgreement.id, {
+        action: 'comment',
+        payload: {
+          message: 'Model version changed; reaffirmation requested.',
+          model_metadata: {
+            model_provider: modelProvider || null,
+            model_id: modelId || null,
+            model_version: modelVersion || null,
+          },
+        },
+        actor_party_id: actionActor,
+      });
+      setCurrentAgreement(response.agreement);
+      const updatedHistory = await ethicalReviewApi.getAgreementHistory(response.agreement.id);
+      setHistory(updatedHistory.history || []);
+      setAgreementIdInput(response.agreement.id);
+      setStatusMessage('Reaffirmation flag recorded.');
+    } catch (error) {
+      setErrorMessage(error.message || 'Failed to flag reaffirmation.');
+    }
+  };
+
   const handleLoadLatestAnalysis = () => {
     if (!analysisAvailable) {
       return;
@@ -159,6 +251,10 @@ const AgreementBuilder = ({ analysisContext }) => {
     setPartiesInput(buildDefaultParties(analysisContext));
     setHumanReadableTerms(buildDefaultHumanReadable(analysisContext));
     setMachineReadableTerms(buildDefaultMachineReadable(analysisContext));
+    const defaultMetadata = analysisContext?.analysisModelMetadata || analysisContext?.originModelMetadata || {};
+    setModelProvider(defaultMetadata.model_provider || '');
+    setModelId(defaultMetadata.model_id || '');
+    setModelVersion(defaultMetadata.model_version || '');
     setStatusMessage('Loaded latest analysis into the proposal builder.');
   };
 
@@ -171,6 +267,11 @@ const AgreementBuilder = ({ analysisContext }) => {
 
       {statusMessage && <div className="alert alert-success">{statusMessage}</div>}
       {errorMessage && <div className="alert alert-error">{errorMessage}</div>}
+      {continuityWarning && (
+        <div className="alert alert-warning">
+          <strong>Continuity warning:</strong> {continuityWarning}
+        </div>
+      )}
 
       <section className="card agreement-section">
         <div className="section-header">
@@ -227,6 +328,15 @@ const AgreementBuilder = ({ analysisContext }) => {
 
         <div className="agreement-row">
           <div className="form-group">
+            <label htmlFor="modelProvider">Model Provider</label>
+            <input
+              id="modelProvider"
+              type="text"
+              value={modelProvider}
+              onChange={(event) => setModelProvider(event.target.value)}
+            />
+          </div>
+          <div className="form-group">
             <label htmlFor="modelId">Model ID (Snapshot)</label>
             <input
               id="modelId"
@@ -270,11 +380,37 @@ const AgreementBuilder = ({ analysisContext }) => {
             <p><strong>ID:</strong> {currentAgreement.id}</p>
             <p><strong>Status:</strong> {currentAgreement.status}</p>
             <p><strong>Updated:</strong> {currentAgreement.updated_at}</p>
+            <p><strong>Model Provider:</strong> {currentAgreement.model_provider || 'N/A'}</p>
+            <p><strong>Model ID:</strong> {currentAgreement.model_id || 'N/A'}</p>
+            <p><strong>Model Version:</strong> {currentAgreement.model_version || 'N/A'}</p>
+            <p><strong>Needs Reaffirmation:</strong> {currentAgreement.needs_reaffirmation ? 'Yes' : 'No'}</p>
           </div>
         ) : (
           <p><em>No agreement loaded yet.</em></p>
         )}
       </section>
+
+      {(agreementContinuityWarning || currentAgreement?.needs_reaffirmation) && (
+        <section className="card agreement-section">
+          <h2>Agreement Continuity</h2>
+          {agreementContinuityWarning && (
+            <div className="alert alert-warning">
+              {agreementContinuityWarning}
+            </div>
+          )}
+          {currentAgreement?.needs_reaffirmation && (
+            <p><strong>This agreement is marked as needing reaffirmation.</strong></p>
+          )}
+          <div className="agreement-row">
+            <button className="button button-secondary" onClick={handleFlagReaffirmation}>
+              Flag for Reaffirmation
+            </button>
+            <button className="button" onClick={() => setActionType('reaffirm')}>
+              Reaffirm Agreement
+            </button>
+          </div>
+        </section>
+      )}
 
       <section className="card agreement-section">
         <h2>Actions</h2>
@@ -286,6 +422,7 @@ const AgreementBuilder = ({ analysisContext }) => {
               <option value="accept">Accept</option>
               <option value="decline">Decline</option>
               <option value="counter">Counter</option>
+              <option value="reaffirm">Reaffirm</option>
             </select>
           </div>
           <div className="form-group">
