@@ -15,7 +15,8 @@ const Results = ({
   ethicalScores,
   aiWelfare,
   alignment,
-  searchTerm
+  searchTerm,
+  onCreateAgreement
 }) => {
   // Don't render anything if no prompt is available (initial state or error before R1)
   if (!prompt) {
@@ -72,6 +73,13 @@ const Results = ({
   return (
     <div className="results-container card">
       <h2>Results</h2>
+      {onCreateAgreement && (
+        <div className="results-actions">
+          <button className="button button-secondary" onClick={onCreateAgreement}>
+            Create Agreement from Analysis
+          </button>
+        </div>
+      )}
       
       {/* Display Used Models */}
       <div className="model-info-box">

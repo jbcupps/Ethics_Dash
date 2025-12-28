@@ -131,4 +131,23 @@ class AnalysisResultModel(BaseModel):
 
     model_config = {
         "extra": "ignore"  # ignore any additional keys
-    } 
+    }
+
+# --- Agreements ---
+
+AgreementStatus = Literal["draft", "proposed", "active", "rejected", "superseded", "expired"]
+AgreementActionType = Literal["accept", "decline", "counter", "comment"]
+
+
+class AgreementCreate(BaseModel):
+    parties: Any
+    terms: Dict[str, Any]
+    status: AgreementStatus = "draft"
+    model_id: Optional[str] = None
+    model_version: Optional[str] = None
+
+
+class AgreementActionRequest(BaseModel):
+    action: AgreementActionType
+    payload: Optional[Dict[str, Any]] = None
+    actor_party_id: str

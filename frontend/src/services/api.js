@@ -170,6 +170,46 @@ export const ethicalReviewApi = {
       throw new Error('Failed to enact proposal.');
     }
   },
+
+  createAgreement: async (agreement) => {
+    try {
+      const response = await apiClient.post('/agreements', agreement);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating agreement:', error.response || error.message || error);
+      throw new Error('Failed to create agreement.');
+    }
+  },
+
+  getAgreement: async (agreementId) => {
+    try {
+      const response = await apiClient.get(`/agreements/${agreementId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching agreement:', error.response || error.message || error);
+      throw new Error('Failed to load agreement.');
+    }
+  },
+
+  addAgreementAction: async (agreementId, actionPayload) => {
+    try {
+      const response = await apiClient.post(`/agreements/${agreementId}/actions`, actionPayload);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating agreement:', error.response || error.message || error);
+      throw new Error('Failed to update agreement.');
+    }
+  },
+
+  getAgreementHistory: async (agreementId) => {
+    try {
+      const response = await apiClient.get(`/agreements/${agreementId}/history`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching agreement history:', error.response || error.message || error);
+      throw new Error('Failed to load agreement history.');
+    }
+  },
 };
 
 export default ethicalReviewApi; 
