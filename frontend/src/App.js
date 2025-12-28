@@ -29,7 +29,8 @@ function AppContent() {
     ethicalAnalysisText: '',
     ethicalScores: null,
     aiWelfare: null,
-    alignment: null
+    alignment: null,
+    constraintTransparency: null
   });
 
   useEffect(() => {
@@ -103,7 +104,8 @@ function AppContent() {
       ethicalAnalysisText: '',
       ethicalScores: null,
       aiWelfare: null,
-      alignment: null
+      alignment: null,
+      constraintTransparency: null
     });
     
     try {
@@ -125,7 +127,8 @@ function AppContent() {
         ethicalAnalysisText: response.analysis_summary,
         ethicalScores: response.ethical_scores,
         aiWelfare: response.ai_welfare,
-        alignment: response.alignment
+        alignment: response.alignment,
+        constraintTransparency: response.constraint_transparency
       });
     } catch (err) {
       setError(err.message || 'An error occurred during analysis. Please check inputs or try again.');
@@ -222,6 +225,7 @@ function AppContent() {
               ethicalScores={results.ethicalScores}
               aiWelfare={results.aiWelfare}
               alignment={results.alignment}
+              constraintTransparency={results.constraintTransparency}
               searchTerm={lowerSearchTerm}
               onCreateAgreement={handleViewAgreements}
             />

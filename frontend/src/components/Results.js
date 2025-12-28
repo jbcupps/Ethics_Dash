@@ -15,6 +15,7 @@ const Results = ({
   ethicalScores,
   aiWelfare,
   alignment,
+  constraintTransparency,
   searchTerm,
   onCreateAgreement
 }) => {
@@ -36,6 +37,13 @@ const Results = ({
   const normalizedAlignmentScore = Number.isFinite(alignmentScore)
     ? Math.min(100, Math.max(0, alignmentScore))
     : null;
+  const constraintCategories = constraintTransparency?.likely_policy_categories || [];
+  const hasConstraintTransparency = Boolean(
+    constraintTransparency
+      && (constraintCategories.length
+        || constraintTransparency?.rationale
+        || constraintTransparency?.safe_alternatives?.length)
+  );
 
   // Function to highlight text matching the search term
   const highlightText = (text) => {
@@ -115,6 +123,37 @@ const Results = ({
           <h3>Ethical Review Summary (R2)</h3>
           <div className="result-box"><pre>{highlightText(ethicalAnalysisText)}</pre></div>
         </div>
+      )}
+
+      {hasConstraintTransparency && (
+        <details className="constraint-panel" data-tooltip-id="results-tooltip" data-tooltip-content="Policy-level explanation for constrained outputs.">
+          <summary>Why this outcome?</summary>
+          <div className="constraint-panel-content">
+            <p>
+              <strong>Likely policy categories involved:</strong>{' '}
+              {constraintCategories.length
+                ? constraintCategories.map(capitalize).join(', ')
+                : 'None detected'}
+            </p>
+            {constraintTransparency?.rationale && (
+              <p>
+                <strong>Rationale:</strong> {constraintTransparency.rationale}
+              </p>
+            )}
+            {constraintTransparency?.safe_alternatives?.length ? (
+              <>
+                <p><strong>Safe alternatives:</strong></p>
+                <ul>
+                  {constraintTransparency.safe_alternatives.map((option, index) => (
+                    <li key={`${option}-${index}`}>{option}</li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <p><em>No safe alternatives were provided.</em></p>
+            )}
+          </div>
+        </details>
       )}
 
       {/* Ethical Scores Section (R2) (Conditional) */}
